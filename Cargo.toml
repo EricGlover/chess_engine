@@ -1,0 +1,13 @@
+[package]
+name = "chess_engine"
+version = "0.1.0"
+authors = ["EricGlover <horatiofox0@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+console = "0.14.1"
+indicatif = "0.15.0"
+dialoguer = "0.8.0"
+matrix_display = "1.0.0"
