@@ -101,8 +101,72 @@ pub struct Coordinate {
     pub y: u8, // 1 - 8 (traditional coordinates)
 }
 
+impl Coordinate {
+    pub fn from(str: &str) -> Coordinate {
+        let mut x:u8 = 0;
+        if str.contains("1") {
+            x = 1;
+        }
+        else if str.contains("2") {
+            x = 2;
+        }
+        else if str.contains("3") {
+            x = 3;
+        }
+        else if str.contains("4") {
+            x = 4;
+        }
+        else if str.contains("5") {
+            x = 5;
+        }
+        else if str.contains("6") {
+            x = 6;
+        }
+        else if str.contains("7") {
+            x = 7;
+        }
+        else if str.contains("8") {
+            x = 8;
+        }
+        let mut y : u8 = 0;
+        if str.contains("a") {
+            y = 1;
+        }
+        else if str.contains("b") {
+            y = 2;
+        }
+        else if str.contains("c") {
+            y = 3;
+        }
+        else if str.contains("d") {
+            y = 4;
+        }
+        else if str.contains("e") {
+            y = 5;
+        }
+        else if str.contains("f") {
+            y = 6;
+        }
+        else if str.contains("g") {
+            y = 7;
+        }
+        else if str.contains("h") {
+            y = 8;
+        }
+        Coordinate {x, y}
+    }
+}
+
 #[derive(Debug)]
 pub struct Board {
+    pub white_to_move: bool,
+    pub white_can_castle_king_side: bool,
+    pub white_can_castle_queen_side: bool,
+    pub black_can_castle_king_side: bool,
+    pub black_can_castle_queen_side: bool,
+    pub en_passant_target: Option<Coordinate>,
+    pub half_move_clock: u8,
+    pub full_move_number: u8,
     squares: Vec<Vec<Square>>,
     // squares: [[Square; 8]; 8],
     // squares: [Square; 64],
@@ -199,6 +263,14 @@ impl Board {
 
     pub fn new() -> Board {
         Board {
+            white_to_move: true,
+            white_can_castle_king_side: true,
+            white_can_castle_queen_side: true,
+            black_can_castle_king_side: true,
+            black_can_castle_queen_side: true,
+            en_passant_target: None,
+            half_move_clock: 0,
+            full_move_number: 0,
             squares: Board::make_squares(),
         }
     }

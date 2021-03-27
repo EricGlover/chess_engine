@@ -181,38 +181,21 @@ fn read_pieces(piece_string: &str, board: &mut Board) {
             }
         }
     }
-    // board
 }
 
 pub fn read(fen_string: &str) -> Board {
     let mut board = Board::new();
     let parts = fen_string.split(" ").collect::<Vec<&str>>();
-    println!("parts = {:?}", parts);
     read_pieces(parts[0], &mut board);
+    board.white_to_move = parts[1] == "w";
+    board.white_can_castle_king_side = parts[2].contains("K");
+    board.white_can_castle_queen_side = parts[2].contains("Q");
+    board.black_can_castle_king_side = parts[2].contains("k");
+    board.black_can_castle_queen_side = parts[2].contains("q");
+    board.en_passant_target = if parts[3] == "-" { None } else {
+        Some(Coordinate::from(parts[3]))
+    };
+    board.half_move_clock = parts[4].parse::<u8>().unwrap();
+    board.full_move_number = parts[5].parse::<u8>().unwrap();
     return board;
-    // board_console_printer::print_board(board.get_squares());
-    //
-    // // let parts = string.split(" ").collect()
-    // println!("{:?}", fen_string.split(" ").collect::<Vec<&str>>());
-    // for str in fen_string.split(" ") {
-    //     println!("doing stuff {}", str);
-    // }
-    // // steps , 1) tokenize by spaces
-    // // parse the separate parts
-    // println!("{}", INITIAL_BOARD);
-    // let p = Piece {
-    //     piece_type: PieceType::Queen,
-    //     color: Color::White,
-    // };
-    // let char: char = 'r';
-    // let color = Color::White; //@todo
-                              // let piece : Piece = match char {
-                              //     'p' => Piece{},
-                              //     'n' => Piece{},
-                              //     'b' => Piece{},
-                              //     'r' => Piece{},
-                              //     'q' => Piece{},
-                              //     'k' => Piece{},
-                              //     _ => panic!("can not read {}", _),
-                              // };
 }
