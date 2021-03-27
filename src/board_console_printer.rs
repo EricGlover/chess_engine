@@ -1,8 +1,8 @@
-use crate::board::{Square, Color, PieceType};
+use crate::board::{Color, PieceType, Square};
 use matrix_display::Format;
 use matrix_display::*;
 
-pub fn print_board(squares : Vec<&Square>) {
+pub fn print_board(squares: Vec<&Square>) {
     let board_cells = squares
         .iter()
         .map(|square| {
@@ -31,7 +31,8 @@ pub fn print_board(squares : Vec<&Square>) {
                 Color::Black => 7,
             };
             cell::Cell::new(value, foreground, ansi_bg)
-        }).collect();
+        })
+        .collect();
     let format = Format::new(7, 3);
     let mut data = matrix::Matrix::new(8, board_cells);
     let display = MatrixDisplay::new(&format, &mut data);

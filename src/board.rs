@@ -1,10 +1,10 @@
-#[derive(Copy, Clone, Debug)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum Color {
     White,
     Black,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Debug, PartialEq,  Eq, Copy, Clone)]
 pub struct Piece {
     pub piece_type: PieceType,
     pub color: Color,
@@ -85,7 +85,7 @@ impl Piece {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Debug,  PartialEq, Eq, Copy, Clone)]
 pub enum PieceType {
     King,
     Queen,
@@ -95,30 +95,59 @@ pub enum PieceType {
     Pawn,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug,  PartialEq, Eq, Copy, Clone)]
 pub struct Coordinate {
     pub x: u8, // a - h (traditional coordinates)
     pub y: u8, // 1 - 8 (traditional coordinates)
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug)]
+pub struct Board {
+    squares: Vec<Vec<Square>>,
+    // squares: [[Square; 8]; 8],
+    // squares: [Square; 64],
+}
+
+#[derive(Debug)]
 pub struct Square {
     pub coordinate: Coordinate,
     pub piece: Option<Piece>,
     pub color: Color,
 }
 
-#[derive(Debug, Clone)]
-pub struct Board {
-    squares: Vec<Vec<Square>>,
-}
+impl Board {
+    pub fn place_piece(&mut self, piece : Piece, at: &Coordinate) {
+        let mut square = self.squares
+            .get_mut((at.y - 1) as usize)
+            .unwrap()
+            .get_mut((at.x - 1) as usize)
+            .unwrap();
+        square.piece = Some(piece);
 
-impl<'a> Board {
-    pub fn place_piece(mut self, piece: Piece, at : &Coordinate) -> Self {
-        self.squares[(at.y - 1) as usize][(at.x - 1) as usize].piece = Some(piece);
-        return self;
+        // let mut square = self.squares[(at.y - 1) as usize][(at.x - 1) as usize];
+        // square.piece = Some(piece);
     }
-    pub fn make_squares() -> Vec<Vec<Square>> {
+
+    pub fn has_piece(&self, at: &Coordinate) -> bool {
+        self.squares[(at.y - 1) as usize][(at.x - 1) as usize]
+            .piece
+            .is_some()
+    }
+
+    pub fn get_piece_at(&self, at: &Coordinate) -> Option<Piece> {
+        let square = self.get_square(at);
+        if square.piece.is_some() {
+            return Some(square.piece.unwrap().clone());
+        } else {
+            return None;
+        }
+    }
+
+    fn get_square(&self, at: &Coordinate) -> &Square {
+        &self.squares[(at.y - 1) as usize][(at.x - 1) as usize]
+    }
+
+    fn make_squares() -> Vec<Vec<Square>> {
         let mut vec: Vec<Vec<Square>> = vec![];
 
         for (i, y) in (1..9).enumerate() {
@@ -152,122 +181,21 @@ impl<'a> Board {
         return vec;
     }
 
-    // @todo: try reading fen
-    pub fn place_pieces() {
-        let s = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    }
-
-
     //@todo : clean up the architecture here, should it pass in a format and matrix display ?
-    pub fn get_squares(&self) -> Vec<&Square>{
-        return self.squares
+    pub fn get_squares(&self) -> Vec<&Square> {
+        return self
+            .squares
             .iter()
-            .map(| vec| {
+            .map(|vec| {
                 return vec.iter().rev();
             })
             .flatten()
             .collect();
     }
 
-
     pub fn new() -> Board {
         Board {
             squares: Board::make_squares(),
         }
-    }
-    // @todo: place the pieces
-    //
-
-    //
-    // fn print(&self) {
-    //     let format = Format::new(7, 3);
-    //     let board_cells = self.squares
-    //         .iter()
-    //         .enumerate()
-    //         .map(|(i, row)| {
-    //             // @todo: check if None ?
-    //             // ansi 8 bit color scheme
-    //             let mut foreground = 0;
-    //             let mut value = ' ';
-    //             if x.is_some() {
-    //                 let piece = x.unwrap();
-    //                 foreground =  match piece.color {
-    //                     Color::Black => 1,  // red
-    //                     Color::White => 5,  // purple
-    //                 };
-    //                 value = match piece.piece_type {
-    //                     PieceType::King => 'K',
-    //                     PieceType::Queen => 'Q',
-    //                     PieceType::Bishop => 'B',
-    //                     PieceType::Knight => 'N',
-    //                     PieceType::Rook => 'R',
-    //                     PieceType::Pawn => 'P',
-    //                 }
-    //             }
-    //
-    //             // @todo : change to use square color later
-    //             let mut ansi_bg = 0;
-    //             if i % 2 + (i / 8) % 2 == 1 {
-    //                 ansi_bg = 7;
-    //             }
-    //             cell::Cell::new(value, foreground, ansi_bg)
-    //         })
-    //         .collect::<Vec<_>>();
-    //     let mut data = matrix::Matrix::new(8, board_cells);
-    //     let mut display = MatrixDisplay::new(&format, &mut data);
-    //     display.print(&mut std::io::stdout(), &style::BordersStyle::None);
-    // }
-
-    pub fn make_initial_board() -> Vec<Option<Piece>> {
-        vec![
-            Some(Piece::make_black_rook()),
-            Some(Piece::make_black_knight()),
-            Some(Piece::make_black_bishop()),
-            Some(Piece::make_black_queen()),
-            Some(Piece::make_black_king()),
-            Some(Piece::make_black_bishop()),
-            Some(Piece::make_black_knight()),
-            Some(Piece::make_black_rook()),
-            Some(Piece::make_black_pawn()),
-            Some(Piece::make_black_pawn()),
-            Some(Piece::make_black_pawn()),
-            Some(Piece::make_black_pawn()),
-            Some(Piece::make_black_pawn()),
-            Some(Piece::make_black_pawn()),
-            Some(Piece::make_black_pawn()),
-            Some(Piece::make_black_pawn()),
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            Some(Piece::make_white_pawn()),
-            Some(Piece::make_white_pawn()),
-            Some(Piece::make_white_pawn()),
-            Some(Piece::make_white_pawn()),
-            Some(Piece::make_white_pawn()),
-            Some(Piece::make_white_pawn()),
-            Some(Piece::make_white_pawn()),
-            Some(Piece::make_white_pawn()),
-            Some(Piece::make_white_rook()),
-            Some(Piece::make_white_knight()),
-            Some(Piece::make_white_bishop()),
-            Some(Piece::make_white_queen()),
-            Some(Piece::make_white_king()),
-            Some(Piece::make_white_bishop()),
-            Some(Piece::make_white_knight()),
-            Some(Piece::make_white_rook()),
-        ]
     }
 }

@@ -24,12 +24,65 @@ FEN SPEC
 **/
 
 pub const INITIAL_BOARD: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-pub const TEST_BOARD_1: &str = "r1bqkb1r/ppp2p1p/2n2np1/1B1pp3/3PPB2/5N2/PPP2PPP/RN1Q1RK1 b kq - 1 6";
+pub const TEST_BOARD_1: &str =
+    "r1bqkb1r/ppp2p1p/2n2np1/1B1pp3/3PPB2/5N2/PPP2PPP/RN1Q1RK1 b kq - 1 6";
 pub const TEST_BOARD_2: &str = "2kr1b1r/1bp4p/ppn3p1/1B1pNp2/P2PnBQq/N1P5/1P3PPP/4RRK1 w - - 1 13";
 
 #[test]
 fn testing() {
     assert_eq!(1 + 3, 4);
+}
+
+#[test]
+fn test_board_2() {
+    let board = read(TEST_BOARD_2);
+    fn has_piece(board: &Board, at: &Coordinate) -> bool {
+        board.has_piece(at)
+    }
+
+    // fn at(x: u8, y: u8) -> Coordinate {
+    //
+    // }
+
+    println!("{:?}", board);
+
+    // row 8
+    assert_eq!(board.has_piece(&Coordinate { x: 1, y: 8 }), false);
+    assert_eq!(board.has_piece(&Coordinate { x: 2, y: 8 }), false);
+    assert_eq!(board.has_piece(&Coordinate { x: 3, y: 8 }), true);
+    assert_eq!(board.has_piece(&Coordinate { x: 4, y: 8 }), true);
+    assert_eq!(board.has_piece(&Coordinate { x: 5, y: 8 }), false);
+    assert_eq!(board.has_piece(&Coordinate { x: 6, y: 8 }), true);
+    assert_eq!(board.has_piece(&Coordinate { x: 7, y: 8 }), false);
+    assert_eq!(board.has_piece(&Coordinate { x: 8, y: 8 }), true);
+
+    //
+    // assert_eq!(has_piece(&board,  &Coordinate {x: 1, y: 8}), false);
+    // assert_eq!(has_piece(&board,  &Coordinate {x: 2, y: 8}), false);
+    // assert_eq!(has_piece(&board,  &Coordinate {x: 3, y: 8}), true);
+    // assert_eq!(has_piece(&board,  &Coordinate {x: 4, y: 8}), true);
+    // assert_eq!(has_piece(&board,  &Coordinate {x: 5, y: 8}), false);
+    // assert_eq!(has_piece(&board,  &Coordinate {x: 6, y: 8}), true);
+    // assert_eq!(has_piece(&board,  &Coordinate {x: 7, y: 8}), false);
+    // assert_eq!(has_piece(&board,  &Coordinate {x: 8, y: 8}), true);
+    //
+    // assert_eq!(has_piece(&board,  &Coordinate {x: 1, y: 8}), false);
+    // assert_eq!(has_piece(&board,  &Coordinate {x: 2, y: 8}), false);
+    // assert_eq!(has_piece(&board,  &Coordinate {x: 3, y: 8}), true);
+    // assert_eq!(has_piece(&board,  &Coordinate {x: 4, y: 8}), true);
+    // assert_eq!(has_piece(&board,  &Coordinate {x: 5, y: 8}), false);
+    // assert_eq!(has_piece(&board,  &Coordinate {x: 6, y: 8}), true);
+    // assert_eq!(has_piece(&board,  &Coordinate {x: 7, y: 8}), false);
+    // assert_eq!(has_piece(&board,  &Coordinate {x: 8, y: 8}), true);
+    //
+    // assert_eq!(has_piece(&board,  &Coordinate {x: 1, y: 8}), false);
+    // assert_eq!(has_piece(&board,  &Coordinate {x: 2, y: 8}), false);
+    // assert_eq!(has_piece(&board,  &Coordinate {x: 3, y: 8}), true);
+    // assert_eq!(has_piece(&board,  &Coordinate {x: 4, y: 8}), true);
+    // assert_eq!(has_piece(&board,  &Coordinate {x: 5, y: 8}), false);
+    // assert_eq!(has_piece(&board,  &Coordinate {x: 6, y: 8}), true);
+    // assert_eq!(has_piece(&board,  &Coordinate {x: 7, y: 8}), false);
+    // assert_eq!(has_piece(&board,  &Coordinate {x: 8, y: 8}), true);
 }
 
 fn read_piece(char: &str) -> Piece {
@@ -68,13 +121,14 @@ fn read_piece(char: &str) -> Piece {
     piece
 }
 
-fn read_pieces(piece_string: &str, mut board : Board) -> Board {
+fn read_pieces(piece_string: &str, mut board: &mut Board)  {
     // tokenize by row
     let piece_chars = "PNBRQKpnbrqk";
     let numbers = "123456789";
     let rows = piece_string.split("/");
     // println!("reading pieces ");
     for (i, row) in rows.enumerate() {
+        println!("row = {}", row);
         let y = 8 - (i as u8);
         let mut x: u8 = 1;
         // read each character of the string
@@ -90,36 +144,37 @@ fn read_pieces(piece_string: &str, mut board : Board) -> Board {
                 println!("x = {:?}", x);
             } else if piece_chars.contains(char) {
                 println!("making piece");
-                let color = if char.to_string() == char.to_string().to_lowercase() { Color::Black } else { Color::White };
-                let piece : Piece = match char.to_string().to_lowercase().as_str() {
-                    "p" => Piece{color, piece_type: PieceType::Pawn},
-                    "n" => Piece{color, piece_type: PieceType::Knight},
-                    "b" => Piece{color, piece_type: PieceType::Bishop},
-                    "r" => Piece{color, piece_type: PieceType::Rook},
-                    "q" => Piece{color, piece_type: PieceType::Queen},
-                    "k" => Piece{color, piece_type: PieceType::King},
+                let color = if char.to_string() == char.to_string().to_lowercase() {
+                    Color::Black
+                } else {
+                    Color::White
+                };
+                match char.to_string().to_lowercase().as_str() {
+                    "p" => board.place_piece(Piece{color, piece_type: PieceType::Pawn}, &coordinate),
+                    "n" => board.place_piece(Piece{color, piece_type: PieceType::Knight}, &coordinate),
+                    "b" => board.place_piece(Piece{color, piece_type: PieceType::Bishop}, &coordinate),
+                    "r" => board.place_piece(Piece{color, piece_type: PieceType::Rook}, &coordinate),
+                    "q" => board.place_piece(Piece{color, piece_type: PieceType::Queen}, &coordinate),
+                    "k" => board.place_piece(Piece{color, piece_type: PieceType::King}, &coordinate),
                     _ => panic!("can not read {}", char),
                 };
-                board = board.place_piece(piece, &coordinate);
+                // board = board.place_piece(piece, &coordinate);
+                // board.place_piece(piece, &coordinate);
+                // println!("{:?}", piece);
                 x += 1;
             } else {
                 panic!("{} char not recognized", char);
             }
         }
     }
-    return board;
+    // board
 }
 
-pub fn read(fen_string : &str) -> Board {
-    // println!("number of string {}, chars = {}", numbers.split("").count(), numbers.chars().as_str());
-    // println!("{:?}", numbers.split("").map(|x| x ).collect()); /// @todo collect ? , how many chars are in this
-    //
-
+pub fn read(fen_string: &str) -> Board {
     let mut board = Board::new();
-    // board.place_piece(Piece::make_white_king(), Coordinate {x: 1, y: 8});
-    // prin
     let parts = fen_string.split(" ").collect::<Vec<&str>>();
-    board = read_pieces(parts[0], board);
+    println!("parts = {:?}", parts);
+    read_pieces(parts[0], &mut board);
     return board;
     board_console_printer::print_board(board.get_squares());
 
@@ -137,13 +192,13 @@ pub fn read(fen_string : &str) -> Board {
     };
     let char: char = 'r';
     let color = Color::White; //@todo
-    // let piece : Piece = match char {
-    //     'p' => Piece{},
-    //     'n' => Piece{},
-    //     'b' => Piece{},
-    //     'r' => Piece{},
-    //     'q' => Piece{},
-    //     'k' => Piece{},
-    //     _ => panic!("can not read {}", _),
-    // };
+                              // let piece : Piece = match char {
+                              //     'p' => Piece{},
+                              //     'n' => Piece{},
+                              //     'b' => Piece{},
+                              //     'r' => Piece{},
+                              //     'q' => Piece{},
+                              //     'k' => Piece{},
+                              //     _ => panic!("can not read {}", _),
+                              // };
 }
