@@ -4,7 +4,7 @@ pub enum Color {
     Black,
 }
 
-#[derive(Debug, PartialEq,  Eq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub struct Piece {
     pub piece_type: PieceType,
     pub color: Color,
@@ -85,7 +85,7 @@ impl Piece {
     }
 }
 
-#[derive(Debug,  PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum PieceType {
     King,
     Queen,
@@ -95,7 +95,7 @@ pub enum PieceType {
     Pawn,
 }
 
-#[derive(Debug,  PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub struct Coordinate {
     pub x: u8, // a - h (traditional coordinates)
     pub y: u8, // 1 - 8 (traditional coordinates)
@@ -116,16 +116,8 @@ pub struct Square {
 }
 
 impl Board {
-    pub fn place_piece(&mut self, piece : Piece, at: &Coordinate) {
-        let mut square = self.squares
-            .get_mut((at.y - 1) as usize)
-            .unwrap()
-            .get_mut((at.x - 1) as usize)
-            .unwrap();
-        square.piece = Some(piece);
-
-        // let mut square = self.squares[(at.y - 1) as usize][(at.x - 1) as usize];
-        // square.piece = Some(piece);
+    pub fn place_piece(&mut self, piece: Piece, at: &Coordinate) {
+        self.get_square_mut(at).piece = Some(piece);
     }
 
     pub fn has_piece(&self, at: &Coordinate) -> bool {
@@ -144,15 +136,27 @@ impl Board {
     }
 
     fn get_square(&self, at: &Coordinate) -> &Square {
-        &self.squares[(at.y - 1) as usize][(at.x - 1) as usize]
+        self.squares
+            .get((at.y - 1) as usize)
+            .unwrap()
+            .get((at.x - 1) as usize)
+            .unwrap()
+    }
+
+    fn get_square_mut(&mut self, at: &Coordinate) -> &mut Square {
+        self.squares
+            .get_mut((at.y - 1) as usize)
+            .unwrap()
+            .get_mut((at.x - 1) as usize)
+            .unwrap()
     }
 
     fn make_squares() -> Vec<Vec<Square>> {
         let mut vec: Vec<Vec<Square>> = vec![];
 
-        for (i, y) in (1..9).enumerate() {
+        for (_, y)  in (1..9).enumerate() {
             let mut row: Vec<Square> = Vec::new();
-            for (j, x) in (1..9).enumerate() {
+            for (_, x) in (1..9).enumerate() {
                 // odd numbered rows have black squares on even x's
                 let color: Color;
                 if y % 2 == 0 {

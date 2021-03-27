@@ -1,10 +1,11 @@
-use crate::board::{Color, PieceType, Square};
+use crate::board::{Color, PieceType, Square, Board};
 use matrix_display::Format;
 use matrix_display::*;
 
-pub fn print_board(squares: Vec<&Square>) {
-    let board_cells = squares
+pub fn print_board(board: &Board) {
+    let board_cells = board.get_squares()
         .iter()
+        .rev()
         .map(|square| {
             // ansi 8 bit color scheme
             let mut foreground = 0;

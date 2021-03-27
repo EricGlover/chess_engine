@@ -1,19 +1,19 @@
+use chess_engine::board::*;
 use chess_engine::board_console_printer;
 use chess_engine::fen_reader;
-use chess_engine::board::*;
 
 fn main() {
     let board = fen_reader::read(fen_reader::INITIAL_BOARD);
     println!("reading board for {}", fen_reader::INITIAL_BOARD);
-    board_console_printer::print_board(board.get_squares());
+    board_console_printer::print_board(&board);
 
     let board = fen_reader::read(fen_reader::TEST_BOARD_1);
     println!("reading board for {}", fen_reader::TEST_BOARD_1);
-    board_console_printer::print_board(board.get_squares());
+    board_console_printer::print_board(&board);
 
     let board = fen_reader::read(fen_reader::TEST_BOARD_2);
     println!("reading board for {}", fen_reader::TEST_BOARD_2);
-    board_console_printer::print_board(board.get_squares());
+    board_console_printer::print_board(&board);
 
     // return;
 

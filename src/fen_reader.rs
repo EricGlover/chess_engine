@@ -39,12 +39,11 @@ fn test_board_2() {
     fn has_piece(board: &Board, at: &Coordinate) -> bool {
         board.has_piece(at)
     }
+    board_console_printer::print_board(&board);
+    // println!("{:?}", board);
 
-    // fn at(x: u8, y: u8) -> Coordinate {
-    //
-    // }
-
-    println!("{:?}", board);
+    // test if pieces are in the correct spot
+    // todo: test if pieces themselves are the correct kind
 
     // row 8
     assert_eq!(board.has_piece(&Coordinate { x: 1, y: 8 }), false);
@@ -56,33 +55,71 @@ fn test_board_2() {
     assert_eq!(board.has_piece(&Coordinate { x: 7, y: 8 }), false);
     assert_eq!(board.has_piece(&Coordinate { x: 8, y: 8 }), true);
 
-    //
-    // assert_eq!(has_piece(&board,  &Coordinate {x: 1, y: 8}), false);
-    // assert_eq!(has_piece(&board,  &Coordinate {x: 2, y: 8}), false);
-    // assert_eq!(has_piece(&board,  &Coordinate {x: 3, y: 8}), true);
-    // assert_eq!(has_piece(&board,  &Coordinate {x: 4, y: 8}), true);
-    // assert_eq!(has_piece(&board,  &Coordinate {x: 5, y: 8}), false);
-    // assert_eq!(has_piece(&board,  &Coordinate {x: 6, y: 8}), true);
-    // assert_eq!(has_piece(&board,  &Coordinate {x: 7, y: 8}), false);
-    // assert_eq!(has_piece(&board,  &Coordinate {x: 8, y: 8}), true);
-    //
-    // assert_eq!(has_piece(&board,  &Coordinate {x: 1, y: 8}), false);
-    // assert_eq!(has_piece(&board,  &Coordinate {x: 2, y: 8}), false);
-    // assert_eq!(has_piece(&board,  &Coordinate {x: 3, y: 8}), true);
-    // assert_eq!(has_piece(&board,  &Coordinate {x: 4, y: 8}), true);
-    // assert_eq!(has_piece(&board,  &Coordinate {x: 5, y: 8}), false);
-    // assert_eq!(has_piece(&board,  &Coordinate {x: 6, y: 8}), true);
-    // assert_eq!(has_piece(&board,  &Coordinate {x: 7, y: 8}), false);
-    // assert_eq!(has_piece(&board,  &Coordinate {x: 8, y: 8}), true);
-    //
-    // assert_eq!(has_piece(&board,  &Coordinate {x: 1, y: 8}), false);
-    // assert_eq!(has_piece(&board,  &Coordinate {x: 2, y: 8}), false);
-    // assert_eq!(has_piece(&board,  &Coordinate {x: 3, y: 8}), true);
-    // assert_eq!(has_piece(&board,  &Coordinate {x: 4, y: 8}), true);
-    // assert_eq!(has_piece(&board,  &Coordinate {x: 5, y: 8}), false);
-    // assert_eq!(has_piece(&board,  &Coordinate {x: 6, y: 8}), true);
-    // assert_eq!(has_piece(&board,  &Coordinate {x: 7, y: 8}), false);
-    // assert_eq!(has_piece(&board,  &Coordinate {x: 8, y: 8}), true);
+    // row 7
+    assert_eq!(has_piece(&board,  &Coordinate {x: 1, y: 7}), false);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 2, y: 7}), true);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 3, y: 7}), true);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 4, y: 7}), false);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 5, y: 7}), false);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 6, y: 7}), false);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 7, y: 7}), false);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 8, y: 7}), true);
+    // row 6
+    assert_eq!(has_piece(&board,  &Coordinate {x: 1, y: 6}), true);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 2, y: 6}), true);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 3, y: 6}), true);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 4, y: 6}), false);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 5, y: 6}), false);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 6, y: 6}), false);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 7, y: 6}), true);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 8, y: 6}), false);
+    // row 5
+    assert_eq!(has_piece(&board,  &Coordinate {x: 1, y: 5}), false);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 2, y: 5}), true);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 3, y: 5}), false);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 4, y: 5}), true);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 5, y: 5}), true);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 6, y: 5}), true);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 7, y: 5}), false);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 8, y: 5}), false);
+
+    // row 4
+    assert_eq!(has_piece(&board,  &Coordinate {x: 1, y: 4}), true);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 2, y: 4}), false);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 3, y: 4}), false);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 4, y: 4}), true);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 5, y: 4}), true);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 6, y: 4}), true);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 7, y: 4}), true);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 8, y: 4}), true);
+    // row 3
+    assert_eq!(has_piece(&board,  &Coordinate {x: 1, y: 3}), true);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 2, y: 3}), false);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 3, y: 3}), true);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 4, y: 3}), false);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 5, y: 3}), false);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 6, y: 3}), false);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 7, y: 3}), false);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 8, y: 3}), false);
+    // row 2
+    assert_eq!(has_piece(&board,  &Coordinate {x: 1, y: 2}), false);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 2, y: 2}), true);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 3, y: 2}), false);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 4, y: 2}), false);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 5, y: 2}), false);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 6, y: 2}), true);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 7, y: 2}), true);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 8, y: 2}), true);
+    // row 1
+    assert_eq!(has_piece(&board,  &Coordinate {x: 1, y: 1}), false);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 2, y: 1}), false);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 3, y: 1}), false);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 4, y: 1}), false);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 5, y: 1}), true);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 6, y: 1}), true);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 7, y: 1}), true);
+    assert_eq!(has_piece(&board,  &Coordinate {x: 8, y: 1}), false);
+
 }
 
 fn read_piece(char: &str) -> Piece {
@@ -91,7 +128,7 @@ fn read_piece(char: &str) -> Piece {
     } else {
         Color::Black
     };
-    let piece: Piece = match char {
+    let piece: Piece = match char.to_lowercase().as_str() {
         "p" => Piece {
             color,
             piece_type: PieceType::Pawn,
@@ -121,46 +158,23 @@ fn read_piece(char: &str) -> Piece {
     piece
 }
 
-fn read_pieces(piece_string: &str, mut board: &mut Board)  {
+fn read_pieces(piece_string: &str, board: &mut Board) {
     // tokenize by row
     let piece_chars = "PNBRQKpnbrqk";
     let numbers = "123456789";
     let rows = piece_string.split("/");
     // println!("reading pieces ");
     for (i, row) in rows.enumerate() {
-        println!("row = {}", row);
         let y = 8 - (i as u8);
         let mut x: u8 = 1;
         // read each character of the string
-        for (j, char) in row.chars().enumerate() {
-            println!("x = {:?}", x);
+        for (_, char) in row.chars().enumerate() {
             let coordinate = Coordinate { y, x };
-            // println!("{:?}", coordinate);
             if numbers.contains(char) {
-                // @todo : fix check out the third board
-                println!("empty squares");
-                println!("{:?}", char.to_string().parse::<u8>().unwrap());
                 x += char.to_string().parse::<u8>().unwrap();
-                println!("x = {:?}", x);
             } else if piece_chars.contains(char) {
-                println!("making piece");
-                let color = if char.to_string() == char.to_string().to_lowercase() {
-                    Color::Black
-                } else {
-                    Color::White
-                };
-                match char.to_string().to_lowercase().as_str() {
-                    "p" => board.place_piece(Piece{color, piece_type: PieceType::Pawn}, &coordinate),
-                    "n" => board.place_piece(Piece{color, piece_type: PieceType::Knight}, &coordinate),
-                    "b" => board.place_piece(Piece{color, piece_type: PieceType::Bishop}, &coordinate),
-                    "r" => board.place_piece(Piece{color, piece_type: PieceType::Rook}, &coordinate),
-                    "q" => board.place_piece(Piece{color, piece_type: PieceType::Queen}, &coordinate),
-                    "k" => board.place_piece(Piece{color, piece_type: PieceType::King}, &coordinate),
-                    _ => panic!("can not read {}", char),
-                };
-                // board = board.place_piece(piece, &coordinate);
-                // board.place_piece(piece, &coordinate);
-                // println!("{:?}", piece);
+                let piece = read_piece(char.to_string().as_str());
+                board.place_piece(piece, &coordinate);
                 x += 1;
             } else {
                 panic!("{} char not recognized", char);
@@ -176,22 +190,22 @@ pub fn read(fen_string: &str) -> Board {
     println!("parts = {:?}", parts);
     read_pieces(parts[0], &mut board);
     return board;
-    board_console_printer::print_board(board.get_squares());
-
-    // let parts = string.split(" ").collect()
-    println!("{:?}", fen_string.split(" ").collect::<Vec<&str>>());
-    for str in fen_string.split(" ") {
-        println!("doing stuff {}", str);
-    }
-    // steps , 1) tokenize by spaces
-    // parse the separate parts
-    println!("{}", INITIAL_BOARD);
-    let p = Piece {
-        piece_type: PieceType::Queen,
-        color: Color::White,
-    };
-    let char: char = 'r';
-    let color = Color::White; //@todo
+    // board_console_printer::print_board(board.get_squares());
+    //
+    // // let parts = string.split(" ").collect()
+    // println!("{:?}", fen_string.split(" ").collect::<Vec<&str>>());
+    // for str in fen_string.split(" ") {
+    //     println!("doing stuff {}", str);
+    // }
+    // // steps , 1) tokenize by spaces
+    // // parse the separate parts
+    // println!("{}", INITIAL_BOARD);
+    // let p = Piece {
+    //     piece_type: PieceType::Queen,
+    //     color: Color::White,
+    // };
+    // let char: char = 'r';
+    // let color = Color::White; //@todo
                               // let piece : Piece = match char {
                               //     'p' => Piece{},
                               //     'n' => Piece{},
