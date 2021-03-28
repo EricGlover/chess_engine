@@ -128,6 +128,10 @@ impl Board {
             .is_some()
     }
 
+    fn is_on_board(c: Coordinate) -> bool {
+        c.x >= LOW_X && c.x <= HIGH_X && c.y >= LOW_Y && c.y <= HIGH_Y
+    }
+
     pub fn get_piece_at(&self, at: &Coordinate) -> Option<Piece> {
         let square = self.get_square(at);
         if square.piece.is_some() {

@@ -13,7 +13,10 @@ fn main() {
     println!("NUMBER OF MOVES {:?}", moves.len());
     println!("MOVES {:?}", moves);
     for m in moves.iter() {
-        println!("{:?} moving from ({}, {}) to ({},{}) ", m.piece.piece_type, m.from.x, m.from.y, m.to.x, m.to.y);
+        println!(
+            "{:?} moving from ({}, {}) to ({},{}) ",
+            m.piece.piece_type, m.from.x, m.from.y, m.to.x, m.to.y
+        );
     }
 
     return;
