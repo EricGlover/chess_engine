@@ -34,6 +34,20 @@ pub enum PieceType {
     Pawn,
 }
 
+impl PieceType {
+    pub fn from(char: &str) -> Option<PieceType> {
+        match char {
+            "p" => Some(PieceType::Pawn),
+            "n" => Some(PieceType::Knight),
+            "b" => Some(PieceType::Bishop),
+            "r" => Some(PieceType::Rook),
+            "q" => Some(PieceType::Queen),
+            "k" => Some(PieceType::King),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub struct Coordinate {
     pub x: u8, // a - h (traditional coordinates)

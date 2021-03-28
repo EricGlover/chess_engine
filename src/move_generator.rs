@@ -1,6 +1,25 @@
 use crate::board::*;
 use crate::fen_reader::make_initial_board;
 
+//@todo: make sure move doesn't put you in check
+/**
+is_in_check() -> bool ?
+
+gen_moves_from_check() -> Vec<Move>
+    - get own king
+    - generate enemy moves
+    - find moves that threaten king
+    - how to deal with multiple checks ?
+    - for single checks
+        - find moves that interpose if piece_type rook, queen, bishop
+        -
+
+-- need to make sure that moves don't put you in check
+- get list of square enemy can capture
+- make sure king doesn't try to move there
+- for castling make sure king doesn't move through there
+**/
+
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub struct Move {
     pub piece: Piece,

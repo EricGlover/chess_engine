@@ -2,8 +2,115 @@ use chess_engine::board::*;
 use chess_engine::board_console_printer;
 use chess_engine::fen_reader;
 use chess_engine::move_generator;
+use std::io;
+use std::io::prelude::*;
+use std::io::{BufReader, Read};
+
+/**
+chess move reader
+
+<piece_specifier><piece_file | piece_rank | piece_file && piece_rank><captures><file><rank>
+piece_specifier = ['R', 'B', 'N', 'Q', 'K']
+piece_file = [a-h][1-8]
+captures = 'x'
+file = [a-h]
+rank = [1-8]
+**/
+
+mod Game {
+    use chess_engine::board::*;
+    use chess_engine::board::{Board, Coordinate};
+    use chess_engine::fen_reader;
+    use chess_engine::move_generator::Move;
+    use std::borrow::Borrow;
+    use std::io;
+    use std::io::prelude::*;
+
+    #[test]
+    fn read_move_test() {
+        let board = fen_reader::read(fen_reader::INITIAL_BOARD);
+        let s = "Ra2";
+        let s2 = "a4";
+        let m = read_move(s, &board);
+        let m2 = read_move(s2, &board);
+        let a1 = Coordinate::from("a1");
+        let a2 = Coordinate::from("a2");
+        let a4 = Coordinate::from("a4");
+        let rook = Piece::new(Color::White, PieceType::Rook, Some(a1.clone()));
+        let pawn = Piece::new(Color::White, PieceType::Pawn, Some(a2.clone()));
+        assert_eq!(m, Move::new(a1.clone(), a2.clone(), rook.clone()));
+        assert_eq!(m2, Move::new(a2.clone(), a4.clone(), pawn.clone()));
+    }
+
+    // change this to result error ?
+    fn read_move(str: &str, board: &Board) -> Move {
+        // need to generate moves to determine which piece can move there
+        // piece specifier is uppercase
+        let chars = str.chars().collect::<Vec<char>>();
+        let first = chars.get(0).unwrap();
+
+        let piece_type = if first.to_lowercase().to_string() != first.to_string() {
+            println!("is piece specifier");
+            PieceType::from(first.to_lowercase().to_string().as_str()).unwrap()
+        } else {
+            PieceType::Pawn
+        };
+        println!("{}", str);
+        println!("{:?}", chars);
+        println!("{:?}", piece_type);
+
+        let a1 = Coordinate::from("a1");
+        let a2 = Coordinate::from("a2");
+        let a4 = Coordinate::from("a4");
+        let rook = Piece::new(Color::White, PieceType::Rook, Some(a1.clone()));
+        let pawn = Piece::new(Color::White, PieceType::Pawn, Some(a2.clone()));
+        Move::new(a1.clone(), a2.clone(), rook.clone())
+    }
+
+    pub struct Game {
+        board: Board,
+    }
+
+    impl Game {
+        pub fn new() -> Game {
+            Game {
+                board: fen_reader::read(fen_reader::INITIAL_BOARD),
+            }
+        }
+
+        pub fn run(&self) {
+            let stdin = io::stdin();
+            for line in stdin.lock().lines() {
+                // you play as white for now
+                let command = line.unwrap();
+                let m = read_move(command.as_str(), &self.board);
+            }
+        }
+    }
+}
 
 fn main() {
+    let game = Game::Game::new();
+    game.run();
+    return;
+
+    // loop {
+    //     match handle.read(&mut buf) {
+    //         Ok(0) => break,
+    //         Ok(n) => {
+    //             BufReader::new()
+    //             for byte in &buf[..n] {
+    //
+    //                 println!("{}", byte);
+    //             }
+    //         },
+    //         Err(err) => {
+    //             println!("err: {}", err);
+    //             break;
+    //         },
+    //     }
+    // }
+
     let board = fen_reader::read(fen_reader::INITIAL_BOARD);
     println!("reading board for {}", fen_reader::INITIAL_BOARD);
     board_console_printer::print_board(&board);

@@ -34,16 +34,8 @@ fn read_piece(char: &str) -> Piece {
     } else {
         Color::White
     };
-    let piece: Piece = match char.to_lowercase().as_str() {
-        "p" => Piece::new(color, PieceType::Pawn, None),
-        "n" => Piece::new(color, PieceType::Knight, None),
-        "b" => Piece::new(color, PieceType::Bishop, None),
-        "r" => Piece::new(color, PieceType::Rook, None),
-        "q" => Piece::new(color, PieceType::Queen, None),
-        "k" => Piece::new(color, PieceType::King, None),
-        _ => panic!("can not read {}", char),
-    };
-    piece
+    let piece_type = PieceType::from(char.to_lowercase().as_str()).unwrap();
+    Piece::new(color, piece_type, None)
 }
 
 fn read_pieces(piece_string: &str, board: &mut Board) {
