@@ -47,10 +47,10 @@ pub const HIGH_Y: u8 = 8;
 
 impl Coordinate {
     // const LOW_X
-    pub fn s(&self, x: u8, y: u8) -> Coordinate {
+    pub fn add(&self, x: i8, y: i8) -> Coordinate {
         Coordinate {
-            x: self.x + x,
-            y: self.y + y,
+            x: ((self.x as i8) + x) as u8,
+            y: ((self.y as i8) + y) as u8,
         }
     }
 
