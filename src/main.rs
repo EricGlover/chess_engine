@@ -1,11 +1,18 @@
 use chess_engine::board::*;
 use chess_engine::board_console_printer;
 use chess_engine::fen_reader;
+use chess_engine::move_generator;
 
 fn main() {
     let board = fen_reader::read(fen_reader::INITIAL_BOARD);
     println!("reading board for {}", fen_reader::INITIAL_BOARD);
     board_console_printer::print_board(&board);
+
+    let moves = move_generator::gen_moves(&board, Color::White);
+
+    println!("{:?}", moves);
+
+    return;
 
     let board = fen_reader::read(fen_reader::TEST_BOARD_1);
     println!("reading board for {}", fen_reader::TEST_BOARD_1);

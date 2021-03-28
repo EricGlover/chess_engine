@@ -8,7 +8,7 @@ pub enum Color {
 pub struct Piece {
     pub piece_type: PieceType,
     pub color: Color,
-    at: Option<Coordinate>
+    at: Option<Coordinate>,
 }
 
 impl Piece {
@@ -21,90 +21,6 @@ impl Piece {
     }
     pub fn at(&self) -> Option<Coordinate> {
         self.at
-    }
-    pub fn make_white_pawn() -> Piece {
-        Piece {
-            piece_type: PieceType::Pawn,
-            color: Color::White,
-            at: None,
-        }
-    }
-    pub fn make_black_pawn() -> Piece {
-        Piece {
-            piece_type: PieceType::Pawn,
-            color: Color::Black,
-            at: None,
-        }
-    }
-    pub fn make_white_rook() -> Piece {
-        Piece {
-            piece_type: PieceType::Rook,
-            color: Color::White,
-            at: None,
-        }
-    }
-    pub fn make_black_rook() -> Piece {
-        Piece {
-            piece_type: PieceType::Rook,
-            color: Color::Black,
-            at: None,
-        }
-    }
-    pub fn make_white_knight() -> Piece {
-        Piece {
-            piece_type: PieceType::Knight,
-            color: Color::White,
-            at: None,
-        }
-    }
-    pub fn make_black_knight() -> Piece {
-        Piece {
-            piece_type: PieceType::Knight,
-            color: Color::Black,
-            at: None,
-        }
-    }
-    pub fn make_white_bishop() -> Piece {
-        Piece {
-            piece_type: PieceType::Bishop,
-            color: Color::White,
-            at: None,
-        }
-    }
-    pub fn make_black_bishop() -> Piece {
-        Piece {
-            piece_type: PieceType::Bishop,
-            color: Color::Black,
-            at: None,
-        }
-    }
-    pub fn make_white_queen() -> Piece {
-        Piece {
-            piece_type: PieceType::Queen,
-            color: Color::White,
-            at: None,
-        }
-    }
-    pub fn make_black_queen() -> Piece {
-        Piece {
-            piece_type: PieceType::Queen,
-            color: Color::Black,
-            at: None,
-        }
-    }
-    pub fn make_white_king() -> Piece {
-        Piece {
-            piece_type: PieceType::King,
-            color: Color::White,
-            at: None,
-        }
-    }
-    pub fn make_black_king() -> Piece {
-        Piece {
-            piece_type: PieceType::King,
-            color: Color::Black,
-            at: None,
-        }
     }
 }
 
@@ -124,60 +40,59 @@ pub struct Coordinate {
     pub y: u8, // 1 - 8 (traditional coordinates)
 }
 
+pub const LOW_X: u8 = 1;
+pub const HIGH_X: u8 = 8;
+pub const LOW_Y: u8 = 1;
+pub const HIGH_Y: u8 = 8;
+
 impl Coordinate {
+    // const LOW_X
+    pub fn s(&self, x: u8, y: u8) -> Coordinate {
+        Coordinate {
+            x: self.x + x,
+            y: self.y + y,
+        }
+    }
+
     // this is not pretty.... don't judge me
     pub fn from(str: &str) -> Coordinate {
-        let mut x:u8 = 0;
+        let mut x: u8 = 0;
         if str.contains("1") {
             x = 1;
-        }
-        else if str.contains("2") {
+        } else if str.contains("2") {
             x = 2;
-        }
-        else if str.contains("3") {
+        } else if str.contains("3") {
             x = 3;
-        }
-        else if str.contains("4") {
+        } else if str.contains("4") {
             x = 4;
-        }
-        else if str.contains("5") {
+        } else if str.contains("5") {
             x = 5;
-        }
-        else if str.contains("6") {
+        } else if str.contains("6") {
             x = 6;
-        }
-        else if str.contains("7") {
+        } else if str.contains("7") {
             x = 7;
-        }
-        else if str.contains("8") {
+        } else if str.contains("8") {
             x = 8;
         }
-        let mut y : u8 = 0;
+        let mut y: u8 = 0;
         if str.contains("a") {
             y = 1;
-        }
-        else if str.contains("b") {
+        } else if str.contains("b") {
             y = 2;
-        }
-        else if str.contains("c") {
+        } else if str.contains("c") {
             y = 3;
-        }
-        else if str.contains("d") {
+        } else if str.contains("d") {
             y = 4;
-        }
-        else if str.contains("e") {
+        } else if str.contains("e") {
             y = 5;
-        }
-        else if str.contains("f") {
+        } else if str.contains("f") {
             y = 6;
-        }
-        else if str.contains("g") {
+        } else if str.contains("g") {
             y = 7;
-        }
-        else if str.contains("h") {
+        } else if str.contains("h") {
             y = 8;
         }
-        Coordinate {x, y}
+        Coordinate { x, y }
     }
 }
 
@@ -257,7 +172,7 @@ impl Board {
     fn make_squares() -> Vec<Vec<Square>> {
         let mut vec: Vec<Vec<Square>> = vec![];
 
-        for (_, y)  in (1..9).enumerate() {
+        for (_, y) in (1..9).enumerate() {
             let mut row: Vec<Square> = Vec::new();
             for (_, x) in (1..9).enumerate() {
                 // odd numbered rows have black squares on even x's

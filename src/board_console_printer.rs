@@ -1,9 +1,10 @@
-use crate::board::{Color, PieceType, Square, Board};
+use crate::board::{Board, Color, PieceType, Square};
 use matrix_display::Format;
 use matrix_display::*;
 
 pub fn print_board(board: &Board) {
-    let board_cells = board.get_squares()
+    let board_cells = board
+        .get_squares()
         .iter()
         .rev()
         .map(|square| {
