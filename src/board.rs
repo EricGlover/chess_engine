@@ -1,3 +1,5 @@
+use crate::move_generator::Move;
+
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum Color {
     White,
@@ -70,41 +72,41 @@ impl Coordinate {
 
     // this is not pretty.... don't judge me
     pub fn from(str: &str) -> Coordinate {
-        let mut x: u8 = 0;
-        if str.contains("1") {
-            x = 1;
-        } else if str.contains("2") {
-            x = 2;
-        } else if str.contains("3") {
-            x = 3;
-        } else if str.contains("4") {
-            x = 4;
-        } else if str.contains("5") {
-            x = 5;
-        } else if str.contains("6") {
-            x = 6;
-        } else if str.contains("7") {
-            x = 7;
-        } else if str.contains("8") {
-            x = 8;
-        }
         let mut y: u8 = 0;
-        if str.contains("a") {
+        if str.contains("1") {
             y = 1;
-        } else if str.contains("b") {
+        } else if str.contains("2") {
             y = 2;
-        } else if str.contains("c") {
+        } else if str.contains("3") {
             y = 3;
-        } else if str.contains("d") {
+        } else if str.contains("4") {
             y = 4;
-        } else if str.contains("e") {
+        } else if str.contains("5") {
             y = 5;
-        } else if str.contains("f") {
+        } else if str.contains("6") {
             y = 6;
-        } else if str.contains("g") {
+        } else if str.contains("7") {
             y = 7;
-        } else if str.contains("h") {
+        } else if str.contains("8") {
             y = 8;
+        }
+        let mut x: u8 = 0;
+        if str.contains("a") {
+            x = 1;
+        } else if str.contains("b") {
+            x = 2;
+        } else if str.contains("c") {
+            x = 3;
+        } else if str.contains("d") {
+            x = 4;
+        } else if str.contains("e") {
+            x = 5;
+        } else if str.contains("f") {
+            x = 6;
+        } else if str.contains("g") {
+            x = 7;
+        } else if str.contains("h") {
+            x = 8;
         }
         Coordinate { x, y }
     }
@@ -131,6 +133,19 @@ pub struct Square {
 }
 
 impl Board {
+    pub fn make_move(&mut self, m: Move) {
+        let mut p = self.get_piece_at(&m.from).unwrap();
+        p.at = Some(m.to);
+        let s = self.get_square_mut(&m.to);
+        if s.piece.is_some() {
+            let mut other = s.piece.unwrap();
+            if other.color != p.color {
+                other.at = None;
+            } else {
+            }
+        }
+        s.piece = Some(p);
+    }
     pub fn place_piece(&mut self, mut piece: Piece, at: Coordinate) {
         piece.at = Some(at);
         self.get_square_mut(&at).piece = Some(piece);
