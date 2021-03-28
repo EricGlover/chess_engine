@@ -129,30 +129,12 @@ fn read_piece(char: &str) -> Piece {
         Color::Black
     };
     let piece: Piece = match char.to_lowercase().as_str() {
-        "p" => Piece {
-            color,
-            piece_type: PieceType::Pawn,
-        },
-        "n" => Piece {
-            color,
-            piece_type: PieceType::Knight,
-        },
-        "b" => Piece {
-            color,
-            piece_type: PieceType::Bishop,
-        },
-        "r" => Piece {
-            color,
-            piece_type: PieceType::Rook,
-        },
-        "q" => Piece {
-            color,
-            piece_type: PieceType::Queen,
-        },
-        "k" => Piece {
-            color,
-            piece_type: PieceType::King,
-        },
+        "p" => Piece::new(color, PieceType::Pawn, None),
+        "n" => Piece::new(color, PieceType::Knight, None),
+        "b" => Piece::new(color, PieceType::Bishop, None),
+        "r" => Piece::new(color, PieceType::Rook, None),
+        "q" => Piece::new(color, PieceType::Queen, None),
+        "k" => Piece::new(color, PieceType::King, None),
         _ => panic!("can not read {}", char),
     };
     piece
@@ -174,7 +156,7 @@ fn read_pieces(piece_string: &str, board: &mut Board) {
                 x += char.to_string().parse::<u8>().unwrap();
             } else if piece_chars.contains(char) {
                 let piece = read_piece(char.to_string().as_str());
-                board.place_piece(piece, &coordinate);
+                board.place_piece(piece, coordinate);
                 x += 1;
             } else {
                 panic!("{} char not recognized", char);
@@ -197,5 +179,7 @@ pub fn read(fen_string: &str) -> Board {
     };
     board.half_move_clock = parts[4].parse::<u8>().unwrap();
     board.full_move_number = parts[5].parse::<u8>().unwrap();
+
+    println!("{:?}", board.get_pieces(Color::White));
     return board;
 }

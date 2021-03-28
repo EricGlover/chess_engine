@@ -8,79 +8,102 @@ pub enum Color {
 pub struct Piece {
     pub piece_type: PieceType,
     pub color: Color,
+    at: Option<Coordinate>
 }
 
 impl Piece {
+    pub fn new(color: Color, piece_type: PieceType, at: Option<Coordinate>) -> Piece {
+        Piece {
+            piece_type,
+            color,
+            at,
+        }
+    }
+    pub fn at(&self) -> Option<Coordinate> {
+        self.at
+    }
     pub fn make_white_pawn() -> Piece {
         Piece {
             piece_type: PieceType::Pawn,
             color: Color::White,
+            at: None,
         }
     }
     pub fn make_black_pawn() -> Piece {
         Piece {
             piece_type: PieceType::Pawn,
             color: Color::Black,
+            at: None,
         }
     }
     pub fn make_white_rook() -> Piece {
         Piece {
             piece_type: PieceType::Rook,
             color: Color::White,
+            at: None,
         }
     }
     pub fn make_black_rook() -> Piece {
         Piece {
             piece_type: PieceType::Rook,
             color: Color::Black,
+            at: None,
         }
     }
     pub fn make_white_knight() -> Piece {
         Piece {
             piece_type: PieceType::Knight,
             color: Color::White,
+            at: None,
         }
     }
     pub fn make_black_knight() -> Piece {
         Piece {
             piece_type: PieceType::Knight,
             color: Color::Black,
+            at: None,
         }
     }
     pub fn make_white_bishop() -> Piece {
         Piece {
             piece_type: PieceType::Bishop,
             color: Color::White,
+            at: None,
         }
     }
     pub fn make_black_bishop() -> Piece {
         Piece {
             piece_type: PieceType::Bishop,
             color: Color::Black,
+            at: None,
         }
     }
     pub fn make_white_queen() -> Piece {
         Piece {
             piece_type: PieceType::Queen,
             color: Color::White,
+            at: None,
         }
     }
     pub fn make_black_queen() -> Piece {
         Piece {
             piece_type: PieceType::Queen,
             color: Color::Black,
+            at: None,
         }
     }
     pub fn make_white_king() -> Piece {
         Piece {
             piece_type: PieceType::King,
             color: Color::White,
+            at: None,
         }
     }
     pub fn make_black_king() -> Piece {
         Piece {
             piece_type: PieceType::King,
             color: Color::Black,
+            at: None,
         }
     }
 }
@@ -102,6 +125,7 @@ pub struct Coordinate {
 }
 
 impl Coordinate {
+    // this is not pretty.... don't judge me
     pub fn from(str: &str) -> Coordinate {
         let mut x:u8 = 0;
         if str.contains("1") {
@@ -168,8 +192,6 @@ pub struct Board {
     pub half_move_clock: u8,
     pub full_move_number: u8,
     squares: Vec<Vec<Square>>,
-    // squares: [[Square; 8]; 8],
-    // squares: [Square; 64],
 }
 
 #[derive(Debug)]
@@ -180,8 +202,9 @@ pub struct Square {
 }
 
 impl Board {
-    pub fn place_piece(&mut self, piece: Piece, at: &Coordinate) {
-        self.get_square_mut(at).piece = Some(piece);
+    pub fn place_piece(&mut self, mut piece: Piece, at: Coordinate) {
+        piece.at = Some(at);
+        self.get_square_mut(&at).piece = Some(piece);
     }
 
     pub fn has_piece(&self, at: &Coordinate) -> bool {
@@ -197,6 +220,22 @@ impl Board {
         } else {
             return None;
         }
+    }
+
+    pub fn get_pieces(&self, color: Color) -> Vec<Piece> {
+        let mut pieces = Vec::<Piece>::new();
+        for row in self.squares.iter() {
+            for square in row.iter() {
+                if square.piece.is_none() {
+                    continue;
+                }
+                let piece = square.piece.unwrap();
+                if piece.color == color {
+                    pieces.push(piece.clone());
+                }
+            }
+        }
+        return pieces;
     }
 
     fn get_square(&self, at: &Coordinate) -> &Square {
