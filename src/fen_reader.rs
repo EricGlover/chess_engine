@@ -1,6 +1,8 @@
 use crate::board::*;
 use crate::board_console_printer;
 
+// @todo : board -> fen string
+
 /**
 FEN SPEC
     1. Piece placement (from White's perspective). Each rank is described, starting with rank 8 and ending with rank 1;

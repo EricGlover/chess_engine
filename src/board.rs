@@ -1,9 +1,25 @@
-use crate::move_generator::Move;
+use crate::move_generator::{gen_moves, Move};
+
+pub struct Player {
+    time_used: u16,      // milliseconds
+    time_remaining: u16, // milliseconds
+    name: String,
+}
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum Color {
     White,
     Black,
+}
+
+impl Color {
+    pub fn opposite(&self) -> Color {
+        if self == &Color::White {
+            Color::Black
+        } else {
+            Color::White
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
@@ -50,6 +66,28 @@ impl PieceType {
     }
 }
 
+#[test]
+fn from_coordinate_test() {
+    assert_eq!(Coordinate::from("a1"), Coordinate { x: 1, y: 1 });
+    assert_eq!(Coordinate::from("h3"), Coordinate { x: 8, y: 3 });
+    assert_eq!(Coordinate::from("b7"), Coordinate { x: 2, y: 7 });
+    assert_eq!(Coordinate::from("d5"), Coordinate { x: 4, y: 5 });
+    assert_eq!(Coordinate::from("a8"), Coordinate { x: 1, y: 8 });
+    assert_eq!(Coordinate::from("e4"), Coordinate { x: 5, y: 4 });
+    assert_eq!(Coordinate::from("e5"), Coordinate { x: 5, y: 5 });
+}
+
+#[test]
+fn to_coordinate_test() {
+    assert_eq!(Coordinate::to(Coordinate { x: 1, y: 1 }), "a1");
+    assert_eq!(Coordinate::to(Coordinate { x: 8, y: 3 }), "h3");
+    assert_eq!(Coordinate::to(Coordinate { x: 2, y: 7 }), "b7");
+    assert_eq!(Coordinate::to(Coordinate { x: 4, y: 5 }), "d5");
+    assert_eq!(Coordinate::to(Coordinate { x: 1, y: 8 }), "a8");
+    assert_eq!(Coordinate::to(Coordinate { x: 5, y: 4 }), "e4");
+    assert_eq!(Coordinate::to(Coordinate { x: 5, y: 5 }), "e5");
+}
+
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub struct Coordinate {
     pub x: u8, // a - h (traditional coordinates)
@@ -70,44 +108,40 @@ impl Coordinate {
         }
     }
 
-    // this is not pretty.... don't judge me
+    pub fn to(c: Coordinate) -> String {
+        let mut x = match c.x {
+            1 => "a" ,
+            2 => "b" ,
+            3 => "c" ,
+            4 => "d" ,
+            5 => "e" ,
+            6 => "f" ,
+            7 => "g" ,
+            8 => "h" ,
+            _ => panic!("{} not valid coordinate"),
+        };
+        let mut str = x.to_string();
+        str.push_str(c.y.to_string().as_str());
+        str
+    }
+
     pub fn from(str: &str) -> Coordinate {
-        let mut y: u8 = 0;
-        if str.contains("1") {
-            y = 1;
-        } else if str.contains("2") {
-            y = 2;
-        } else if str.contains("3") {
-            y = 3;
-        } else if str.contains("4") {
-            y = 4;
-        } else if str.contains("5") {
-            y = 5;
-        } else if str.contains("6") {
-            y = 6;
-        } else if str.contains("7") {
-            y = 7;
-        } else if str.contains("8") {
-            y = 8;
+        if str.len() < 2 {
+            panic!("{} is not a valid coordinate", str);
         }
-        let mut x: u8 = 0;
-        if str.contains("a") {
-            x = 1;
-        } else if str.contains("b") {
-            x = 2;
-        } else if str.contains("c") {
-            x = 3;
-        } else if str.contains("d") {
-            x = 4;
-        } else if str.contains("e") {
-            x = 5;
-        } else if str.contains("f") {
-            x = 6;
-        } else if str.contains("g") {
-            x = 7;
-        } else if str.contains("h") {
-            x = 8;
-        }
+        let c: Vec<char> = str.chars().collect();
+        let x = match c.get(0).unwrap() {
+            'a' => 1,
+            'b' => 2,
+            'c' => 3,
+            'd' => 4,
+            'e' => 5,
+            'f' => 6,
+            'g' => 7,
+            'h' => 8,
+            _ => panic!("{} not valid coordinate", str),
+        };
+        let y = c.get(1).unwrap().to_string().parse::<u8>().unwrap();
         Coordinate { x, y }
     }
 }
@@ -133,8 +167,42 @@ pub struct Square {
 }
 
 impl Board {
+    // change return to piece list or something ?
+    pub fn is_in_check(&self, color: Color) -> bool {
+        let moves = gen_moves(self, color.opposite());
+        let king = self.get_king(color).unwrap();
+        let at = king.at().unwrap();
+        for m in moves {
+            if m.to == at {
+                return true;
+            }
+        }
+        false
+    }
+
+    fn get_king(&self, color: Color) -> Option<Piece> {
+        for row in self.squares.iter() {
+            for square in row.iter() {
+                if square.piece.is_none() {
+                    continue;
+                }
+                let piece = square.piece.unwrap();
+                if piece.piece_type == PieceType::King && piece.color == color {
+                    return Some(piece.clone());
+                }
+            }
+        }
+        None
+    }
+
+    // doesn't check legality of moves
     pub fn make_move(&mut self, m: Move) {
         let mut p = self.get_piece_at(&m.from).unwrap();
+
+        //@todo : pawn promotion
+        if m.promoted_to.is_some() && m.piece.piece_type == PieceType::Pawn {
+            p.piece_type = m.promoted_to.unwrap();
+        }
         p.at = Some(m.to);
         let s = self.get_square_mut(&m.to);
         if s.piece.is_some() {
@@ -145,7 +213,29 @@ impl Board {
             }
         }
         s.piece = Some(p);
+        let s = self.get_square_mut(&m.from);
+        s.piece = None;
+
+        // castling
+        if m.is_castling && m.rook_from.is_some() && m.rook_to.is_some() {
+            self.make_move(Move::new(
+                m.rook_from.unwrap(),
+                m.rook_to.unwrap(),
+                m.rook.unwrap(),
+            ))
+        }
+
+        // update 50 move rule draw counter
+        if m.piece.piece_type != PieceType::Pawn && self.get_piece_at(&m.to).is_none() {
+            self.half_move_clock = self.half_move_clock + 1;
+        }
+
+        // update move counter
+        if m.piece.color == Color::Black {
+            self.full_move_number = self.full_move_number + 1;
+        }
     }
+
     pub fn place_piece(&mut self, mut piece: Piece, at: Coordinate) {
         piece.at = Some(at);
         self.get_square_mut(&at).piece = Some(piece);

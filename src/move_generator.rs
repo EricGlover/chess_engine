@@ -2,7 +2,11 @@ use crate::board::*;
 use crate::fen_reader::make_initial_board;
 
 //@todo: make sure move doesn't put you in check
+// @todo : test
 /**
+you need to call is_in_check() for every move you generate as well, because you can't move into check
+
+
 is_in_check() -> bool ?
 
 gen_moves_from_check() -> Vec<Move>
@@ -96,7 +100,7 @@ impl Move {
     }
 }
 
-fn print_move_list(moves: Vec<Move>) {
+pub fn print_move_list(moves: &Vec<Move>) {
     for m in moves.iter() {
         println!(
             "{:?} moving from ({}, {}) to ({},{}) ",
@@ -104,14 +108,6 @@ fn print_move_list(moves: Vec<Move>) {
         );
     }
 }
-// @todo : test
-
-// @todo: castling
-// @todo: pawn promotion
-
-// legal moves
-// any moves
-// legal moves on the board
 
 fn move_list_eq(m: &Vec<Move>, m2: &Vec<Move>) -> bool {
     if m.len() != m2.len() {
@@ -158,7 +154,6 @@ fn move_list_is_same() {
 
 #[test]
 fn test_pawn_moves() {
-    // how to determine if two vecs of moves are equal ?
     let board = make_initial_board();
     let pawn = board.get_piece_at(&Coordinate { x: 1, y: 2 }).unwrap();
     let moves = gen_pawn_moves(&board, &pawn);
@@ -411,7 +406,7 @@ fn gen_pawn_moves(board: &Board, piece: &Piece) -> Vec<Move> {
     }
 
     // pawn captures , including en passant
-    let front_left = from.add(1, 1 * direction);
+    let front_left = from.add(-1, 1 * direction);
     if has_enemy_piece(board, &front_left, piece.color)
         || board.en_passant_target.is_some() && board.en_passant_target.unwrap() == front_left
     {
