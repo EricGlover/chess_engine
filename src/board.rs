@@ -1,4 +1,9 @@
-use crate::move_generator::{gen_moves, Move};
+use crate::move_generator::{gen_moves, Move, print_move_list, print_move};
+use crate::chess_notation::read_move;
+use crate::fen_reader;
+use crate::board_console_printer::print_board;
+use std::fmt;
+use std::fmt::Formatter;
 
 pub struct Player {
     time_used: u16,      // milliseconds
@@ -19,6 +24,13 @@ impl Color {
         } else {
             Color::White
         }
+    }
+}
+
+impl fmt::Display for Color {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let s = if self == &Color::White { "white" } else { "black" };
+        write!(f, "{}", s)
     }
 }
 
@@ -147,6 +159,24 @@ impl Coordinate {
 }
 
 #[derive(Debug)]
+pub struct Square {
+    pub coordinate: Coordinate,
+    pub piece: Option<Piece>,
+    pub color: Color,
+}
+
+#[test]
+fn test_in_check() {
+    let board = fen_reader::read(fen_reader::BLACK_IN_CHECK);
+    assert!(board.is_in_check(Color::Black));
+    assert!(!board.is_in_check(Color::White));
+    let board = fen_reader::read(fen_reader::WHITE_IN_CHECK);
+    assert!(!board.is_in_check(Color::Black));
+    assert!(board.is_in_check(Color::White));
+}
+
+
+#[derive(Debug)]
 pub struct Board {
     pub white_to_move: bool,
     pub white_can_castle_king_side: bool,
@@ -159,21 +189,44 @@ pub struct Board {
     squares: Vec<Vec<Square>>,
 }
 
-#[derive(Debug)]
-pub struct Square {
-    pub coordinate: Coordinate,
-    pub piece: Option<Piece>,
-    pub color: Color,
-}
-
 impl Board {
+    fn clone(&self) -> Board {
+        let mut squares : Vec<Vec<Square>> = vec![];
+        for row in self.squares.iter() {
+            let mut new_row : Vec<Square> = vec![];
+            for square in row.iter() {
+                new_row.push(Square {
+                    coordinate: square.coordinate.clone(),
+                    piece: square.piece.clone(),
+                    color: square.color.clone(),
+                });
+            }
+            squares.push(new_row);
+        }
+        Board {
+            white_to_move: self.white_to_move,
+            white_can_castle_king_side: self.white_can_castle_king_side,
+            white_can_castle_queen_side: self.white_can_castle_queen_side,
+            black_can_castle_king_side: self.black_can_castle_king_side,
+            black_can_castle_queen_side: self.black_can_castle_queen_side,
+            en_passant_target: self.en_passant_target.clone(),
+            half_move_clock: self.half_move_clock,
+            full_move_number: self.full_move_number,
+            squares
+        }
+    }
     // change return to piece list or something ?
     pub fn is_in_check(&self, color: Color) -> bool {
+        println!("is {} in check ? ", color);
+        println!("{}", color.opposite());
         let moves = gen_moves(self, color.opposite());
         let king = self.get_king(color).unwrap();
+        println!("{:?}", king);
         let at = king.at().unwrap();
+        print_board(self);
         for m in moves {
             if m.to == at {
+                print_move(&m);
                 return true;
             }
         }
@@ -196,7 +249,7 @@ impl Board {
     }
 
     // doesn't check legality of moves
-    pub fn make_move(&mut self, m: Move) {
+    pub fn make_move_mut(&mut self, m: &Move) {
         let mut p = self.get_piece_at(&m.from).unwrap();
 
         //@todo : pawn promotion
@@ -218,7 +271,7 @@ impl Board {
 
         // castling
         if m.is_castling && m.rook_from.is_some() && m.rook_to.is_some() {
-            self.make_move(Move::new(
+            self.make_move_mut(&Move::new(
                 m.rook_from.unwrap(),
                 m.rook_to.unwrap(),
                 m.rook.unwrap(),
@@ -234,6 +287,12 @@ impl Board {
         if m.piece.color == Color::Black {
             self.full_move_number = self.full_move_number + 1;
         }
+    }
+
+    pub fn make_move(&self, m: &Move) -> Board {
+        let mut board = self.clone();
+        board.make_move_mut(m);
+        board
     }
 
     pub fn place_piece(&mut self, mut piece: Piece, at: Coordinate) {

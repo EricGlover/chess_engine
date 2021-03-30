@@ -36,11 +36,11 @@ impl Game {
                 println!("That move is illegal!");
                 continue;
             }
-            self.board.make_move(m.unwrap());
+            self.board.make_move_mut(&m.unwrap());
             print_board(&self.board);
             // black moves now
             let m = self.ai.make_move(&self.board);
-            self.board.make_move(m);
+            self.board.make_move_mut(&m);
             println!("Black moves...");
             print_board(&self.board);
         }
