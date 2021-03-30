@@ -1,7 +1,7 @@
-use crate::move_generator::{gen_moves, Move, print_move_list, print_move, gen_attack_moves};
+use crate::board_console_printer::print_board;
 use crate::chess_notation::read_move;
 use crate::fen_reader;
-use crate::board_console_printer::print_board;
+use crate::move_generator::{gen_attack_moves, gen_moves, print_move, print_move_list, Move};
 use std::fmt;
 use std::fmt::Formatter;
 
@@ -29,7 +29,11 @@ impl Color {
 
 impl fmt::Display for Color {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let s = if self == &Color::White { "white" } else { "black" };
+        let s = if self == &Color::White {
+            "white"
+        } else {
+            "black"
+        };
         write!(f, "{}", s)
     }
 }
@@ -122,14 +126,14 @@ impl Coordinate {
 
     pub fn to(c: Coordinate) -> String {
         let mut x = match c.x {
-            1 => "a" ,
-            2 => "b" ,
-            3 => "c" ,
-            4 => "d" ,
-            5 => "e" ,
-            6 => "f" ,
-            7 => "g" ,
-            8 => "h" ,
+            1 => "a",
+            2 => "b",
+            3 => "c",
+            4 => "d",
+            5 => "e",
+            6 => "f",
+            7 => "g",
+            8 => "h",
             _ => panic!("{} not valid coordinate"),
         };
         let mut str = x.to_string();
@@ -175,7 +179,6 @@ fn test_in_check() {
     assert!(board.is_in_check(Color::White));
 }
 
-
 #[derive(Debug)]
 pub struct Board {
     pub white_to_move: bool,
@@ -190,10 +193,20 @@ pub struct Board {
 }
 
 impl Board {
+    pub fn squares(&self) -> Vec<&Square> {
+        return self
+            .squares
+            .iter()
+            .map(|vec| {
+                return vec.iter().rev();
+            })
+            .flatten()
+            .collect();
+    }
     fn clone(&self) -> Board {
-        let mut squares : Vec<Vec<Square>> = vec![];
+        let mut squares: Vec<Vec<Square>> = vec![];
         for row in self.squares.iter() {
-            let mut new_row : Vec<Square> = vec![];
+            let mut new_row: Vec<Square> = vec![];
             for square in row.iter() {
                 new_row.push(Square {
                     coordinate: square.coordinate.clone(),
@@ -212,7 +225,7 @@ impl Board {
             en_passant_target: self.en_passant_target.clone(),
             half_move_clock: self.half_move_clock,
             full_move_number: self.full_move_number,
-            squares
+            squares,
         }
     }
     // change return to piece list or something ?

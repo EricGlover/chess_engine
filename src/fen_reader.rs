@@ -29,8 +29,10 @@ pub const INITIAL_BOARD: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w K
 pub const TEST_BOARD_1: &str =
     "r1bqkb1r/ppp2p1p/2n2np1/1B1pp3/3PPB2/5N2/PPP2PPP/RN1Q1RK1 b kq - 1 6";
 pub const TEST_BOARD_2: &str = "2kr1b1r/1bp4p/ppn3p1/1B1pNp2/P2PnBQq/N1P5/1P3PPP/4RRK1 w - - 1 13";
-pub const BLACK_IN_CHECK : &str = "rn1qk2r/pppB1ppp/4pn2/3p4/1b1P4/2N1PN2/PPP2PPP/R1BQK2R b KQkq - 0 6";
-pub const WHITE_IN_CHECK : &str = "rn2k2r/ppp2ppp/5n2/3Pp1q1/1b1PK3/P1N2N2/1PP2PPP/R1BQ3R w kq - 3 13";
+pub const BLACK_IN_CHECK: &str =
+    "rn1qk2r/pppB1ppp/4pn2/3p4/1b1P4/2N1PN2/PPP2PPP/R1BQK2R b KQkq - 0 6";
+pub const WHITE_IN_CHECK: &str =
+    "rn2k2r/ppp2ppp/5n2/3Pp1q1/1b1PK3/P1N2N2/1PP2PPP/R1BQ3R w kq - 3 13";
 
 fn read_piece(char: &str) -> Piece {
     let color = if char.to_lowercase() == char {

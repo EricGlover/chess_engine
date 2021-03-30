@@ -187,10 +187,13 @@ pub fn gen_moves(board: &Board, color: Color) -> Vec<Move> {
         moves.extend(m.into_iter());
     }
     // @todo: fix the infinite loop
-    let filtered_moves: Vec<Move> = moves.into_iter().filter(|m| {
-        let new_board = board.make_move(&m);
-        !new_board.is_in_check(m.piece.color)
-    }).collect();
+    let filtered_moves: Vec<Move> = moves
+        .into_iter()
+        .filter(|m| {
+            let new_board = board.make_move(&m);
+            !new_board.is_in_check(m.piece.color)
+        })
+        .collect();
     filtered_moves
     // return moves;
 }
@@ -209,7 +212,6 @@ pub fn gen_attack_moves(board: &Board, color: Color) -> Vec<Move> {
 
 // @todo: split out gen_moves and gen_moves_illegal or something
 // difference between legal and pseudo-legal moves ?
-
 fn gen_moves_for(board: &Board, piece: &Piece) -> Vec<Move> {
     let moves = match piece.piece_type {
         PieceType::King => gen_king_moves(board, piece),
