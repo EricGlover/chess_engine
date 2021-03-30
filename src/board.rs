@@ -1,4 +1,4 @@
-use crate::move_generator::{gen_moves, Move, print_move_list, print_move};
+use crate::move_generator::{gen_moves, Move, print_move_list, print_move, gen_attack_moves};
 use crate::chess_notation::read_move;
 use crate::fen_reader;
 use crate::board_console_printer::print_board;
@@ -219,7 +219,7 @@ impl Board {
     pub fn is_in_check(&self, color: Color) -> bool {
         println!("is {} in check ? ", color);
         println!("{}", color.opposite());
-        let moves = gen_moves(self, color.opposite());
+        let moves = gen_attack_moves(self, color.opposite());
         let king = self.get_king(color).unwrap();
         println!("{:?}", king);
         let at = king.at().unwrap();

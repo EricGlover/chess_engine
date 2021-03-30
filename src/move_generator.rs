@@ -178,7 +178,26 @@ fn test_pawn_moves() {
 
 // generates all moves to squares on the board
 // could be illegal
+//@todo: test
 pub fn gen_moves(board: &Board, color: Color) -> Vec<Move> {
+    let mut moves: Vec<Move> = Vec::new();
+    let pieces = board.get_pieces(color);
+    for piece in pieces.iter() {
+        let m = gen_moves_for(board, piece);
+        moves.extend(m.into_iter());
+    }
+    // @todo: fix the infinite loop
+    let filtered_moves: Vec<Move> = moves.into_iter().filter(|m| {
+        let new_board = board.make_move(&m);
+        !new_board.is_in_check(m.piece.color)
+    }).collect();
+    filtered_moves
+    // return moves;
+}
+
+// change this to -> Vec<Coordinate>?
+//@todo: test
+pub fn gen_attack_moves(board: &Board, color: Color) -> Vec<Move> {
     let mut moves: Vec<Move> = Vec::new();
     let pieces = board.get_pieces(color);
     for piece in pieces.iter() {
@@ -188,7 +207,8 @@ pub fn gen_moves(board: &Board, color: Color) -> Vec<Move> {
     return moves;
 }
 
-// @todo: split out gen_moves and gen_moves_illegal or something 
+// @todo: split out gen_moves and gen_moves_illegal or something
+// difference between legal and pseudo-legal moves ?
 
 fn gen_moves_for(board: &Board, piece: &Piece) -> Vec<Move> {
     let moves = match piece.piece_type {
