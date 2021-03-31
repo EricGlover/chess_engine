@@ -1,5 +1,7 @@
 use crate::board::*;
 use crate::fen_reader::make_initial_board;
+use std::fmt;
+use std::fmt::Formatter;
 
 //@todo: make sure move doesn't put you in check
 // @todo : test
@@ -34,6 +36,12 @@ pub struct Move {
     pub rook: Option<Piece>,
     pub rook_from: Option<Coordinate>,
     pub rook_to: Option<Coordinate>,
+}
+
+impl fmt::Display for Move {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{} moving from ({}, {}) to ({}, {}) ", self.piece.piece_type, self.from.x, self.from.y, self.to.x, self.to.y)
+    }
 }
 
 impl Move {
@@ -501,8 +509,8 @@ fn square_occupiable_by(board: &Board, at: &Coordinate, color: Color) -> bool {
     }
 }
 
-fn has_enemy_piece(board: &Board, at: &Coordinate, ownColor: Color) -> bool {
-    let enemyColor = match ownColor {
+fn has_enemy_piece(board: &Board, at: &Coordinate, own_color: Color) -> bool {
+    let enemyColor = match own_color {
         Color::White => Color::Black,
         Color::Black => Color::White,
     };

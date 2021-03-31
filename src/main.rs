@@ -4,10 +4,13 @@ use chess_engine::board::*;
 use chess_engine::board_console_printer;
 use chess_engine::fen_reader;
 use chess_engine::move_generator;
-use std::io;
 use std::io::prelude::*;
 use std::io::{empty, BufReader, Read};
 use chess_engine::AI;
+
+/**
+alpha - beta searching
+**/
 
 /**
 chess move reader

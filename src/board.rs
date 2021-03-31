@@ -45,6 +45,14 @@ pub struct Piece {
     at: Option<Coordinate>,
 }
 
+
+impl fmt::Display for Piece {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{} {}", self.color, self.piece_type)
+    }
+}
+
+
 impl Piece {
     pub fn new(color: Color, piece_type: PieceType, at: Option<Coordinate>) -> Piece {
         Piece {
@@ -67,6 +75,21 @@ pub enum PieceType {
     Rook,
     Pawn,
 }
+
+impl fmt::Display for PieceType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let string = match self {
+            PieceType::King => "King",
+            PieceType::Queen => "Queen",
+            PieceType::Bishop => "Bishop",
+            PieceType::Knight => "Knight",
+            PieceType::Rook =>  "Rook",
+            PieceType::Pawn => "Pawn",
+        };
+        write!(f, "{}", string)
+    }
+}
+
 
 impl PieceType {
     pub fn from(char: &str) -> Option<PieceType> {
@@ -134,7 +157,7 @@ impl Coordinate {
             6 => "f",
             7 => "g",
             8 => "h",
-            _ => panic!("{} not valid coordinate"),
+            _ => panic!("not valid coordinate"),
         };
         let mut str = x.to_string();
         str.push_str(c.y.to_string().as_str());
@@ -181,14 +204,14 @@ fn test_in_check() {
 
 #[derive(Debug)]
 pub struct Board {
-    pub white_to_move: bool,
-    pub white_can_castle_king_side: bool,
-    pub white_can_castle_queen_side: bool,
-    pub black_can_castle_king_side: bool,
-    pub black_can_castle_queen_side: bool,
+    pub white_to_move: bool, //@todo : update these
+    pub white_can_castle_king_side: bool,   //@todo : update these
+    pub white_can_castle_queen_side: bool, //@todo : update these
+    pub black_can_castle_king_side: bool, //@todo : update these
+    pub black_can_castle_queen_side: bool, //@todo : update these
     pub en_passant_target: Option<Coordinate>,
-    pub half_move_clock: u8,
-    pub full_move_number: u8,
+    pub half_move_clock: u8, //@todo : update these
+    pub full_move_number: u8, //@todo : update these
     squares: Vec<Vec<Square>>,
 }
 
@@ -261,26 +284,39 @@ impl Board {
         None
     }
 
+    fn remove_piece(&mut self, at: &Coordinate) -> Option<Piece> {
+        let square = self.get_square_mut(at);
+        let piece = square.piece;
+        square.piece = None;
+        piece
+    }
+
     // doesn't check legality of moves
     pub fn make_move_mut(&mut self, m: &Move) {
-        let mut p = self.get_piece_at(&m.from).unwrap();
-
-        //@todo : pawn promotion
-        if m.promoted_to.is_some() && m.piece.piece_type == PieceType::Pawn {
-            p.piece_type = m.promoted_to.unwrap();
-        }
-        p.at = Some(m.to);
-        let s = self.get_square_mut(&m.to);
-        if s.piece.is_some() {
-            let mut other = s.piece.unwrap();
-            if other.color != p.color {
-                other.at = None;
-            } else {
+        let enemy_piece = self.remove_piece(&m.to);
+        // is this a capture
+        if enemy_piece.is_none() && m.piece.piece_type != PieceType::Pawn {
+            // update 50 move rule draw counter
+            self.half_move_clock = self.half_move_clock + 1;
+        } else if enemy_piece.is_some() {
+            let enemy_piece = enemy_piece.unwrap();
+            if enemy_piece.color == m.piece.color {
+                // put it back
+                self.place_piece(enemy_piece, m.to.clone());
+                panic!("invalid move");
             }
         }
-        s.piece = Some(p);
-        let s = self.get_square_mut(&m.from);
-        s.piece = None;
+
+        // get piece to move
+        let mut moving_piece = self.remove_piece(&m.from).unwrap();
+
+        // if it gets promoted, then switch it's type
+        if m.promoted_to.is_some() && m.piece.piece_type == PieceType::Pawn {
+            moving_piece.piece_type = m.promoted_to.unwrap();
+        }
+
+        // move the piece ( update the piece and square )
+        self.place_piece(moving_piece, m.to.clone());
 
         // castling
         if m.is_castling && m.rook_from.is_some() && m.rook_to.is_some() {
@@ -289,11 +325,6 @@ impl Board {
                 m.rook_to.unwrap(),
                 m.rook.unwrap(),
             ))
-        }
-
-        // update 50 move rule draw counter
-        if m.piece.piece_type != PieceType::Pawn && self.get_piece_at(&m.to).is_none() {
-            self.half_move_clock = self.half_move_clock + 1;
         }
 
         // update move counter

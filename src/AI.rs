@@ -91,33 +91,56 @@ impl AI {
         }
     }
 
-    // returns (black eval, white eval)
-    // maybe I should make eval structs ?
-
-        //     f(p) = 200(K-K')
-        //        + 9(Q-Q')
-        //        + 5(R-R')
-        //        + 3(B-B' + N-N')
-        //        + 1(P-P')
-        //        - 0.5(D-D' + S-S' + I-I')
-        //        + 0.1(M-M') + ...
-        //
-        // KQRBNP = number of kings, queens, rooks, bishops, knights and pawns
-        // D,S,I = doubled, blocked and isolated pawns
-        // M = Mobility (the number of legal moves)
-
-    pub fn evaluate(board: &Board) -> (f32, f32) {
-        let c = PieceCount::new(board);
-        let eval: f32 = (200 * (c.white_king - c.black_king)
-            + 9 * (c.white_queen - c.black_queen)
-            + 5 * (c.white_rook - c.black_rook)
-            + 3 * (c.white_bishop - c.black_bishop + c.white_knight - c.black_knight)
-            + 1 * (c.white_pawn - c.black_pawn)) as f32;
-        //@todo : pawn structures, mobility
-        (eval, eval * -1 as f32)
+    fn choose_random_move(&mut self, board: &Board) -> Move {
+        let mut moves = gen_moves(&board, self.color);
+        let moveCount = moves.iter().len();
+        let i = self.rng.gen_range(0..moveCount);
+        moves.remove(i)
     }
 
-    pub fn make_move(&mut self, board: &Board) -> Move {
+    fn old_search(&self, board: &Board, depth: u8) -> Move {
+        if depth < 1 {
+            panic!("can not search for depth less than one");
+        }
+        let mut moves = gen_moves(&board, self.color);
+
+        // @todo:: add evaluations
+        // map and sort ?, search & find highest eval ?
+        let mut best_move : Option<Move>= None;
+        let mut best_eval : Option<f32> = None;
+        for m in moves.into_iter() {
+            let new_board = board.make_move(&m);
+            let (white_eval, black_eval) = AI::evaluate(&new_board);
+            let eval = if self.color == Color::White { white_eval } else { black_eval };
+            if best_eval.is_none() {
+                best_eval = Some(eval);
+                best_move = Some(m)
+            }
+            if best_eval.unwrap() < eval {
+                best_eval = Some(eval);
+                best_move = Some(m)
+            }
+        }
+        if best_move.is_some() {
+            if depth == 1 {
+                return best_move.unwrap();
+            } else {
+                return self.search(board, depth - 1);
+            }
+        } else {
+            panic!("no moves");
+        }
+
+
+        // let i = self.rng.gen_range((0..moveCount));
+        // moves.remove(i)
+    }
+
+    // do an exhaustive search , depth-first search
+    fn search(&self, board: &Board, depth: u8) -> Move {
+        if depth < 1 {
+            panic!("can not search for depth less than one");
+        }
         let mut moves = gen_moves(&board, self.color);
         let moveCount = moves.iter().len();
 
@@ -138,9 +161,12 @@ impl AI {
                 best_move = Some(m)
             }
         }
-
         if best_move.is_some() {
-            return best_move.unwrap();
+            if depth == 1 {
+                return best_move.unwrap();
+            } else {
+                return self.search(board, depth - 1);
+            }
         } else {
             panic!("no moves");
         }
@@ -148,5 +174,36 @@ impl AI {
 
         // let i = self.rng.gen_range((0..moveCount));
         // moves.remove(i)
+    }
+
+    // returns (black eval, white eval)
+    // maybe I should make eval structs ?
+
+        //     f(p) = 200(K-K')
+        //        + 9(Q-Q')
+        //        + 5(R-R')
+        //        + 3(B-B' + N-N')
+        //        + 1(P-P')
+        //        - 0.5(D-D' + S-S' + I-I')
+        //        + 0.1(M-M') + ...
+        //
+        // KQRBNP = number of kings, queens, rooks, bishops, knights and pawns
+        // D,S,I = doubled, blocked and isolated pawns
+        // M = Mobility (the number of legal moves)
+
+    pub fn evaluate(board: &Board) -> (f32, f32) {
+        let c = PieceCount::new(board);
+        let k: i32 = 200 * (c.white_king as i32 - c.black_king as i32);
+        let q: i32 = 9 * (c.white_queen as i32 - c.black_queen as i32);
+        let r: i32 = 5 * (c.white_rook as i32 - c.black_rook as i32);
+        let b: i32 = 3 * (c.white_bishop as i32 - c.black_bishop as i32 + c.white_knight as i32 - c.black_knight as i32);
+        let p: i32 = 1 * (c.white_pawn as i32 - c.black_pawn as i32);
+        let eval = (k + q + r + b + p) as f32;
+        //@todo : pawn structures, mobility
+        (eval, eval * -1.0)
+    }
+
+    pub fn make_move(&self, board: &Board) -> Move {
+        self.search(board, 1)
     }
 }

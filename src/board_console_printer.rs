@@ -1,4 +1,4 @@
-use crate::board::{Board, Color, PieceType, Square};
+use crate::board::{Board, Color, PieceType};
 use matrix_display::Format;
 use matrix_display::*;
 

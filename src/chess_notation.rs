@@ -20,7 +20,7 @@ pub fn parse_move(str: &str) -> (PieceType, Coordinate) {
     } else {
         PieceType::Pawn
     };
-    let s: String = chars.splice((0..2), std::iter::empty()).collect();
+    let s: String = chars.splice(0..2, std::iter::empty()).collect();
     let to = Coordinate::from(s.as_str());
     (piece_type, to)
 }
