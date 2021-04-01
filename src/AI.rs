@@ -217,8 +217,37 @@ impl AI {
         (white_doubled, black_doubled)
     }
 
-    fn count_blocked_pawns(board: &Board, color: Color) -> u8 {
-        0
+    fn count_blocked_pawns(board: &Board) -> (u8, u8)  {
+        let files = board.get_files();
+        let mut white_blocked: u8 = 0;
+        let mut black_blocked: u8 = 0;
+        files.iter().for_each(| file| {
+            file.iter().enumerate().for_each(|(y, square)| {
+                if square.piece.is_none() {
+                    return;
+                }
+                let piece = square.piece.unwrap();
+                if piece.piece_type != PieceType::Pawn {
+                    return;
+                }
+                let direction = match piece.color {
+                    Color::White => 1,
+                    Color::Black => -1,
+                };
+                let next_square = square.coordinate.add(0, direction);
+                if board.has_piece(&next_square) {
+                    match piece.color {
+                        Color::White => {
+                            white_blocked = white_blocked + 1
+                        },
+                        Color::Black => {
+                            black_blocked = black_blocked + 1
+                        },
+                    }
+                }
+            })
+        });
+        (white_blocked, black_blocked)
     }
 
     fn make_pawn_count_by_file(board: &Board) -> (PawnCountByFile, PawnCountByFile) {
@@ -240,13 +269,13 @@ impl AI {
     }
 
     fn count_isolated_pawns(white: &PawnCountByFile, black: &PawnCountByFile) -> (u8, u8) {
-        let mut white_p : u8 = 0;
-        let mut black_p : u8 = 0;
+        let mut white_p: u8 = 0;
+        let mut black_p: u8 = 0;
         for (i, file) in white.files.iter().enumerate() {
-            let mut left_empty_or_none= false;
+            let mut left_empty_or_none = false;
             if i > 0 {
                 let left = white.files.get(i - 1);
-                 left_empty_or_none = (left.is_some() && *left.unwrap() == 0) || left.is_none();
+                left_empty_or_none = (left.is_some() && *left.unwrap() == 0) || left.is_none();
             }
             let right = white.files.get(i + 1);
             let right_empty_or_none = (right.is_some() && *right.unwrap() == 0) || right.is_none();
@@ -289,8 +318,8 @@ impl AI {
         let (white_isolated_pawns, black_isolated_pawns) =
             AI::count_isolated_pawns(&white_pawn_file, &black_pawn_file);
         let isolated: i32 = white_isolated_pawns as i32 - black_isolated_pawns as i32;
-        let blocked: i32 = AI::count_blocked_pawns(board, Color::White) as i32
-            - AI::count_blocked_pawns(board, Color::Black) as i32;
+        let (white_blocked_pawns, black_blocked_pawns) = AI::count_blocked_pawns(board);
+        let blocked: i32 = (white_blocked_pawns as i32) - (black_blocked_pawns as i32);
         let pawn_structure = 0.5 * (doubled + isolated + blocked) as f32;
 
         // mobility
