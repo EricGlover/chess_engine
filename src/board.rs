@@ -45,13 +45,11 @@ pub struct Piece {
     at: Option<Coordinate>,
 }
 
-
 impl fmt::Display for Piece {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{} {}", self.color, self.piece_type)
     }
 }
-
 
 impl Piece {
     pub fn new(color: Color, piece_type: PieceType, at: Option<Coordinate>) -> Piece {
@@ -83,13 +81,12 @@ impl fmt::Display for PieceType {
             PieceType::Queen => "Queen",
             PieceType::Bishop => "Bishop",
             PieceType::Knight => "Knight",
-            PieceType::Rook =>  "Rook",
+            PieceType::Rook => "Rook",
             PieceType::Pawn => "Pawn",
         };
         write!(f, "{}", string)
     }
 }
-
 
 impl PieceType {
     pub fn from(char: &str) -> Option<PieceType> {
@@ -204,13 +201,13 @@ fn test_in_check() {
 
 #[derive(Debug)]
 pub struct Board {
-    pub white_to_move: bool, //@todo : update these
-    pub white_can_castle_king_side: bool,   //@todo : update these
+    pub white_to_move: bool,               //@todo : update these
+    pub white_can_castle_king_side: bool,  //@todo : update these
     pub white_can_castle_queen_side: bool, //@todo : update these
-    pub black_can_castle_king_side: bool, //@todo : update these
+    pub black_can_castle_king_side: bool,  //@todo : update these
     pub black_can_castle_queen_side: bool, //@todo : update these
     pub en_passant_target: Option<Coordinate>,
-    pub half_move_clock: u8, //@todo : update these
+    pub half_move_clock: u8,  //@todo : update these
     pub full_move_number: u8, //@todo : update these
     squares: Vec<Vec<Square>>,
 }

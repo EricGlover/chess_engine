@@ -106,12 +106,16 @@ impl AI {
 
         // @todo:: add evaluations
         // map and sort ?, search & find highest eval ?
-        let mut best_move : Option<Move>= None;
-        let mut best_eval : Option<f32> = None;
+        let mut best_move: Option<Move> = None;
+        let mut best_eval: Option<f32> = None;
         for m in moves.into_iter() {
             let new_board = board.make_move(&m);
             let (white_eval, black_eval) = AI::evaluate(&new_board);
-            let eval = if self.color == Color::White { white_eval } else { black_eval };
+            let eval = if self.color == Color::White {
+                white_eval
+            } else {
+                black_eval
+            };
             if best_eval.is_none() {
                 best_eval = Some(eval);
                 best_move = Some(m)
@@ -130,7 +134,6 @@ impl AI {
         } else {
             panic!("no moves");
         }
-
 
         // let i = self.rng.gen_range((0..moveCount));
         // moves.remove(i)
@@ -146,12 +149,16 @@ impl AI {
 
         // @todo:: add evaluations
         // map and sort ?, search & find highest eval ?
-        let mut best_move : Option<Move>= None;
-        let mut best_eval : Option<f32> = None;
+        let mut best_move: Option<Move> = None;
+        let mut best_eval: Option<f32> = None;
         for m in moves.into_iter() {
             let new_board = board.make_move(&m);
             let (white_eval, black_eval) = AI::evaluate(&new_board);
-            let eval = if self.color == Color::White { white_eval } else { black_eval };
+            let eval = if self.color == Color::White {
+                white_eval
+            } else {
+                black_eval
+            };
             if best_eval.is_none() {
                 best_eval = Some(eval);
                 best_move = Some(m)
@@ -171,7 +178,6 @@ impl AI {
             panic!("no moves");
         }
 
-
         // let i = self.rng.gen_range((0..moveCount));
         // moves.remove(i)
     }
@@ -179,30 +185,27 @@ impl AI {
     // returns (black eval, white eval)
     // maybe I should make eval structs ?
 
-        //     f(p) = 200(K-K')
-        //        + 9(Q-Q')
-        //        + 5(R-R')
-        //        + 3(B-B' + N-N')
-        //        + 1(P-P')
-        //        - 0.5(D-D' + S-S' + I-I')
-        //        + 0.1(M-M') + ...
-        //
-        // KQRBNP = number of kings, queens, rooks, bishops, knights and pawns
-        // D,S,I = doubled, blocked and isolated pawns
-        // M = Mobility (the number of legal moves)
+    //     f(p) = 200(K-K')
+    //        + 9(Q-Q')
+    //        + 5(R-R')
+    //        + 3(B-B' + N-N')
+    //        + 1(P-P')
+    //        - 0.5(D-D' + S-S' + I-I')
+    //        + 0.1(M-M') + ...
+    //
+    // KQRBNP = number of kings, queens, rooks, bishops, knights and pawns
+    // D,S,I = doubled, blocked and isolated pawns
+    // M = Mobility (the number of legal moves)
 
-    fn count_doubled_pawns(board: &Board, color: Color) -> u8
-    {
+    fn count_doubled_pawns(board: &Board, color: Color) -> u8 {
         0
     }
 
-    fn count_blocked_pawns(board: &Board, color: Color) -> u8
-    {
+    fn count_blocked_pawns(board: &Board, color: Color) -> u8 {
         0
     }
 
-    fn count_isolated_pawns(board: &Board, color: Color) -> u8
-    {
+    fn count_isolated_pawns(board: &Board, color: Color) -> u8 {
         0
     }
 
@@ -211,27 +214,23 @@ impl AI {
         let k: i32 = 200 * (c.white_king as i32 - c.black_king as i32);
         let q: i32 = 9 * (c.white_queen as i32 - c.black_queen as i32);
         let r: i32 = 5 * (c.white_rook as i32 - c.black_rook as i32);
-        let b: i32 = 3 * (c.white_bishop as i32 - c.black_bishop as i32 + c.white_knight as i32 - c.black_knight as i32);
+        let b: i32 = 3
+            * (c.white_bishop as i32 - c.black_bishop as i32 + c.white_knight as i32
+                - c.black_knight as i32);
         let p: i32 = 1 * (c.white_pawn as i32 - c.black_pawn as i32);
-        let pawn_structure = 0.5 * (
-            (
-                AI::count_doubled_pawns(board, Color::White) -
-                AI::count_doubled_pawns(board, Color::Black)
-            ) +
-                (
-                AI::count_isolated_pawns(board, Color::White) -
-                AI::count_isolated_pawns(board, Color::Black)
-                ) +
-                (
-                AI::count_blocked_pawns(board, Color::White) -
-                AI::count_blocked_pawns(board, Color::Black)
-                )
-        ) as f32;
+        let doubled = AI::count_doubled_pawns(board, Color::White)
+            - AI::count_doubled_pawns(board, Color::Black);
+        let isolated = AI::count_isolated_pawns(board, Color::White)
+            - AI::count_isolated_pawns(board, Color::Black);
+        let blocked = AI::count_blocked_pawns(board, Color::White)
+            - AI::count_blocked_pawns(board, Color::Black);
+        let pawn_structure = 0.5 * (doubled + isolated + blocked) as f32;
         // @bugs be here
         let white_moves = gen_moves(board, Color::White);
         let black_moves = gen_moves(board, Color::Black);
         println!("{} {} ", white_moves.iter().len(), black_moves.iter().len());
-        let mobility = 0.1 * (white_moves.iter().len() as i32 - black_moves.iter().len() as i32) as f32;
+        let mobility =
+            0.1 * (white_moves.iter().len() as i32 - black_moves.iter().len() as i32) as f32;
         let eval = (k + q + r + b + p) as f32 + mobility + pawn_structure;
         //@todo : pawn structures, mobility
         (eval, eval * -1.0)
