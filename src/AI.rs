@@ -191,6 +191,21 @@ impl AI {
         // D,S,I = doubled, blocked and isolated pawns
         // M = Mobility (the number of legal moves)
 
+    fn count_doubled_pawns(board: &Board, color: Color) -> u8
+    {
+        0
+    }
+
+    fn count_blocked_pawns(board: &Board, color: Color) -> u8
+    {
+        0
+    }
+
+    fn count_isolated_pawns(board: &Board, color: Color) -> u8
+    {
+        0
+    }
+
     pub fn evaluate(board: &Board) -> (f32, f32) {
         let c = PieceCount::new(board);
         let k: i32 = 200 * (c.white_king as i32 - c.black_king as i32);
@@ -198,7 +213,26 @@ impl AI {
         let r: i32 = 5 * (c.white_rook as i32 - c.black_rook as i32);
         let b: i32 = 3 * (c.white_bishop as i32 - c.black_bishop as i32 + c.white_knight as i32 - c.black_knight as i32);
         let p: i32 = 1 * (c.white_pawn as i32 - c.black_pawn as i32);
-        let eval = (k + q + r + b + p) as f32;
+        let pawn_structure = 0.5 * (
+            (
+                AI::count_doubled_pawns(board, Color::White) -
+                AI::count_doubled_pawns(board, Color::Black)
+            ) +
+                (
+                AI::count_isolated_pawns(board, Color::White) -
+                AI::count_isolated_pawns(board, Color::Black)
+                ) +
+                (
+                AI::count_blocked_pawns(board, Color::White) -
+                AI::count_blocked_pawns(board, Color::Black)
+                )
+        ) as f32;
+        // @bugs be here
+        let white_moves = gen_moves(board, Color::White);
+        let black_moves = gen_moves(board, Color::Black);
+        println!("{} {} ", white_moves.iter().len(), black_moves.iter().len());
+        let mobility = 0.1 * (white_moves.iter().len() as i32 - black_moves.iter().len() as i32) as f32;
+        let eval = (k + q + r + b + p) as f32 + mobility + pawn_structure;
         //@todo : pawn structures, mobility
         (eval, eval * -1.0)
     }

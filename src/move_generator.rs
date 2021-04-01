@@ -1,5 +1,5 @@
 use crate::board::*;
-use crate::fen_reader::make_initial_board;
+use crate::fen_reader::{make_initial_board, read, INITIAL_BOARD};
 use std::fmt;
 use std::fmt::Formatter;
 
@@ -138,6 +138,22 @@ fn move_list_eq(m: &Vec<Move>, m2: &Vec<Move>) -> bool {
         }
     }
     return true;
+}
+
+#[test]
+fn test_move_gen() {
+    let board = read(INITIAL_BOARD);
+    let white_moves = gen_moves(&board, Color::White);
+    let black_moves = gen_moves(&board, Color::Black);
+    println!("White moves");
+    for m in white_moves.iter() {
+        println!("{}", m);
+    }
+    println!("Black moves");
+    for m in black_moves.iter() {
+        println!("{}", m);
+    }
+    assert_eq!(white_moves.iter().len(), black_moves.iter().len());
 }
 
 #[test]
@@ -463,7 +479,7 @@ fn gen_pawn_moves(board: &Board, piece: &Piece) -> Vec<Move> {
     }
 
     // pawn move two squares
-    if (piece.color == Color::White && from.y == 2) || (piece.color == Color::White && from.y == 7)
+    if (piece.color == Color::White && from.y == 2) || (piece.color == Color::Black && from.y == 7)
     {
         let m2 = make_move(0, 2 * direction);
         if is_on_board(&m2.to) && square_occupiable_by(board, &m2.to, piece.color) {
