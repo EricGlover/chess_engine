@@ -205,6 +205,18 @@ fn test_in_check() {
     assert!(board.is_in_check(Color::White));
 }
 
+#[test]
+fn test_get_files() {
+    let board = fen_reader::read(fen_reader::INITIAL_BOARD);
+    let files = board.get_files();
+    for (j, row) in files.iter().enumerate() {
+        for (i, s) in row.iter().enumerate() {
+            assert_eq!((i + 1) as u8, s.coordinate.y);
+            assert_eq!((j + 1) as u8, s.coordinate.x);
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Board {
     pub white_to_move: bool,               //@todo : update these
@@ -234,8 +246,7 @@ impl Board {
     }
 
     pub fn squares_list(&self) -> Vec<&Square> {
-        self
-            .squares
+        self.squares
             .iter()
             .map(|vec| {
                 return vec.iter();
@@ -244,10 +255,8 @@ impl Board {
             .collect()
     }
 
-    pub fn get_files(&self) -> Vec<Vec<&Square>>
-    {
-        let mut files :Vec<Vec<&Square>> = vec![];
-        let rows = self.squares.len();
+    pub fn get_files(&self) -> Vec<Vec<&Square>> {
+        let mut files: Vec<Vec<&Square>> = vec![];
         {
             let mut x = 0;
             let row_length = self.squares.get(0).unwrap().len();
@@ -271,20 +280,19 @@ impl Board {
         files
     }
 
-    pub fn get_squares(&self) -> &Vec<Vec<Square>>
-    {
+    pub fn get_squares(&self) -> &Vec<Vec<Square>> {
         &self.squares
     }
 
     // change return to piece list or something ?
     pub fn is_in_check(&self, color: Color) -> bool {
-        println!("is {} in check ? ", color);
-        println!("{}", color.opposite());
+        // println!("is {} in check ? ", color);
+        // println!("{}", color.opposite());
         let moves = gen_attack_moves(self, color.opposite());
         let king = self.get_king(color).unwrap();
-        println!("{:?}", king);
+        // println!("{:?}", king);
         let at = king.at().unwrap();
-        print_board(self);
+        // print_board(self);
         for m in moves {
             if m.to == at {
                 print_move(&m);
