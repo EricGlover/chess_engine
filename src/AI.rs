@@ -40,7 +40,7 @@ impl PieceCount {
             black_rook: 0,
             black_pawn: 0,
         };
-        for square in board.squares() {
+        for square in board.squares_list() {
             if square.piece.is_some() {
                 let piece = &square.piece.unwrap();
                 match piece.piece_type {
@@ -198,6 +198,11 @@ impl AI {
     // M = Mobility (the number of legal moves)
 
     fn count_doubled_pawns(board: &Board, color: Color) -> u8 {
+        let files = board.get_files();
+        let file = files.get(0).unwrap();
+        for s in file.iter() {
+            println!("{}", s.coordinate);
+        }
         0
     }
 

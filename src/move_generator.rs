@@ -42,8 +42,8 @@ impl fmt::Display for Move {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "{} moving from ({}, {}) to ({}, {}) ",
-            self.piece.piece_type, self.from.x, self.from.y, self.to.x, self.to.y
+            "{} moving from {} to {} ",
+            self.piece.piece_type, self.from, self.to
         )
     }
 }

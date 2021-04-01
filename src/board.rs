@@ -182,6 +182,12 @@ impl Coordinate {
     }
 }
 
+impl fmt::Display for Coordinate {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "({}, {})", self.x, self.y)
+    }
+}
+
 #[derive(Debug)]
 pub struct Square {
     pub coordinate: Coordinate,
@@ -213,41 +219,63 @@ pub struct Board {
 }
 
 impl Board {
-    pub fn squares(&self) -> Vec<&Square> {
-        return self
+    pub fn new() -> Board {
+        Board {
+            white_to_move: true,
+            white_can_castle_king_side: true,
+            white_can_castle_queen_side: true,
+            black_can_castle_king_side: true,
+            black_can_castle_queen_side: true,
+            en_passant_target: None,
+            half_move_clock: 0,
+            full_move_number: 0,
+            squares: Board::make_squares(),
+        }
+    }
+
+    pub fn squares_list(&self) -> Vec<&Square> {
+        self
             .squares
             .iter()
             .map(|vec| {
-                return vec.iter().rev();
+                return vec.iter();
             })
             .flatten()
-            .collect();
+            .collect()
     }
-    fn clone(&self) -> Board {
-        let mut squares: Vec<Vec<Square>> = vec![];
-        for row in self.squares.iter() {
-            let mut new_row: Vec<Square> = vec![];
-            for square in row.iter() {
-                new_row.push(Square {
-                    coordinate: square.coordinate.clone(),
-                    piece: square.piece.clone(),
-                    color: square.color.clone(),
-                });
+
+    pub fn get_files(&self) -> Vec<Vec<&Square>>
+    {
+        let mut files :Vec<Vec<&Square>> = vec![];
+        let rows = self.squares.len();
+        {
+            let mut x = 0;
+            let row_length = self.squares.get(0).unwrap().len();
+            loop {
+                let mut file: Vec<&Square> = vec![];
+                if x >= row_length {
+                    break;
+                }
+                for row in self.squares.iter() {
+                    let square = row.get(x);
+                    if square.is_none() {
+                        break;
+                    }
+                    let square = square.unwrap();
+                    file.push(&square)
+                }
+                files.push(file);
+                x = x + 1;
             }
-            squares.push(new_row);
         }
-        Board {
-            white_to_move: self.white_to_move,
-            white_can_castle_king_side: self.white_can_castle_king_side,
-            white_can_castle_queen_side: self.white_can_castle_queen_side,
-            black_can_castle_king_side: self.black_can_castle_king_side,
-            black_can_castle_queen_side: self.black_can_castle_queen_side,
-            en_passant_target: self.en_passant_target.clone(),
-            half_move_clock: self.half_move_clock,
-            full_move_number: self.full_move_number,
-            squares,
-        }
+        files
     }
+
+    pub fn get_squares(&self) -> &Vec<Vec<Square>>
+    {
+        &self.squares
+    }
+
     // change return to piece list or something ?
     pub fn is_in_check(&self, color: Color) -> bool {
         println!("is {} in check ? ", color);
@@ -264,28 +292,6 @@ impl Board {
             }
         }
         false
-    }
-
-    fn get_king(&self, color: Color) -> Option<Piece> {
-        for row in self.squares.iter() {
-            for square in row.iter() {
-                if square.piece.is_none() {
-                    continue;
-                }
-                let piece = square.piece.unwrap();
-                if piece.piece_type == PieceType::King && piece.color == color {
-                    return Some(piece.clone());
-                }
-            }
-        }
-        None
-    }
-
-    fn remove_piece(&mut self, at: &Coordinate) -> Option<Piece> {
-        let square = self.get_square_mut(at);
-        let piece = square.piece;
-        square.piece = None;
-        piece
     }
 
     // doesn't check legality of moves
@@ -347,10 +353,6 @@ impl Board {
             .is_some()
     }
 
-    fn is_on_board(c: Coordinate) -> bool {
-        c.x >= LOW_X && c.x <= HIGH_X && c.y >= LOW_Y && c.y <= HIGH_Y
-    }
-
     pub fn get_piece_at(&self, at: &Coordinate) -> Option<Piece> {
         let square = self.get_square(at);
         if square.piece.is_some() {
@@ -374,6 +376,58 @@ impl Board {
             }
         }
         return pieces;
+    }
+
+    fn clone(&self) -> Board {
+        let mut squares: Vec<Vec<Square>> = vec![];
+        for row in self.squares.iter() {
+            let mut new_row: Vec<Square> = vec![];
+            for square in row.iter() {
+                new_row.push(Square {
+                    coordinate: square.coordinate.clone(),
+                    piece: square.piece.clone(),
+                    color: square.color.clone(),
+                });
+            }
+            squares.push(new_row);
+        }
+        Board {
+            white_to_move: self.white_to_move,
+            white_can_castle_king_side: self.white_can_castle_king_side,
+            white_can_castle_queen_side: self.white_can_castle_queen_side,
+            black_can_castle_king_side: self.black_can_castle_king_side,
+            black_can_castle_queen_side: self.black_can_castle_queen_side,
+            en_passant_target: self.en_passant_target.clone(),
+            half_move_clock: self.half_move_clock,
+            full_move_number: self.full_move_number,
+            squares,
+        }
+    }
+
+    fn get_king(&self, color: Color) -> Option<Piece> {
+        for row in self.squares.iter() {
+            for square in row.iter() {
+                if square.piece.is_none() {
+                    continue;
+                }
+                let piece = square.piece.unwrap();
+                if piece.piece_type == PieceType::King && piece.color == color {
+                    return Some(piece.clone());
+                }
+            }
+        }
+        None
+    }
+
+    fn remove_piece(&mut self, at: &Coordinate) -> Option<Piece> {
+        let square = self.get_square_mut(at);
+        let piece = square.piece;
+        square.piece = None;
+        piece
+    }
+
+    fn is_on_board(c: Coordinate) -> bool {
+        c.x >= LOW_X && c.x <= HIGH_X && c.y >= LOW_Y && c.y <= HIGH_Y
     }
 
     fn get_square(&self, at: &Coordinate) -> &Square {
@@ -424,31 +478,5 @@ impl Board {
             vec.push(row);
         }
         return vec;
-    }
-
-    //@todo : clean up the architecture here, should it pass in a format and matrix display ?
-    pub fn get_squares(&self) -> Vec<&Square> {
-        return self
-            .squares
-            .iter()
-            .map(|vec| {
-                return vec.iter().rev();
-            })
-            .flatten()
-            .collect();
-    }
-
-    pub fn new() -> Board {
-        Board {
-            white_to_move: true,
-            white_can_castle_king_side: true,
-            white_can_castle_queen_side: true,
-            black_can_castle_king_side: true,
-            black_can_castle_queen_side: true,
-            en_passant_target: None,
-            half_move_clock: 0,
-            full_move_number: 0,
-            squares: Board::make_squares(),
-        }
     }
 }
