@@ -35,7 +35,7 @@ impl Game {
             }
             self.board.make_move_mut(&m.unwrap());
             // print eval
-            let (white_eval, black_eval) = AI::AI::evaluate(&self.board);
+            let (white_eval, black_eval) = AI::evaluator::evaluate(&self.board);
             println!("white eval {}, black eval {}", white_eval, black_eval);
             print_board(&self.board);
             // black moves now

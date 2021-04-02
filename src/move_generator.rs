@@ -144,65 +144,7 @@ fn move_list_eq(m: &Vec<Move>, m2: &Vec<Move>) -> bool {
     return true;
 }
 
-#[test]
-fn test_move_gen() {
-    let board = read(INITIAL_BOARD);
-    let white_moves = gen_moves(&board, Color::White);
-    let black_moves = gen_moves(&board, Color::Black);
-    println!("White moves");
-    for m in white_moves.iter() {
-        println!("{}", m);
-    }
-    println!("Black moves");
-    for m in black_moves.iter() {
-        println!("{}", m);
-    }
-    assert_eq!(white_moves.iter().len(), black_moves.iter().len());
-}
 
-#[test]
-fn move_list_is_same() {
-    let pawn = Piece::new(
-        Color::White,
-        PieceType::Pawn,
-        Some(Coordinate { x: 1, y: 1 }),
-    );
-    let pawn_2 = Piece::new(
-        Color::White,
-        PieceType::Pawn,
-        Some(Coordinate { x: 1, y: 1 }),
-    );
-
-    let m1 = Move::new(Coordinate { x: 1, y: 1 }, Coordinate { x: 1, y: 1 }, pawn);
-    let m2 = Move::new(Coordinate { x: 2, y: 1 }, Coordinate { x: 1, y: 1 }, pawn);
-    let m3 = Move::new(Coordinate { x: 1, y: 1 }, Coordinate { x: 1, y: 1 }, pawn_2);
-
-    let ml: Vec<Move> = vec![m1.clone(), m2.clone()];
-    let ml2: Vec<Move> = vec![m1.clone(), m2.clone()];
-    let ml3: Vec<Move> = vec![m1.clone(), m3.clone()];
-    assert!(move_list_eq(&ml, &ml2));
-    assert!(!move_list_eq(&ml, &ml3));
-}
-
-#[test]
-fn test_pawn_moves() {
-    let board = make_initial_board();
-    let pawn = board.get_piece_at(&Coordinate { x: 1, y: 2 }).unwrap();
-    let moves = gen_pawn_moves(&board, &pawn);
-    let correct_moves: Vec<Move> = vec![
-        Move::new(
-            Coordinate { x: 1, y: 2 },
-            Coordinate { x: 1, y: 3 },
-            pawn.clone(),
-        ),
-        Move::new(
-            Coordinate { x: 1, y: 2 },
-            Coordinate { x: 1, y: 4 },
-            pawn.clone(),
-        ),
-    ];
-    assert!(move_list_eq(&moves, &correct_moves));
-}
 
 // generates all moves to squares on the board
 // could be illegal
@@ -554,4 +496,25 @@ fn is_on_board(c: &Coordinate) -> bool {
 
 fn is_legal(move_: Move) -> bool {
     true
+}
+
+
+#[test]
+fn test_pawn_moves() {
+    let board = make_initial_board();
+    let pawn = board.get_piece_at(&Coordinate { x: 1, y: 2 }).unwrap();
+    let moves = gen_pawn_moves(&board, &pawn);
+    let correct_moves: Vec<Move> = vec![
+        Move::new(
+            Coordinate { x: 1, y: 2 },
+            Coordinate { x: 1, y: 3 },
+            pawn.clone(),
+        ),
+        Move::new(
+            Coordinate { x: 1, y: 2 },
+            Coordinate { x: 1, y: 4 },
+            pawn.clone(),
+        ),
+    ];
+    assert!(move_list_eq(&moves, &correct_moves));
 }

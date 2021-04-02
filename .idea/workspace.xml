@@ -7,6 +7,9 @@
     <list default="true" id="49ae807d-88c8-4d8d-a8ce-b8e901995cf7" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/AI.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/AI.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/game.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/game.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/move_generator.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/move_generator.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -52,6 +55,11 @@
     <property name="org.rust.cargo.project.model.PROJECT_DISCOVERY" value="true" />
     <property name="vue.rearranger.settings.migration" value="true" />
   </component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Programming\Rust\chess_engine\src\AI" />
+    </key>
+  </component>
   <component name="RustProjectSettings">
     <option name="toolchainHomeDirectory" value="$USER_HOME$/.cargo/bin" />
     <option name="version" value="2" />
@@ -67,7 +75,7 @@
       <workItem from="1616372003516" duration="21901000" />
       <workItem from="1616607904074" duration="15132000" />
       <workItem from="1616721253364" duration="9840000" />
-      <workItem from="1616813393318" duration="92635000" />
+      <workItem from="1616813393318" duration="95196000" />
     </task>
     <servers />
   </component>
