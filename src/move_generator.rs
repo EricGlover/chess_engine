@@ -1,7 +1,8 @@
 use crate::board::*;
-use crate::fen_reader::{make_initial_board, read, INITIAL_BOARD};
 use std::fmt;
 use std::fmt::Formatter;
+#[cfg(test)]
+use crate::fen_reader::make_initial_board;
 
 //@todo: make sure move doesn't put you in check
 // @todo : test

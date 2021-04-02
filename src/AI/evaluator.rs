@@ -1,5 +1,4 @@
 use crate::board::*;
-use crate::AI::AI;
 use crate::move_generator;
 use crate::fen_reader;
 use crate::board_console_printer::print_board;
@@ -128,7 +127,7 @@ fn count_blocked_pawns(board: &Board) -> (u8, u8) {
     let mut white_blocked: u8 = 0;
     let mut black_blocked: u8 = 0;
     files.iter().for_each(|file| {
-        file.iter().enumerate().for_each(|(y, square)| {
+        file.iter().for_each(|square| {
             if square.piece.is_none() {
                 return;
             }
@@ -168,7 +167,7 @@ fn make_pawn_count_by_file(board: &Board) -> (PawnCountByFile, PawnCountByFile) 
     let mut white_p = PawnCountByFile { files: [0; 8] };
     let mut black_p = PawnCountByFile { files: [0; 8] };
     files.iter().enumerate().for_each(|(x, file)| {
-        file.iter().enumerate().for_each(|(y, square)| {
+        file.iter().for_each(| square| {
             if square.piece.is_some() {
                 let piece = square.piece.unwrap();
                 if piece.piece_type == PieceType::Pawn {

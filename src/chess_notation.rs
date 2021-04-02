@@ -1,6 +1,19 @@
 use crate::board::*;
-use crate::fen_reader;
 use crate::move_generator::*;
+use crate::fen_reader;
+
+
+/**
+chess move reader
+
+<piece_specifier><piece_file | piece_rank | piece_file && piece_rank><captures><file><rank>
+piece_specifier = ['R', 'B', 'N', 'Q', 'K']
+piece_file = [a-h][1-8]
+captures = 'x'
+file = [a-h]
+rank = [1-8]
+**/
+
 
 //@todo::
 pub fn move_to_notation(m: &Move) -> String {
@@ -33,7 +46,6 @@ pub fn read_move(str: &str, board: &Board, color: Color) -> Option<Move> {
 
     // find what piece they're talking about by looking through the possible moves
     let mut moves = gen_moves(board, color);
-    print_move_list(&moves);
     moves
         .into_iter()
         .find(|m| m.piece.piece_type == piece_type && m.to == to)

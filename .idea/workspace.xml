@@ -9,11 +9,11 @@
       <change beforePath="$PROJECT_DIR$/src/AI.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/AI.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/AI/evaluator.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/AI/evaluator.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/board.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/board.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/fen_reader.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/fen_reader.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/board_console_printer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/board_console_printer.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/chess_notation.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/chess_notation.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/game.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/game.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/move_generator.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/move_generator.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tests.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/tests.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -79,7 +79,7 @@
       <workItem from="1616372003516" duration="21901000" />
       <workItem from="1616607904074" duration="15132000" />
       <workItem from="1616721253364" duration="9840000" />
-      <workItem from="1616813393318" duration="110098000" />
+      <workItem from="1616813393318" duration="111637000" />
     </task>
     <servers />
   </component>

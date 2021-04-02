@@ -1,7 +1,6 @@
 use crate::board::{Board, Color, PieceType};
 use matrix_display::Format;
 use matrix_display::*;
-use std::cell::Cell;
 
 pub fn print_board(board: &Board) {
     let mut board_cells = vec![];

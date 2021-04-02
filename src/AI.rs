@@ -1,12 +1,8 @@
 pub mod evaluator;
-
 use crate::board::*;
-use crate::fen_reader;
 use crate::move_generator::*;
 use rand::prelude::ThreadRng;
 use rand::Rng;
-use crate::AI::evaluator::evaluate;
-use std::cmp::max;
 
 pub struct AI {
     rng: ThreadRng,
@@ -81,7 +77,7 @@ impl AI {
 
         match m {
             None => None,
-            Some((eval, m)) => {
+            Some((_eval, m)) => {
                 Some(m)
             }
         }

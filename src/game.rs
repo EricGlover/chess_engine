@@ -3,7 +3,6 @@ use chess_engine::board::{Board, Coordinate};
 use chess_engine::board_console_printer::print_board;
 use chess_engine::chess_notation;
 use chess_engine::fen_reader;
-use chess_engine::move_generator::{gen_moves, print_move_list, Move};
 use chess_engine::AI;
 use std::io;
 use std::io::prelude::*;

@@ -1,13 +1,9 @@
 mod board_stuff;
-
 pub use board_stuff::*;
-
-use crate::board_console_printer::print_board;
-use crate::chess_notation::read_move;
-use crate::fen_reader;
-use crate::move_generator::{gen_attack_moves, gen_moves, print_move, print_move_list, Move};
+use crate::move_generator::{gen_attack_moves, Move};
 use std::fmt;
 use std::fmt::Formatter;
+use crate::fen_reader;
 
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
