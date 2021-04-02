@@ -255,24 +255,20 @@ impl Board {
             .collect()
     }
 
+    // fn test_files() {
+    //
+    // }
+
     pub fn get_files(&self) -> Vec<Vec<&Square>> {
         let mut files: Vec<Vec<&Square>> = vec![];
         {
             let mut x = 0;
             let row_length = self.squares.get(0).unwrap().len();
-            loop {
-                let mut file: Vec<&Square> = vec![];
-                if x >= row_length {
-                    break;
-                }
-                for row in self.squares.iter() {
-                    let square = row.get(x);
-                    if square.is_none() {
-                        break;
-                    }
-                    let square = square.unwrap();
-                    file.push(&square)
-                }
+            while x < row_length {
+                // for each row get square at x
+                let file: Vec<&Square> = self.squares.iter().map(|row| {
+                    row.get(x).unwrap()
+                }).collect();
                 files.push(file);
                 x = x + 1;
             }

@@ -11,10 +11,6 @@ pub struct AI {
     color: Color,
 }
 
-// @todo: split up eval code into a module or something
-
-
-
 impl AI {
     pub fn new(color: Color) -> AI {
         AI {

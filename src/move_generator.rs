@@ -424,11 +424,13 @@ fn gen_pawn_moves(board: &Board, piece: &Piece) -> Vec<Move> {
         moves.push(Move::new(from, to, piece.clone()));
     }
 
-    // pawn move two squares
+    // pawn move two squares (both squares must be empty)
     if (piece.color == Color::White && from.y == 2) || (piece.color == Color::Black && from.y == 7)
     {
+        let m1 = make_move(0, 1 * direction);
         let m2 = make_move(0, 2 * direction);
-        if is_on_board(&m2.to) && square_occupiable_by(board, &m2.to, piece.color) {
+        if is_on_board(&m2.to) && square_is_empty(board, &m2.to)
+            && is_on_board(&m1.to) && square_is_empty(board, &m1.to) {
             moves.push(m2);
         }
     }

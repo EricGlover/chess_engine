@@ -4,6 +4,10 @@ mod eval_tester {
     use crate::fen_reader;
     use crate::AI::evaluator;
 
+    fn test_evaluate() {
+
+    }
+
     #[test]
     fn test_eval() {
         let board = fen_reader::read(fen_reader::INITIAL_BOARD);
