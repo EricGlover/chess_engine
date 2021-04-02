@@ -49,7 +49,6 @@ fn read_pieces(piece_string: &str, board: &mut Board) {
     let piece_chars = "PNBRQKpnbrqk";
     let numbers = "123456789";
     let rows = piece_string.split("/");
-    // println!("reading pieces ");
     for (i, row) in rows.enumerate() {
         let y = 8 - (i as u8);
         let mut x: u8 = 1;
@@ -123,7 +122,6 @@ fn test_board_2() {
         board.has_piece(at)
     }
     board_console_printer::print_board(&board);
-    // println!("{:?}", board);
 
     // test if pieces are in the correct spot
     // todo: test if pieces themselves are the correct kind

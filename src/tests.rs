@@ -11,7 +11,7 @@ mod eval_tester {
     #[test]
     fn test_eval() {
         let board = fen_reader::read(fen_reader::INITIAL_BOARD);
-        assert_eq!(evaluator::evaluate(&board), (0.0, 0.0));
+        assert_eq!(evaluator::evaluate(&board), 0.0);
         let board = fen_reader::read(fen_reader::WHITE_IN_CHECK);
         println!("{:?}", evaluator::evaluate(&board));
     }

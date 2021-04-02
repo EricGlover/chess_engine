@@ -27,6 +27,8 @@ impl Game {
         print_board(&self.board);
         println!("What's your move?");
         for line in stdin.lock().lines() {
+            //@ todo : check for checkmate
+            // white move
             let command = line.unwrap().clone();
             let m = chess_notation::read_move(command.as_str(), &self.board, Color::White);
             if m.is_none() {
@@ -34,15 +36,19 @@ impl Game {
                 continue;
             }
             self.board.make_move_mut(&m.unwrap());
+
             // print eval
-            let (white_eval, black_eval) = AI::evaluator::evaluate(&self.board);
-            println!("white eval {}, black eval {}", white_eval, black_eval);
+            let eval = AI::evaluator::evaluate(&self.board);
+            println!("white eval {}", eval);
             print_board(&self.board);
+
+
             // black moves now
-            let m = self.ai.make_move(&self.board);
+            let m = self.ai.make_move(&self.board).unwrap();
             self.board.make_move_mut(&m);
             println!("Black moves... {}", m);
-            println!("white eval {}, black eval {}", white_eval, black_eval);
+            let eval = AI::evaluator::evaluate(&self.board);
+            println!("white eval {}", eval);
             print_board(&self.board);
         }
     }

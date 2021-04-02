@@ -24,10 +24,6 @@ rank = [1-8]
 **/
 
 fn main() {
-    // let board = fen_reader::read(fen_reader::WHITE_IN_CHECK);
-    // println!("{:?}", AI::AI::evaluate(&board));
-    // return;
-
     let game = game::Game::new();
     game.run();
 }

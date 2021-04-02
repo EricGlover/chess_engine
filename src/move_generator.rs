@@ -165,7 +165,6 @@ pub fn gen_moves(board: &Board, color: Color) -> Vec<Move> {
         })
         .collect();
     filtered_moves
-    // return moves;
 }
 
 // change this to -> Vec<Coordinate>?

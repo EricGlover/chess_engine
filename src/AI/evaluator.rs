@@ -215,7 +215,7 @@ fn count_isolated_pawns(white: &PawnCountByFile, black: &PawnCountByFile) -> (u8
     (white_p, black_p)
 }
 
-pub fn evaluate(board: &Board) -> (f32, f32) {
+pub fn evaluate(board: &Board) -> f32 {
     let c = PieceCount::new(board);
     let k: i32 = 200 * (c.white_king as i32 - c.black_king as i32);
     let q: i32 = 9 * (c.white_queen as i32 - c.black_queen as i32);
@@ -242,6 +242,5 @@ pub fn evaluate(board: &Board) -> (f32, f32) {
     let black_moves = move_generator::gen_moves(board, Color::Black);
     let mobility =
         0.1 * (white_moves.iter().len() as i32 - black_moves.iter().len() as i32) as f32;
-    let eval = (k + q + r + b + p) as f32 + mobility + pawn_structure;
-    (eval, eval * -1.0)
+    (k + q + r + b + p) as f32 + mobility + pawn_structure
 }
