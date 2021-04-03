@@ -106,7 +106,7 @@ fn count_doubled_pawns(white: &PawnCountByFile, black: &PawnCountByFile) -> (u8,
 #[test]
 fn test_count_pawn_structure() {
     let fen = "rnb1kr2/pp1p1p1p/1qB2n2/7Q/1P1pPP1p/b4N1R/P1P3P1/RNB1K3 b Qq - 4 10";
-    let board = fen_reader::read(fen);
+    let board = fen_reader::make_board(fen);
     let (w, b) = count_blocked_pawns(&board);
     assert_eq!(3, b);
     assert_eq!(1, w);
@@ -153,7 +153,7 @@ fn count_blocked_pawns(board: &Board) -> (u8, u8) {
 #[test]
 fn test_pawn_count() {
     let fen = "rnb1kr2/pp1p1p1p/1qB2n2/7Q/1P1pPP1p/b4N1R/P1P3P1/RNB1K3 b Qq - 4 10";
-    let board = fen_reader::read(fen);
+    let board = fen_reader::make_board(fen);
     let (w_count, b_count) = make_pawn_count_by_file(&board);
     let white_file: [u8; 8] = [1, 1, 1, 0, 1, 1, 1, 0];
     let black_file: [u8; 8] = [1, 1, 0, 2, 0, 1, 0, 2];

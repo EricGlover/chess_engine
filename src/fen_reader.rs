@@ -70,10 +70,10 @@ fn read_pieces(piece_string: &str, board: &mut Board) {
 }
 
 pub fn make_initial_board() -> Board {
-    read(INITIAL_BOARD)
+    make_board(INITIAL_BOARD)
 }
 
-pub fn read(fen_string: &str) -> Board {
+pub fn make_board(fen_string: &str) -> Board {
     let parts = fen_string.split(" ").collect::<Vec<&str>>();
     let white_to_move = parts[1] == "w";
     let white_can_castle_king_side = parts[2].contains("K");
@@ -105,7 +105,7 @@ pub fn read(fen_string: &str) -> Board {
 
 #[test]
 fn test_initial_board() {
-    let board = read(INITIAL_BOARD);
+    let board = make_board(INITIAL_BOARD);
     print_board(&board);
     let white_pieces = board.get_pieces(Color::White);
     let black_pieces = board.get_pieces(Color::Black);
@@ -129,7 +129,7 @@ fn test_initial_board() {
 
 #[test]
 fn test_board_2() {
-    let board = read(TEST_BOARD_2);
+    let board = make_board(TEST_BOARD_2);
     fn has_piece(board: &Board, at: &Coordinate) -> bool {
         board.has_piece(at)
     }

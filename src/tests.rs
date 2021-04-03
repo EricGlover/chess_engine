@@ -8,9 +8,9 @@ mod eval_tester {
 
     #[test]
     fn test_eval() {
-        let board = fen_reader::read(fen_reader::INITIAL_BOARD);
+        let board = fen_reader::make_board(fen_reader::INITIAL_BOARD);
         assert_eq!(evaluator::evaluate(&board), 0.0);
-        let board = fen_reader::read(fen_reader::WHITE_IN_CHECK);
+        let board = fen_reader::make_board(fen_reader::WHITE_IN_CHECK);
         println!("{:?}", evaluator::evaluate(&board));
     }
 }
@@ -42,7 +42,7 @@ mod move_gen_tester {
 
     #[test]
     fn move_gen() {
-        let board = fen_reader::read(fen_reader::INITIAL_BOARD);
+        let board = fen_reader::make_board(fen_reader::INITIAL_BOARD);
         let white_moves = gen_moves(&board, Color::White);
         let black_moves = gen_moves(&board, Color::Black);
         println!("White moves");

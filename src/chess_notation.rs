@@ -4,7 +4,7 @@ use crate::move_generator::*;
 
 pub mod pgn {
     use crate::board::{Board, Coordinate, PieceType};
-    use crate::fen_reader::read;
+    use crate::fen_reader::make_board;
     use crate::game::Game as chess_game;
     use crate::move_generator::{gen_moves, Move};
     use std::fmt;
@@ -69,36 +69,38 @@ Nf2 42. g4 Bd3 43. Re6 1/2-1/2"#;
     }
 
     /**
-                        <piece_specifier><piece_file | piece_rank | piece_file && piece_rank><captures><file><rank>
-                        piece_specifier = ['R', 'B', 'N', 'Q', 'K']
-                        piece_file = [a-h][1-8]
-                        captures = 'x'
-                        file = [a-h]
-                        rank = [1-8]
-                        **/
+                            <piece_specifier><piece_file | piece_rank | piece_file && piece_rank><captures><file><rank>
+                            piece_specifier = ['R', 'B', 'N', 'Q', 'K']
+                            piece_file = [a-h][1-8]
+                            captures = 'x'
+                            file = [a-h]
+                            rank = [1-8]
+                            **/
     /**
-                        When two (or more) identical pieces can move to the same square, the moving piece is uniquely
-                        identified by specifying the piece's letter, followed by (in descending order of preference):
+                            When two (or more) identical pieces can move to the same square, the moving piece is uniquely
+                            identified by specifying the piece's letter, followed by (in descending order of preference):
 
-                        1. the file of departure (if they differ); or
-                        2. the rank of departure (if the files are the same but the ranks differ); or
-                        3. both the file and rank of departure (if neither alone is sufficient to
-                        identify the piece—which occurs only in rare cases where a player has three or more identical
-                        pieces able to reach the same square, as a result of one or more pawns having promoted).
-                        **/
+                            1. the file of departure (if they differ); or
+                            2. the rank of departure (if the files are the same but the ranks differ); or
+                            3. both the file and rank of departure (if neither alone is sufficient to
+                            identify the piece—which occurs only in rare cases where a player has three or more identical
+                            pieces able to reach the same square, as a result of one or more pawns having promoted).
+                            **/
 
     #[test]
     fn test_make_move_log() {
         // double capture
         let double_capture = "rnbqkbnr/ppppp1pp/8/5p2/4P1P1/8/PPPP1P1P/RNBQKBNR b KQkq g3 0 2";
-        let board = read(double_capture);
+        let board = make_board(double_capture);
         // let m = Move::new()
     }
 
     pub fn make_move_log(m: &Move, board: &Board) -> String {
-        //@todo: castling
-        if m.is_castling {
-            // long or short ?
+        if m.is_king_side_castle() {
+            return String::from("O-O"); // O not 0
+        }
+        if m.is_queen_side_castle() {
+            return String::from("O-O-O"); // O not 0
         }
         fn get_piece_specifier(m: &Move, board: &Board) -> String {
             // search for other moves , if similar moves we have to get specific about what piece is moving
@@ -151,18 +153,34 @@ Nf2 42. g4 Bd3 43. Re6 1/2-1/2"#;
         }
 
         let piece_specifier = get_piece_specifier(m, board);
-        //@todo:: pawn promotion
-        //@todo:: en passant
-        //@todo:: check
-        //@todo:: checkmate
 
-        let piece = m.piece.piece_type.to().to_uppercase();
+        // =Q or =B etc
+        let mut pawn_promotion = String::new();
+        if m.promoted_to.is_some() {
+            pawn_promotion = format!("={}", m.promoted_to.unwrap().to().to_uppercase());
+        }
+        //@todo:: en passant
+
+
+        let mut check = "";
+        if m.is_check {
+            check = "+";
+        }
+        if m.is_checkmate {
+            check = "#";
+        }
+
+        let piece = if m.piece.piece_type == PieceType::Pawn {
+          String::new()
+        } else {
+            m.piece.piece_type.to().to_uppercase()
+        };
         let captures = if m.is_capture { "x" } else { "" };
         let capture_file = m.to.x_to();
         let capture_rank = m.to.y_to();
         format!(
-            "{}{}{}{}{}",
-            piece, piece_specifier, captures, capture_file, capture_rank
+            "{}{}{}{}{}{}{}",
+            piece, piece_specifier, captures, capture_file, capture_rank, pawn_promotion, check
         )
     }
 
@@ -294,7 +312,7 @@ pub fn read_move(str: &str, board: &Board, color: Color) -> Option<Move> {
 
 #[test]
 fn read_move_test() {
-    let board = fen_reader::read(fen_reader::INITIAL_BOARD);
+    let board = fen_reader::make_board(fen_reader::INITIAL_BOARD);
     let s = "Ra2";
     let s2 = "a4";
     let m = read_move(s, &board, Color::White);

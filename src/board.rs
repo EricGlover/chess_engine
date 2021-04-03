@@ -47,17 +47,17 @@ pub struct Square {
 
 #[test]
 fn test_in_check() {
-    let board = fen_reader::read(fen_reader::BLACK_IN_CHECK);
+    let board = fen_reader::make_board(fen_reader::BLACK_IN_CHECK);
     assert!(board.is_in_check(Color::Black));
     assert!(!board.is_in_check(Color::White));
-    let board = fen_reader::read(fen_reader::WHITE_IN_CHECK);
+    let board = fen_reader::make_board(fen_reader::WHITE_IN_CHECK);
     assert!(!board.is_in_check(Color::Black));
     assert!(board.is_in_check(Color::White));
 }
 
 #[test]
 fn test_get_files() {
-    let board = fen_reader::read(fen_reader::INITIAL_BOARD);
+    let board = fen_reader::make_board(fen_reader::INITIAL_BOARD);
     let files = board.get_files();
     for (j, row) in files.iter().enumerate() {
         for (i, s) in row.iter().enumerate() {
@@ -210,11 +210,11 @@ impl Board {
                 Color::White => {
                     self.white_can_castle_king_side = false;
                     self.white_can_castle_queen_side = false;
-                },
+                }
                 Color::Black => {
                     self.black_can_castle_king_side = false;
                     self.black_can_castle_queen_side = false;
-                },
+                }
             }
             self.make_move_mut(&Move::new(
                 m.rook_from.unwrap(),
@@ -353,11 +353,10 @@ impl Board {
     }
 
     fn make_squares() -> Vec<Vec<Square>> {
-        let mut vec: Vec<Vec<Square>> = vec![];
-
+        let mut vec: Vec<Vec<Square>> = Vec::with_capacity(8);
         for (_, y) in (1..9).enumerate() {
-            let mut row: Vec<Square> = Vec::new();
-            for (_, x) in (1..9).enumerate() {
+            let mut row: Vec<Square> = Vec::with_capacity(8);
+            for (i, x) in (1..9).enumerate() {
                 // odd numbered rows have black squares on even x's
                 let color: Color;
                 if y % 2 == 0 {

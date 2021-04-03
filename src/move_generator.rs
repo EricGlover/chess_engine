@@ -3,6 +3,8 @@ use crate::board::*;
 use crate::fen_reader::make_initial_board;
 use std::fmt;
 use std::fmt::Formatter;
+use crate::move_generator::pseudo_legal_move_generator::*;
+use crate::fen_reader::make_board;
 
 //@todo: make sure move doesn't put you in check
 // @todo : test
@@ -35,6 +37,8 @@ pub struct Move {
     pub promoted_to: Option<PieceType>, // pawn promotion
     pub is_capture: bool,
     pub is_castling: bool,
+    pub is_check: bool,     // @todo : set these in game when eval happens ?
+    pub is_checkmate: bool,     // @todo : set these in game when eval happens ?
     pub rook: Option<Piece>,
     pub rook_from: Option<Coordinate>,
     pub rook_to: Option<Coordinate>,
@@ -51,38 +55,6 @@ impl fmt::Display for Move {
 }
 
 impl Move {
-    pub fn king_side_castle_coordinates(color:Color, piece_type: PieceType) -> (Coordinate, Coordinate) {
-        let y: u8 = if color == Color::White { 1 } else { 8 };
-        match piece_type {
-            PieceType::King => {
-                let from = Coordinate::new(5, y);
-                let to =  Coordinate::new(7, y);
-                return (from, to);
-            },
-            PieceType::Rook => {
-                let from = Coordinate::new(8, y);
-                let to =  Coordinate::new(6, y);
-                return (from, to);
-            },
-            _ => panic!("invalid")
-        }
-    }
-    pub fn queen_side_castle_coordinates(color: Color, piece_type: PieceType) -> (Coordinate, Coordinate) {
-        let y: u8 = if color == Color::White { 1 } else { 8 };
-        match piece_type {
-            PieceType::King => {
-                let from = Coordinate::new(5, y);
-                let to =  Coordinate::new(3, y);
-                return (from, to);
-            },
-            PieceType::Rook => {
-                let from = Coordinate::new(1, y);
-                let to =  Coordinate::new(4, y);
-                return (from, to);
-            },
-            _ => panic!("invalid")
-        }
-    }
     pub fn new(from: Coordinate, to: Coordinate, piece: Piece, is_capture: bool) -> Move {
         Move {
             piece,
@@ -94,6 +66,8 @@ impl Move {
             rook: None,
             rook_from: None,
             rook_to: None,
+            is_check: false,
+            is_checkmate: false,
         }
     }
 
@@ -114,12 +88,14 @@ impl Move {
             rook: None,
             rook_from: None,
             rook_to: None,
+            is_check: false,
+            is_checkmate: false,
         }
     }
 
     pub fn castle_king_side(color: Color) -> Move {
         let (from, to) = Move::king_side_castle_coordinates(color, PieceType::King);
-        let ( rook_from, rook_to) = Move::king_side_castle_coordinates(color, PieceType::Rook);
+        let (rook_from, rook_to) = Move::king_side_castle_coordinates(color, PieceType::Rook);
         Move {
             piece: Piece::new(color, PieceType::King, Some(from.clone())),
             from,
@@ -130,11 +106,13 @@ impl Move {
             rook: Some(Piece::new(color, PieceType::Rook, Some(rook_from.clone()))),
             rook_from: Some(rook_from),
             rook_to: Some(rook_to),
+            is_check: false,
+            is_checkmate: false,
         }
     }
     pub fn castle_queen_side(color: Color) -> Move {
         let (from, to) = Move::queen_side_castle_coordinates(color, PieceType::King);
-        let ( rook_from, rook_to) = Move::queen_side_castle_coordinates(color, PieceType::Rook);
+        let (rook_from, rook_to) = Move::queen_side_castle_coordinates(color, PieceType::Rook);
         Move {
             piece: Piece::new(color, PieceType::King, Some(from.clone())),
             from,
@@ -145,6 +123,52 @@ impl Move {
             rook: Some(Piece::new(color, PieceType::Rook, Some(rook_from.clone()))),
             rook_from: Some(rook_from),
             rook_to: Some(rook_to),
+            is_check: false,
+            is_checkmate: false,
+        }
+    }
+    pub fn is_king_side_castle(&self) -> bool {
+        self.rook_from.is_some() && self.rook_from.unwrap().x() == 8
+    }
+    pub fn is_queen_side_castle(&self) -> bool {
+        self.rook_from.is_some() && self.rook_from.unwrap().x() == 1
+    }
+    pub fn king_side_castle_coordinates(
+        color: Color,
+        piece_type: PieceType,
+    ) -> (Coordinate, Coordinate) {
+        let y: u8 = if color == Color::White { 1 } else { 8 };
+        match piece_type {
+            PieceType::King => {
+                let from = Coordinate::new(5, y);
+                let to = Coordinate::new(7, y);
+                return (from, to);
+            }
+            PieceType::Rook => {
+                let from = Coordinate::new(8, y);
+                let to = Coordinate::new(6, y);
+                return (from, to);
+            }
+            _ => panic!("invalid"),
+        }
+    }
+    pub fn queen_side_castle_coordinates(
+        color: Color,
+        piece_type: PieceType,
+    ) -> (Coordinate, Coordinate) {
+        let y: u8 = if color == Color::White { 1 } else { 8 };
+        match piece_type {
+            PieceType::King => {
+                let from = Coordinate::new(5, y);
+                let to = Coordinate::new(3, y);
+                return (from, to);
+            }
+            PieceType::Rook => {
+                let from = Coordinate::new(1, y);
+                let to = Coordinate::new(4, y);
+                return (from, to);
+            }
+            _ => panic!("invalid"),
         }
     }
 }
@@ -185,10 +209,68 @@ fn move_list_eq(m: &Vec<Move>, m2: &Vec<Move>) -> bool {
     return true;
 }
 
+#[derive(Eq, PartialEq, Debug)]
+struct Pin {
+    pub pinned_piece: Piece,
+    pub pinned_by: Piece,
+    pub pinned_to: Piece,
+    pub can_move_to: Vec<Coordinate>,
+}
+
+#[test]
+fn test_find_pinned_pieces() {
+    // pinned by black bishop, can capture or move 1
+    let white_bishop_pinned = "rnbqk1nr/pppp1ppp/4p3/8/1b1P4/5N2/PPPBPPPP/RN1QKB1R b KQkq - 3 3";
+    let board = make_board(white_bishop_pinned);
+    // diagonal from pinning piece to one space before the king
+    // it'd be neat to make diagonal from / to function, and file from / to, and rank from / to
+    let pins = find_pinned_pieces(&board, Color::White);
+    assert_eq!(pins.len(), 1, "There is one pin");
+    let bishop = board.get_piece_at(&Coordinate::new(2, 4)).unwrap();
+    let white_bishop = board.get_piece_at(&Coordinate::new(4, 2)).unwrap();
+    let king = board.get_piece_at(&Coordinate::new(5, 1)).unwrap();
+    let can_move_to = vec![Coordinate::new(2, 4), Coordinate::new(3, 2)];
+    let pin = Pin {pinned_piece: white_bishop, pinned_by: bishop, pinned_to: king, can_move_to};
+    assert_eq!(pins[0], pin, "Black bishop pins white bishop to king");
+
+    // am I pinned if you're pinned ?
+    let pinned_piece_attacks_kings = "rnb1k1nr/ppp2qpp/8/B1b1p2Q/3p4/1K2P2P/PPP2PP1/RN3B1R w kq - 0 17";
+}
+
+fn find_pinned_pieces(board: &Board, color: Color) -> Vec<Pin> {
+    vec![]
+    //@todo generate legal? moves
+    //@todo can move to
+}
+
+// @todo: check if piece is pinned , if pinned check if the move is legal
+pub fn gen_legal_moves(board: &Board, color: Color) -> Vec<Move> {
+    let mut moves: Vec<Move> = Vec::new();
+    let pieces = board.get_pieces(color);
+    for piece in pieces.iter() {
+        let m = gen_moves_for(board, piece);
+        moves.extend(m.into_iter());
+    }
+    // @todo: fix the infinite loop
+    let filtered_moves: Vec<Move> = moves
+        .into_iter()
+        .filter(|m| {
+            let new_board = board.make_move(&m);
+            !new_board.is_in_check(m.piece.color)
+        })
+        .collect();
+    filtered_moves
+}
+
+mod pseudo_legal_move_generator {
+    pub fn test_m() {}
+}
+
 // generates all moves to squares on the board
 // could be illegal
 //@todo: test
 pub fn gen_moves(board: &Board, color: Color) -> Vec<Move> {
+    test_m();
     let mut moves: Vec<Move> = Vec::new();
     let pieces = board.get_pieces(color);
     for piece in pieces.iter() {

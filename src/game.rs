@@ -13,18 +13,43 @@ pub struct Game {
     board: Board,
     moves: Vec<String>,
     ai: AI::AI,
+    ai2: AI::AI,
 }
 
 impl Game {
     pub fn new() -> Game {
         Game {
-            board: fen_reader::read(fen_reader::INITIAL_BOARD),
+            board: fen_reader::make_board(fen_reader::INITIAL_BOARD),
             ai: AI::AI::new(Color::Black),
+            ai2: AI::AI::new(Color::White),
             moves: vec![],
         }
     }
 
-    pub fn run(mut self) {
+    pub fn run_ai_versus_ai(mut self) {
+        loop {
+            println!("White to move");
+            print_board(&self.board);
+
+            let m = self.ai2.make_move(&self.board).unwrap();
+            let log = make_move_log(&m, &self.board);
+            println!("White moves \n{}", log);
+            self.moves.push(log);
+            self.board.make_move_mut(&m);
+
+
+            println!("Black to move");
+            print_board(&self.board);
+
+            let m = self.ai.make_move(&self.board).unwrap();
+            let log = make_move_log(&m, &self.board);
+            println!("Black moves \n{}", log);
+            self.moves.push(log);
+            self.board.make_move_mut(&m);
+        }
+    }
+
+    pub fn run_human_versus_ai(mut self) {
         let stdin = io::stdin();
         println!("You're playing white.");
         print_board(&self.board);
@@ -39,10 +64,11 @@ impl Game {
                 continue;
             }
             let m = m.unwrap();
-            self.board.make_move_mut(&m);
             let log = make_move_log(&m, &self.board);
             println!("move = \n{}", log);
-            // self.moves.push(m.unwrap());
+            self.moves.push(log);
+            self.board.make_move_mut(&m);
+
 
             // print eval
             let eval = AI::evaluator::evaluate(&self.board);
@@ -51,6 +77,9 @@ impl Game {
 
             // black moves now
             let m = self.ai.make_move(&self.board).unwrap();
+            let log = make_move_log(&m, &self.board);
+            println!("move = \n{}", log);
+            self.moves.push(log);
             self.board.make_move_mut(&m);
             // self.moves.push(m);
             println!("Black moves... {}", m);
