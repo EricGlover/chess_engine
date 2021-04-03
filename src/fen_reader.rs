@@ -107,8 +107,8 @@ pub fn make_board(fen_string: &str) -> Board {
 fn test_initial_board() {
     let board = make_board(INITIAL_BOARD);
     print_board(&board);
-    let white_pieces = board.get_pieces(Color::White);
-    let black_pieces = board.get_pieces(Color::Black);
+    let white_pieces = board.get_all_pieces(Color::White);
+    let black_pieces = board.get_all_pieces(Color::Black);
 
     assert_eq!(white_pieces.len(), 16);
     assert_eq!(black_pieces.len(), 16);

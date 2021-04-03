@@ -37,7 +37,6 @@ impl Game {
             self.moves.push(log);
             self.board.make_move_mut(&m);
 
-
             println!("Black to move");
             print_board(&self.board);
 
@@ -68,7 +67,6 @@ impl Game {
             println!("move = \n{}", log);
             self.moves.push(log);
             self.board.make_move_mut(&m);
-
 
             // print eval
             let eval = AI::evaluator::evaluate(&self.board);

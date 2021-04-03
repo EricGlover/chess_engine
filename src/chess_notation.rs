@@ -69,23 +69,23 @@ Nf2 42. g4 Bd3 43. Re6 1/2-1/2"#;
     }
 
     /**
-                            <piece_specifier><piece_file | piece_rank | piece_file && piece_rank><captures><file><rank>
-                            piece_specifier = ['R', 'B', 'N', 'Q', 'K']
-                            piece_file = [a-h][1-8]
-                            captures = 'x'
-                            file = [a-h]
-                            rank = [1-8]
-                            **/
+                                <piece_specifier><piece_file | piece_rank | piece_file && piece_rank><captures><file><rank>
+                                piece_specifier = ['R', 'B', 'N', 'Q', 'K']
+                                piece_file = [a-h][1-8]
+                                captures = 'x'
+                                file = [a-h]
+                                rank = [1-8]
+                                **/
     /**
-                            When two (or more) identical pieces can move to the same square, the moving piece is uniquely
-                            identified by specifying the piece's letter, followed by (in descending order of preference):
+                                When two (or more) identical pieces can move to the same square, the moving piece is uniquely
+                                identified by specifying the piece's letter, followed by (in descending order of preference):
 
-                            1. the file of departure (if they differ); or
-                            2. the rank of departure (if the files are the same but the ranks differ); or
-                            3. both the file and rank of departure (if neither alone is sufficient to
-                            identify the piece—which occurs only in rare cases where a player has three or more identical
-                            pieces able to reach the same square, as a result of one or more pawns having promoted).
-                            **/
+                                1. the file of departure (if they differ); or
+                                2. the rank of departure (if the files are the same but the ranks differ); or
+                                3. both the file and rank of departure (if neither alone is sufficient to
+                                identify the piece—which occurs only in rare cases where a player has three or more identical
+                                pieces able to reach the same square, as a result of one or more pawns having promoted).
+                                **/
 
     #[test]
     fn test_make_move_log() {
@@ -161,7 +161,6 @@ Nf2 42. g4 Bd3 43. Re6 1/2-1/2"#;
         }
         //@todo:: en passant
 
-
         let mut check = "";
         if m.is_check {
             check = "+";
@@ -171,7 +170,7 @@ Nf2 42. g4 Bd3 43. Re6 1/2-1/2"#;
         }
 
         let piece = if m.piece.piece_type == PieceType::Pawn {
-          String::new()
+            String::new()
         } else {
             m.piece.piece_type.to().to_uppercase()
         };

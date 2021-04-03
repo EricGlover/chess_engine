@@ -252,6 +252,11 @@ impl Board {
             .is_some()
     }
 
+    pub fn get_pieces_in(&self, area: Vec<Coordinate>) -> Vec<(Coordinate, Option<Piece>)> {
+        panic!("not implemented");
+        vec![]
+    }
+
     pub fn get_piece_at(&self, at: &Coordinate) -> Option<Piece> {
         if !at.is_valid_coordinate() {
             return None;
@@ -264,7 +269,25 @@ impl Board {
         }
     }
 
-    pub fn get_pieces(&self, color: Color) -> Vec<Piece> {
+    pub fn get_pieces(&self, color: Color, piece_type: PieceType) -> Vec<Piece> {
+        let mut pieces: Vec<Piece> = vec![];
+
+        // @todo : try filtering
+        for row in self.squares.iter() {
+            for square in row.iter() {
+                if square.piece.is_none() {
+                    continue;
+                }
+                let piece = square.piece.unwrap();
+                if piece.piece_type == piece_type && piece.color == color {
+                    pieces.push(piece.clone());
+                }
+            }
+        }
+        pieces
+    }
+
+    pub fn get_all_pieces(&self, color: Color) -> Vec<Piece> {
         let mut pieces = Vec::<Piece>::new();
         for row in self.squares.iter() {
             for square in row.iter() {
@@ -311,18 +334,11 @@ impl Board {
     }
 
     fn get_king(&self, color: Color) -> Option<Piece> {
-        for row in self.squares.iter() {
-            for square in row.iter() {
-                if square.piece.is_none() {
-                    continue;
-                }
-                let piece = square.piece.unwrap();
-                if piece.piece_type == PieceType::King && piece.color == color {
-                    return Some(piece.clone());
-                }
-            }
+        let mut pieces = self.get_pieces(color, PieceType::King);
+        if pieces.len() == 0 {
+            return None;
         }
-        None
+        Some(pieces.remove(0))
     }
 
     fn remove_piece(&mut self, at: &Coordinate) -> Option<Piece> {
