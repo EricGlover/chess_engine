@@ -1,10 +1,10 @@
 mod board_stuff;
+use crate::board_console_printer::print_board;
 use crate::fen_reader;
 use crate::move_generator::{gen_attack_moves, Move};
 pub use board_stuff::*;
 use std::fmt;
 use std::fmt::Formatter;
-use crate::board_console_printer::print_board;
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub struct Piece {
@@ -69,18 +69,40 @@ fn test_get_files() {
 
 #[derive(Debug)]
 pub struct Board {
-    pub white_to_move: bool,               //@todo : update these
-    pub white_can_castle_king_side: bool,  //@todo : update these
-    pub white_can_castle_queen_side: bool, //@todo : update these
-    pub black_can_castle_king_side: bool,  //@todo : update these
-    pub black_can_castle_queen_side: bool, //@todo : update these
+    pub white_to_move: bool,
+    white_can_castle_king_side: bool,
+    white_can_castle_queen_side: bool,
+    black_can_castle_king_side: bool,
+    black_can_castle_queen_side: bool,
     pub en_passant_target: Option<Coordinate>,
-    pub half_move_clock: u8,  //@todo : update these
-    pub full_move_number: u8, //@todo : update these
+    pub half_move_clock: u8,
+    pub full_move_number: u8,
     squares: Vec<Vec<Square>>,
 }
 
 impl Board {
+    pub fn make_board(
+        white_to_move: bool,
+        white_can_castle_king_side: bool,
+        white_can_castle_queen_side: bool,
+        black_can_castle_king_side: bool,
+        black_can_castle_queen_side: bool,
+        en_passant_target: Option<Coordinate>,
+        half_move_clock: u8,
+        full_move_number: u8,
+    ) -> Board {
+        Board {
+            white_to_move,
+            white_can_castle_king_side,
+            white_can_castle_queen_side,
+            black_can_castle_king_side,
+            black_can_castle_queen_side,
+            en_passant_target,
+            half_move_clock,
+            full_move_number,
+            squares: Board::make_squares(),
+        }
+    }
     pub fn new() -> Board {
         Board {
             white_to_move: true,
@@ -95,6 +117,20 @@ impl Board {
         }
     }
 
+    pub fn can_castle_queen_side(&self, color: Color) -> bool {
+        match color {
+            Color::White => self.white_can_castle_queen_side,
+            Color::Black => self.black_can_castle_queen_side,
+        }
+    }
+
+    pub fn can_castle_king_side(&self, color: Color) -> bool {
+        match color {
+            Color::White => self.white_can_castle_king_side,
+            Color::Black => self.black_can_castle_king_side,
+        }
+    }
+
     pub fn squares_list(&self) -> Vec<&Square> {
         self.squares
             .iter()
@@ -104,10 +140,6 @@ impl Board {
             .flatten()
             .collect()
     }
-
-    // fn test_files() {
-    //
-    // }
 
     pub fn get_files(&self) -> Vec<Vec<&Square>> {
         let mut files: Vec<Vec<&Square>> = vec![];
@@ -144,6 +176,9 @@ impl Board {
 
     // doesn't check legality of moves
     pub fn make_move_mut(&mut self, m: &Move) {
+        // update white to move flag
+        self.white_to_move = m.piece.color != Color::Black;
+
         let enemy_piece = self.remove_piece(&m.to);
         // is this a capture
         if enemy_piece.is_none() && m.piece.piece_type != PieceType::Pawn {
@@ -171,6 +206,16 @@ impl Board {
 
         // castling
         if m.is_castling && m.rook_from.is_some() && m.rook_to.is_some() {
+            match moving_piece.color {
+                Color::White => {
+                    self.white_can_castle_king_side = false;
+                    self.white_can_castle_queen_side = false;
+                },
+                Color::Black => {
+                    self.black_can_castle_king_side = false;
+                    self.black_can_castle_queen_side = false;
+                },
+            }
             self.make_move_mut(&Move::new(
                 m.rook_from.unwrap(),
                 m.rook_to.unwrap(),
@@ -192,8 +237,10 @@ impl Board {
     }
 
     pub fn place_piece(&mut self, mut piece: Piece, at: Coordinate) {
-        piece.at = Some(at);
-        self.get_square_mut(&at).piece = Some(piece);
+        if at.is_valid_coordinate() {
+            piece.at = Some(at);
+            self.get_square_mut(&at).piece = Some(piece);
+        }
     }
 
     pub fn has_piece(&self, at: &Coordinate) -> bool {
@@ -206,6 +253,9 @@ impl Board {
     }
 
     pub fn get_piece_at(&self, at: &Coordinate) -> Option<Piece> {
+        if !at.is_valid_coordinate() {
+            return None;
+        }
         let square = self.get_square(at);
         if square.piece.is_some() {
             return Some(square.piece.unwrap().clone());

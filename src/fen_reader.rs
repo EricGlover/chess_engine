@@ -74,23 +74,32 @@ pub fn make_initial_board() -> Board {
 }
 
 pub fn read(fen_string: &str) -> Board {
-    let mut board = Board::new();
     let parts = fen_string.split(" ").collect::<Vec<&str>>();
-    read_pieces(parts[0], &mut board);
-    board.white_to_move = parts[1] == "w";
-    board.white_can_castle_king_side = parts[2].contains("K");
-    board.white_can_castle_queen_side = parts[2].contains("Q");
-    board.black_can_castle_king_side = parts[2].contains("k");
-    board.black_can_castle_queen_side = parts[2].contains("q");
-    board.en_passant_target = if parts[3] == "-" {
+    let white_to_move = parts[1] == "w";
+    let white_can_castle_king_side = parts[2].contains("K");
+    let white_can_castle_queen_side = parts[2].contains("Q");
+    let black_can_castle_king_side = parts[2].contains("k");
+    let black_can_castle_queen_side = parts[2].contains("q");
+    let en_passant_target = if parts[3] == "-" {
         None
     } else {
         Some(Coordinate::from(parts[3]))
     };
-    board.half_move_clock = parts[4].parse::<u8>().unwrap();
-    board.full_move_number = parts[5].parse::<u8>().unwrap();
+    let half_move_clock = parts[4].parse::<u8>().unwrap();
+    let full_move_number = parts[5].parse::<u8>().unwrap();
 
-    println!("{:?}", board.get_pieces(Color::White));
+    let mut board = Board::make_board(
+        white_to_move,
+        white_can_castle_king_side,
+        white_can_castle_queen_side,
+        black_can_castle_king_side,
+        black_can_castle_queen_side,
+        en_passant_target,
+        half_move_clock,
+        full_move_number,
+    );
+
+    read_pieces(parts[0], &mut board);
     return board;
 }
 

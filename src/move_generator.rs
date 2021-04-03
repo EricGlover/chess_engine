@@ -51,6 +51,38 @@ impl fmt::Display for Move {
 }
 
 impl Move {
+    pub fn king_side_castle_coordinates(color:Color, piece_type: PieceType) -> (Coordinate, Coordinate) {
+        let y: u8 = if color == Color::White { 1 } else { 8 };
+        match piece_type {
+            PieceType::King => {
+                let from = Coordinate::new(5, y);
+                let to =  Coordinate::new(7, y);
+                return (from, to);
+            },
+            PieceType::Rook => {
+                let from = Coordinate::new(8, y);
+                let to =  Coordinate::new(6, y);
+                return (from, to);
+            },
+            _ => panic!("invalid")
+        }
+    }
+    pub fn queen_side_castle_coordinates(color: Color, piece_type: PieceType) -> (Coordinate, Coordinate) {
+        let y: u8 = if color == Color::White { 1 } else { 8 };
+        match piece_type {
+            PieceType::King => {
+                let from = Coordinate::new(5, y);
+                let to =  Coordinate::new(3, y);
+                return (from, to);
+            },
+            PieceType::Rook => {
+                let from = Coordinate::new(1, y);
+                let to =  Coordinate::new(4, y);
+                return (from, to);
+            },
+            _ => panic!("invalid")
+        }
+    }
     pub fn new(from: Coordinate, to: Coordinate, piece: Piece, is_capture: bool) -> Move {
         Move {
             piece,
@@ -86,35 +118,33 @@ impl Move {
     }
 
     pub fn castle_king_side(color: Color) -> Move {
-        let y: u8 = if color == Color::White { 1 } else { 8 };
-        let from = Coordinate::new(5, y);
-        let rook_from = Coordinate::new(8, y);
+        let (from, to) = Move::king_side_castle_coordinates(color, PieceType::King);
+        let ( rook_from, rook_to) = Move::king_side_castle_coordinates(color, PieceType::Rook);
         Move {
             piece: Piece::new(color, PieceType::King, Some(from.clone())),
             from,
-            to: Coordinate::new(7, y),
+            to,
             promoted_to: None,
             is_castling: true,
             is_capture: false,
             rook: Some(Piece::new(color, PieceType::Rook, Some(rook_from.clone()))),
             rook_from: Some(rook_from),
-            rook_to: Some(Coordinate::new(6, y)),
+            rook_to: Some(rook_to),
         }
     }
     pub fn castle_queen_side(color: Color) -> Move {
-        let y: u8 = if color == Color::White { 1 } else { 8 };
-        let from = Coordinate::new(5, y);
-        let rook_from = Coordinate::new(1, y);
+        let (from, to) = Move::queen_side_castle_coordinates(color, PieceType::King);
+        let ( rook_from, rook_to) = Move::queen_side_castle_coordinates(color, PieceType::Rook);
         Move {
             piece: Piece::new(color, PieceType::King, Some(from.clone())),
             from,
-            to: Coordinate::new(3, y),
+            to,
             promoted_to: None,
             is_castling: true,
             is_capture: false,
             rook: Some(Piece::new(color, PieceType::Rook, Some(rook_from.clone()))),
             rook_from: Some(rook_from),
-            rook_to: Some(Coordinate::new(4, y)),
+            rook_to: Some(rook_to),
         }
     }
 }
@@ -226,7 +256,7 @@ fn gen_king_moves(board: &Board, piece: &Piece) -> Vec<Move> {
 
     // castling
     // @todo : clean up
-    if piece.color == Color::White && board.white_can_castle_queen_side {
+    if piece.color == Color::White && board.can_castle_queen_side(piece.color) {
         // 2,3,4
         let pass_through_spots = [
             Coordinate::new(2, 1),
@@ -237,14 +267,14 @@ fn gen_king_moves(board: &Board, piece: &Piece) -> Vec<Move> {
             moves.push(Move::castle_queen_side(Color::White));
         }
     }
-    if piece.color == Color::White && board.white_can_castle_king_side {
+    if piece.color == Color::White && board.can_castle_king_side(piece.color) {
         // 7, 6
         let pass_through_spots = [Coordinate::new(6, 1), Coordinate::new(7, 1)];
         if pass_through_spots.iter().all(|c| !board.has_piece(&c)) {
             moves.push(Move::castle_king_side(Color::White));
         }
     }
-    if piece.color == Color::Black && board.black_can_castle_queen_side {
+    if piece.color == Color::Black && board.can_castle_queen_side(piece.color) {
         //2,3,4
         let pass_through_spots = [
             Coordinate::new(2, 8),
@@ -255,7 +285,7 @@ fn gen_king_moves(board: &Board, piece: &Piece) -> Vec<Move> {
             moves.push(Move::castle_queen_side(Color::Black));
         }
     }
-    if piece.color == Color::Black && board.black_can_castle_king_side {
+    if piece.color == Color::Black && board.can_castle_king_side(piece.color) {
         // 7, 6
         let pass_through_spots = [Coordinate::new(6, 8), Coordinate::new(7, 8)];
         if pass_through_spots.iter().all(|c| !board.has_piece(&c)) {
