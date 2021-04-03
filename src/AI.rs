@@ -24,7 +24,13 @@ impl AI {
         moves.remove(i)
     }
 
-    fn minimax(&self, board: Board, color: Color, depth: u8, moves: Vec<Move>) -> (f32, Board, Vec<Move>) {
+    fn minimax(
+        &self,
+        board: Board,
+        color: Color,
+        depth: u8,
+        moves: Vec<Move>,
+    ) -> (f32, Board, Vec<Move>) {
         // end of recursion
         if depth == 0 {
             return (evaluator::evaluate(&board), board, moves);
@@ -42,13 +48,15 @@ impl AI {
             // player takes move , examine this board
             // assuming this player and the opponent make optimal moves
             // what's the evaluation of the best board state starting from here ?
-            let (eval, final_board, move_list) = self.minimax(board.make_move(&m), color.opposite(), depth - 1, move_list);
+            let (eval, final_board, move_list) =
+                self.minimax(board.make_move(&m), color.opposite(), depth - 1, move_list);
             if acc.is_none() {
                 return Some((eval, final_board, move_list));
             }
             let (best_eval, best_board, best_moves) = acc.unwrap();
-            if (Color::White == color && eval > best_eval) ||
-                (Color::Black == color && eval < best_eval) {
+            if (Color::White == color && eval > best_eval)
+                || (Color::Black == color && eval < best_eval)
+            {
                 return Some((eval, final_board, move_list));
             }
             Some((best_eval, best_board, best_moves))
@@ -62,7 +70,7 @@ impl AI {
         if depth < 1 {
             return None;
         }
-        let (eval, best_board, moves) =  self.minimax(board._clone(), self.color, depth, vec![]);
+        let (eval, best_board, moves) = self.minimax(board._clone(), self.color, depth, vec![]);
 
         // print stuff here
 
@@ -77,9 +85,7 @@ impl AI {
 
         match m {
             None => None,
-            Some((_eval, m)) => {
-                Some(m)
-            }
+            Some((_eval, m)) => Some(m),
         }
     }
 }

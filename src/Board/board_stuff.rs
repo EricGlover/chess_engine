@@ -1,33 +1,32 @@
 use std::fmt;
 use std::fmt::Formatter;
 
-
 #[test]
 fn from_coordinate_test() {
-    assert_eq!(Coordinate::from("a1"), Coordinate { x: 1, y: 1 });
-    assert_eq!(Coordinate::from("h3"), Coordinate { x: 8, y: 3 });
-    assert_eq!(Coordinate::from("b7"), Coordinate { x: 2, y: 7 });
-    assert_eq!(Coordinate::from("d5"), Coordinate { x: 4, y: 5 });
-    assert_eq!(Coordinate::from("a8"), Coordinate { x: 1, y: 8 });
-    assert_eq!(Coordinate::from("e4"), Coordinate { x: 5, y: 4 });
-    assert_eq!(Coordinate::from("e5"), Coordinate { x: 5, y: 5 });
+    assert_eq!(Coordinate::from("a1"), Coordinate::new(1, 1));
+    assert_eq!(Coordinate::from("h3"), Coordinate::new(8, 3));
+    assert_eq!(Coordinate::from("b7"), Coordinate::new(2, 7));
+    assert_eq!(Coordinate::from("d5"), Coordinate::new(4, 5));
+    assert_eq!(Coordinate::from("a8"), Coordinate::new(1, 8));
+    assert_eq!(Coordinate::from("e4"), Coordinate::new(5, 4));
+    assert_eq!(Coordinate::from("e5"), Coordinate::new(5, 5));
 }
 
 #[test]
 fn to_coordinate_test() {
-    assert_eq!(Coordinate::to(Coordinate { x: 1, y: 1 }), "a1");
-    assert_eq!(Coordinate::to(Coordinate { x: 8, y: 3 }), "h3");
-    assert_eq!(Coordinate::to(Coordinate { x: 2, y: 7 }), "b7");
-    assert_eq!(Coordinate::to(Coordinate { x: 4, y: 5 }), "d5");
-    assert_eq!(Coordinate::to(Coordinate { x: 1, y: 8 }), "a8");
-    assert_eq!(Coordinate::to(Coordinate { x: 5, y: 4 }), "e4");
-    assert_eq!(Coordinate::to(Coordinate { x: 5, y: 5 }), "e5");
+    assert_eq!(Coordinate::to(Coordinate::new(1, 1)), "a1");
+    assert_eq!(Coordinate::to(Coordinate::new(8, 3)), "h3");
+    assert_eq!(Coordinate::to(Coordinate::new(2, 7)), "b7");
+    assert_eq!(Coordinate::to(Coordinate::new(4, 5)), "d5");
+    assert_eq!(Coordinate::to(Coordinate::new(1, 8)), "a8");
+    assert_eq!(Coordinate::to(Coordinate::new(5, 4)), "e4");
+    assert_eq!(Coordinate::to(Coordinate::new(5, 5)), "e5");
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub struct Coordinate {
-    pub x: u8, // a - h (traditional coordinates)
-    pub y: u8, // 1 - 8 (traditional coordinates)
+    x: u8, // a - h (traditional coordinates)
+    y: u8, // 1 - 8 (traditional coordinates)
 }
 
 pub const LOW_X: u8 = 1;
@@ -36,16 +35,31 @@ pub const LOW_Y: u8 = 1;
 pub const HIGH_Y: u8 = 8;
 
 impl Coordinate {
+    pub fn x(&self) -> u8 {
+        self.x
+    }
+    pub fn y(&self) -> u8 {
+        self.y
+    }
+    pub fn is_valid_coordinate(&self) -> bool {
+        if self.x < LOW_X || self.x > HIGH_X {
+            return false;
+        }
+        if self.y < LOW_Y || self.y > HIGH_Y {
+            return false;
+        }
+        return true;
+    }
+    pub fn new(x: u8, y: u8) -> Coordinate {
+        Coordinate { x, y }
+    }
     // const LOW_X
     pub fn add(&self, x: i8, y: i8) -> Coordinate {
-        Coordinate {
-            x: ((self.x as i8) + x) as u8,
-            y: ((self.y as i8) + y) as u8,
-        }
+        Coordinate::new(((self.x as i8) + x) as u8, ((self.y as i8) + y) as u8)
     }
 
-    pub fn to(c: Coordinate) -> String {
-        let mut x = match c.x {
+    pub fn x_to(&self) -> &str {
+        match self.x {
             1 => "a",
             2 => "b",
             3 => "c",
@@ -55,8 +69,15 @@ impl Coordinate {
             7 => "g",
             8 => "h",
             _ => panic!("not valid coordinate"),
-        };
-        let mut str = x.to_string();
+        }
+    }
+
+    pub fn y_to(&self) -> String {
+        self.y.to_string()
+    }
+
+    pub fn to(c: Coordinate) -> String {
+        let mut str = String::from(c.x_to());
         str.push_str(c.y.to_string().as_str());
         str
     }
@@ -78,7 +99,7 @@ impl Coordinate {
             _ => panic!("{} not valid coordinate", str),
         };
         let y = c.get(1).unwrap().to_string().parse::<u8>().unwrap();
-        Coordinate { x, y }
+        Coordinate::new(x, y)
     }
 }
 
@@ -124,6 +145,16 @@ impl PieceType {
             _ => None,
         }
     }
+    pub fn to(&self) -> &str {
+        match self {
+            PieceType::King => "k",
+            PieceType::Queen => "q",
+            PieceType::Bishop => "b",
+            PieceType::Knight => "n",
+            PieceType::Rook => "r",
+            PieceType::Pawn => "p",
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
@@ -152,4 +183,3 @@ impl fmt::Display for Color {
         write!(f, "{}", s)
     }
 }
-

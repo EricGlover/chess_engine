@@ -1,4 +1,4 @@
-mod game;
+use chess_engine::game;
 
 /**
 alpha - beta searching

@@ -1,10 +1,10 @@
 mod board_stuff;
-pub use board_stuff::*;
+use crate::fen_reader;
 use crate::move_generator::{gen_attack_moves, Move};
+pub use board_stuff::*;
 use std::fmt;
 use std::fmt::Formatter;
-use crate::fen_reader;
-
+use crate::board_console_printer::print_board;
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub struct Piece {
@@ -61,8 +61,8 @@ fn test_get_files() {
     let files = board.get_files();
     for (j, row) in files.iter().enumerate() {
         for (i, s) in row.iter().enumerate() {
-            assert_eq!((i + 1) as u8, s.coordinate.y);
-            assert_eq!((j + 1) as u8, s.coordinate.x);
+            assert_eq!((i + 1) as u8, s.coordinate.y());
+            assert_eq!((j + 1) as u8, s.coordinate.x());
         }
     }
 }
@@ -116,9 +116,8 @@ impl Board {
             let row_length = self.squares.get(0).unwrap().len();
             while x < row_length {
                 // for each row get square at x
-                let file: Vec<&Square> = self.squares.iter().map(|row| {
-                    row.get(x).unwrap()
-                }).collect();
+                let file: Vec<&Square> =
+                    self.squares.iter().map(|row| row.get(x).unwrap()).collect();
                 files.push(file);
                 x = x + 1;
             }
@@ -176,6 +175,7 @@ impl Board {
                 m.rook_from.unwrap(),
                 m.rook_to.unwrap(),
                 m.rook.unwrap(),
+                false,
             ))
         }
 
@@ -197,7 +197,10 @@ impl Board {
     }
 
     pub fn has_piece(&self, at: &Coordinate) -> bool {
-        self.squares[(at.y - 1) as usize][(at.x - 1) as usize]
+        if !at.is_valid_coordinate() {
+            return false;
+        }
+        self.squares[(at.y() - 1) as usize][(at.x() - 1) as usize]
             .piece
             .is_some()
     }
@@ -280,22 +283,22 @@ impl Board {
     }
 
     fn is_on_board(c: Coordinate) -> bool {
-        c.x >= LOW_X && c.x <= HIGH_X && c.y >= LOW_Y && c.y <= HIGH_Y
+        c.x() >= LOW_X && c.x() <= HIGH_X && c.y() >= LOW_Y && c.y() <= HIGH_Y
     }
 
     fn get_square(&self, at: &Coordinate) -> &Square {
         self.squares
-            .get((at.y - 1) as usize)
+            .get((at.y() - 1) as usize)
             .unwrap()
-            .get((at.x - 1) as usize)
+            .get((at.x() - 1) as usize)
             .unwrap()
     }
 
     fn get_square_mut(&mut self, at: &Coordinate) -> &mut Square {
         self.squares
-            .get_mut((at.y - 1) as usize)
+            .get_mut((at.y() - 1) as usize)
             .unwrap()
-            .get_mut((at.x - 1) as usize)
+            .get_mut((at.x() - 1) as usize)
             .unwrap()
     }
 
@@ -323,7 +326,7 @@ impl Board {
                     }
                 }
                 row.push(Square {
-                    coordinate: Coordinate { y, x },
+                    coordinate: Coordinate::new(x, y),
                     piece: None,
                     color,
                 });

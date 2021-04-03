@@ -1,7 +1,7 @@
 use crate::board::*;
-use crate::move_generator;
-use crate::fen_reader;
 use crate::board_console_printer::print_board;
+use crate::fen_reader;
+use crate::move_generator;
 
 #[derive(Debug)]
 struct PawnCountByFile {
@@ -74,7 +74,6 @@ impl PieceCount {
         piece_count
     }
 }
-
 
 //     f(p) = 200(K-K')
 //        + 9(Q-Q')
@@ -156,8 +155,8 @@ fn test_pawn_count() {
     let fen = "rnb1kr2/pp1p1p1p/1qB2n2/7Q/1P1pPP1p/b4N1R/P1P3P1/RNB1K3 b Qq - 4 10";
     let board = fen_reader::read(fen);
     let (w_count, b_count) = make_pawn_count_by_file(&board);
-    let white_file : [u8; 8] = [1,1,1,0,1,1,1,0];
-    let black_file : [u8; 8] = [1,1,0,2,0,1,0,2];
+    let white_file: [u8; 8] = [1, 1, 1, 0, 1, 1, 1, 0];
+    let black_file: [u8; 8] = [1, 1, 0, 2, 0, 1, 0, 2];
     assert_eq!(w_count.files, white_file);
     assert_eq!(b_count.files, black_file);
 }
@@ -167,7 +166,7 @@ fn make_pawn_count_by_file(board: &Board) -> (PawnCountByFile, PawnCountByFile) 
     let mut white_p = PawnCountByFile { files: [0; 8] };
     let mut black_p = PawnCountByFile { files: [0; 8] };
     files.iter().enumerate().for_each(|(x, file)| {
-        file.iter().for_each(| square| {
+        file.iter().for_each(|square| {
             if square.piece.is_some() {
                 let piece = square.piece.unwrap();
                 if piece.piece_type == PieceType::Pawn {
@@ -221,7 +220,7 @@ pub fn evaluate(board: &Board) -> f32 {
     let r: i32 = 5 * (c.white_rook as i32 - c.black_rook as i32);
     let b: i32 = 3
         * (c.white_bishop as i32 - c.black_bishop as i32 + c.white_knight as i32
-        - c.black_knight as i32);
+            - c.black_knight as i32);
     let p: i32 = 1 * (c.white_pawn as i32 - c.black_pawn as i32);
 
     // pawn structure evaluation
@@ -239,7 +238,6 @@ pub fn evaluate(board: &Board) -> f32 {
     // mobility
     let white_moves = move_generator::gen_moves(board, Color::White);
     let black_moves = move_generator::gen_moves(board, Color::Black);
-    let mobility =
-        0.1 * (white_moves.iter().len() as i32 - black_moves.iter().len() as i32) as f32;
+    let mobility = 0.1 * (white_moves.iter().len() as i32 - black_moves.iter().len() as i32) as f32;
     (k + q + r + b + p) as f32 + mobility + pawn_structure
 }

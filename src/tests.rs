@@ -1,12 +1,10 @@
 #[cfg(test)]
 mod eval_tester {
-    use crate::AI::AI;
     use crate::fen_reader;
     use crate::AI::evaluator;
+    use crate::AI::AI;
 
-    fn test_evaluate() {
-
-    }
+    fn test_evaluate() {}
 
     #[test]
     fn test_eval() {
@@ -17,14 +15,11 @@ mod eval_tester {
     }
 }
 
-
-
 #[cfg(test)]
 mod move_gen_tester {
+    use crate::board::*;
     use crate::fen_reader;
     use crate::move_generator::*;
-    use crate::board::*;
-
 
     fn move_list_eq(m: &Vec<Move>, m2: &Vec<Move>) -> bool {
         if m.len() != m2.len() {
@@ -45,8 +40,6 @@ mod move_gen_tester {
         return true;
     }
 
-
-
     #[test]
     fn move_gen() {
         let board = fen_reader::read(fen_reader::INITIAL_BOARD);
@@ -63,23 +56,14 @@ mod move_gen_tester {
         assert_eq!(white_moves.iter().len(), black_moves.iter().len());
     }
 
-
     #[test]
     fn move_list_is_same() {
-        let pawn = Piece::new(
-            Color::White,
-            PieceType::Pawn,
-            Some(Coordinate { x: 1, y: 1 }),
-        );
-        let pawn_2 = Piece::new(
-            Color::White,
-            PieceType::Pawn,
-            Some(Coordinate { x: 1, y: 1 }),
-        );
+        let pawn = Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(1, 1)));
+        let pawn_2 = Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(1, 1)));
 
-        let m1 = Move::new(Coordinate { x: 1, y: 1 }, Coordinate { x: 1, y: 1 }, pawn);
-        let m2 = Move::new(Coordinate { x: 2, y: 1 }, Coordinate { x: 1, y: 1 }, pawn);
-        let m3 = Move::new(Coordinate { x: 1, y: 1 }, Coordinate { x: 1, y: 1 }, pawn_2);
+        let m1 = Move::new(Coordinate::new(1, 1), Coordinate::new(1, 1), pawn, false);
+        let m2 = Move::new(Coordinate::new(2, 1), Coordinate::new(1, 1), pawn, false);
+        let m3 = Move::new(Coordinate::new(1, 1), Coordinate::new(1, 1), pawn_2, false);
 
         let ml: Vec<Move> = vec![m1.clone(), m2.clone()];
         let ml2: Vec<Move> = vec![m1.clone(), m2.clone()];
