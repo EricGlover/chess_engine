@@ -181,6 +181,21 @@ struct Pin {
     pub pinned_to: Piece,
     pub can_move_to: Vec<Coordinate>,
 }
+//@todo:::
+//
+// struct Path {
+//     start: Coordinate,
+//     direction:
+// }
+//
+// pub struct PathIterator {
+//     at: Coordinate,
+//     direction: Coordinate,
+// }
+//
+// impl Iterator for PathIterator {
+//
+// }
 
 #[test]
 fn test_find_pinned_pieces() {
@@ -221,42 +236,120 @@ fn test_find_pinned_pieces() {
 //     false
 // }
 //
-// fn find_pinned_pieces(board: &Board, color: Color) -> Vec<Pin> {
-//     //@todo generate legal? moves
-//     let mut king_pieces = board.get_pieces(color, PieceType::King);
-//     if king_pieces.get(0).is_none() {
-//         return vec![];
-//     }
-//     let king = king_pieces.remove(0);
-//     let attacking_pieces = find_attacking_pieces(board, color);
-//     // use piece.at and king.at to generate a range of Coordinates where pieces can interpose at
-//     let mut pins = vec![];
-//
-//     for attacking_piece in attacking_pieces.iter() {
-//         // if piece is knight skip
-//         // if piece is one square away from the king then skip
-//         // assume King and Pawn can't attack the enemy king / from more than a square away
-//         // if piece is Queen, Bishop, or Rook then
-//         // walk through the squares, from attacking piece to the king
-//         // if only one defender is in those squares then it's a pin
-//         let t = attacking_piece.piece_type;
-//         if t == PieceType::Queen || t == PieceType::Bishop || t == PieceType::Rook {
-//             // let pinned_piece =
-//             let pin = Pin {
-//                 pinned_piece,
-//                 pinned_by: attacking_piece.clone(),
-//                 pinned_to: king.clone(),
-//                 can_move_to:
-//             };
-//             pins.push(pin);
-//         }
-//     }
-//
-//     let pins = attacking_pieces.iter().map(|attacking_piece| {
-//
-//     }).collect();
-//     pins
-// }
+
+#[test]
+fn test_get_path() {
+    // diagonal
+    let a = Coordinate::new(1, 1);
+    let b = Coordinate::new(8, 8);
+    let path = get_path(&a, &b);
+    assert!(path.is_some(), "There is a path");
+    let path = path.unwrap();
+    assert_eq!(path.len(), 8);
+    println!("{:?}", path);
+    let expected : Vec<Coordinate> = vec![
+        Coordinate::new(1,1),
+        Coordinate::new(2,2),
+        Coordinate::new(3,3),
+        Coordinate::new(4,4),
+        Coordinate::new(5,5),
+        Coordinate::new(6,6),
+        Coordinate::new(7,7),
+        Coordinate::new(8,8),
+    ];
+    assert_eq!(path, expected);
+
+    let a = Coordinate::new(1, 1);
+    let b = Coordinate::new(2, 1);
+    let path = get_path(&a, &b);
+    assert!(path.is_some(), "There is a path");
+    let path = path.unwrap();
+    assert_eq!(path.len(), 2);
+    let expected :Vec<Coordinate> = vec![
+        a.clone(),
+        b.clone(),
+    ];
+    assert_eq!(path, expected);
+
+
+    let a = Coordinate::new(1, 1);
+    let b = Coordinate::new(1, 2);
+    let path = get_path(&a, &b);
+    assert!(path.is_some(), "There is a path");
+    let path = path.unwrap();
+    assert_eq!(path.len(), 2);
+    let expected :Vec<Coordinate> = vec![
+        a.clone(),
+        b.clone(),
+    ];
+    assert_eq!(path, expected);
+    // test no path
+}
+
+// gets a straight path
+fn get_path(from : &Coordinate, to : &Coordinate) -> Option<Vec<Coordinate>> {
+    let (x_diff, y_diff) = to.diff(&from);
+
+    // if they're on the same rank or file then there's a valid straight path
+    // or if |from.x - to.x| == |from.y - to.y|
+    fn is_straight(from: &Coordinate, to: &Coordinate) -> bool {
+        let (x_diff, y_diff) = to.diff(&from);
+        // horizontal || vertical || a straight diagonal
+        (from.x() == to.x() || from.y() == to.y()) || (x_diff.abs() == y_diff.abs())
+    }
+    if !is_straight(&from, &to) {
+        return None;
+    }
+    let delta_x = if x_diff > 0 { 1 } else { - 1 };
+    let delta_y = if y_diff > 0 { 1 } else { -1 };
+    let mut path:Vec<Coordinate> = vec![];
+    let mut current = from.clone();
+    while &current != to {
+        path.push(current.clone());
+        current = current.add(delta_x, delta_y);
+    }
+    path.push(current.clone());
+    Some(path)
+}
+
+fn find_pinned_pieces(board: &Board, color: Color) -> Vec<Pin> {
+    //@todo generate legal? moves
+    vec![]
+    // let mut king_pieces = board.get_pieces(color, PieceType::King);
+    // if king_pieces.get(0).is_none() {
+    //     return vec![];
+    // }
+    // let king = king_pieces.remove(0);
+    // let attacking_pieces = find_attacking_pieces(board, color);
+    // // use piece.at and king.at to generate a range of Coordinates where pieces can interpose at
+    // let mut pins = vec![];
+    //
+    // for attacking_piece in attacking_pieces.iter() {
+    //     // if piece is knight skip
+    //     // if piece is one square away from the king then skip
+    //     // assume King and Pawn can't attack the enemy king / from more than a square away
+    //     let t = attacking_piece.piece_type;
+    //     if t == PieceType::Queen || t == PieceType::Bishop || t == PieceType::Rook {
+    //         // if piece is Queen, Bishop, or Rook then
+    //         // walk through the squares, from attacking piece to the king
+    //         // if only one defender is in those squares then it's a pin
+    //
+    //         // let pinned_piece =
+    //         let pin = Pin {
+    //             pinned_piece,
+    //             pinned_by: attacking_piece.clone(),
+    //             pinned_to: king.clone(),
+    //             can_move_to:
+    //         };
+    //         pins.push(pin);
+    //     }
+    // }
+    //
+    // let pins = attacking_pieces.iter().map(|attacking_piece| {
+    //
+    // }).collect();
+    // pins
+}
 
 // @todo: check if piece is pinned , if pinned check if the move is legal
 pub fn gen_legal_moves(board: &Board, color: Color) -> Vec<Move> {
