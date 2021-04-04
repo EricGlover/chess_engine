@@ -36,7 +36,10 @@ pub const HIGH_Y: u8 = 8;
 
 impl Coordinate {
     pub fn diff(&self, other: &Coordinate) -> (i32, i32) {
-        (self.x as i32 - other.x as i32, self.y as i32 - other.y as i32)
+        (
+            self.x as i32 - other.x as i32,
+            self.y as i32 - other.y as i32,
+        )
     }
 
     pub fn x(&self) -> u8 {

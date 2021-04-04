@@ -1,4 +1,3 @@
-
 use crate::board::*;
 use crate::fen_reader::make_board;
 #[cfg(test)]

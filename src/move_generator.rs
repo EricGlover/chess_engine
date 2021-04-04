@@ -224,10 +224,16 @@ fn test_find_pinned_pieces() {
 }
 
 // ignores blocking pieces
-fn find_attacking_pieces(board: &Board, attackers_color: Color, attack_coordinate: &Coordinate) -> Vec<Piece>{
-    let mut attacking_pieces:Vec<Piece> = vec![];
+// don't ignore same color pieces that are in the way
+fn find_attacking_pieces(
+    board: &Board,
+    attackers_color: Color,
+    attack_coordinate: &Coordinate,
+) -> Vec<Piece> {
+    let mut attacking_pieces: Vec<Piece> = vec![];
     // how to make sure the pieces returned are unique ?
     // pieces can't attack the same square twice , so we're good
+    // @todo : this move generator function needs to ignore enemy blocking pieces
     let moves = gen_attack_moves(board, attackers_color);
     for m in moves {
         if &m.to == attack_coordinate {
@@ -236,7 +242,6 @@ fn find_attacking_pieces(board: &Board, attackers_color: Color, attack_coordinat
     }
     attacking_pieces
 }
-
 
 #[test]
 fn test_get_path() {
@@ -248,15 +253,15 @@ fn test_get_path() {
     let path = path.unwrap();
     assert_eq!(path.len(), 8);
     println!("{:?}", path);
-    let expected : Vec<Coordinate> = vec![
-        Coordinate::new(1,1),
-        Coordinate::new(2,2),
-        Coordinate::new(3,3),
-        Coordinate::new(4,4),
-        Coordinate::new(5,5),
-        Coordinate::new(6,6),
-        Coordinate::new(7,7),
-        Coordinate::new(8,8),
+    let expected: Vec<Coordinate> = vec![
+        Coordinate::new(1, 1),
+        Coordinate::new(2, 2),
+        Coordinate::new(3, 3),
+        Coordinate::new(4, 4),
+        Coordinate::new(5, 5),
+        Coordinate::new(6, 6),
+        Coordinate::new(7, 7),
+        Coordinate::new(8, 8),
     ];
     assert_eq!(path, expected);
 
@@ -267,10 +272,7 @@ fn test_get_path() {
     assert!(path.is_some(), "There is a path");
     let path = path.unwrap();
     assert_eq!(path.len(), 2);
-    let expected :Vec<Coordinate> = vec![
-        a.clone(),
-        b.clone(),
-    ];
+    let expected: Vec<Coordinate> = vec![a.clone(), b.clone()];
     assert_eq!(path, expected);
 
     // up
@@ -280,10 +282,7 @@ fn test_get_path() {
     assert!(path.is_some(), "There is a path");
     let path = path.unwrap();
     assert_eq!(path.len(), 2);
-    let expected :Vec<Coordinate> = vec![
-        a.clone(),
-        b.clone(),
-    ];
+    let expected: Vec<Coordinate> = vec![a.clone(), b.clone()];
     assert_eq!(path, expected);
 
     // test no path
@@ -294,7 +293,7 @@ fn test_get_path() {
 }
 
 // gets a straight path
-fn get_path(from : &Coordinate, to : &Coordinate) -> Option<Vec<Coordinate>> {
+fn get_path(from: &Coordinate, to: &Coordinate) -> Option<Vec<Coordinate>> {
     let (x_diff, y_diff) = to.diff(&from);
 
     // if they're on the same rank or file then there's a valid straight path
@@ -307,9 +306,21 @@ fn get_path(from : &Coordinate, to : &Coordinate) -> Option<Vec<Coordinate>> {
     if !is_straight(&from, &to) {
         return None;
     }
-    let delta_x = if x_diff > 0 { 1 } else if x_diff < 0 { - 1 } else { 0 };
-    let delta_y = if y_diff > 0 { 1 } else if y_diff < 0 { -1 } else { 0 };
-    let mut path:Vec<Coordinate> = vec![];
+    let delta_x = if x_diff > 0 {
+        1
+    } else if x_diff < 0 {
+        -1
+    } else {
+        0
+    };
+    let delta_y = if y_diff > 0 {
+        1
+    } else if y_diff < 0 {
+        -1
+    } else {
+        0
+    };
+    let mut path: Vec<Coordinate> = vec![];
     let mut current = from.clone();
     while &current != to {
         path.push(current.clone());
@@ -322,16 +333,15 @@ fn get_path(from : &Coordinate, to : &Coordinate) -> Option<Vec<Coordinate>> {
 
 fn find_pinned_pieces(board: &Board, color: Color) -> Vec<Pin> {
     //@todo generate legal? moves
-    vec![]
     let mut king_pieces = board.get_pieces(color, PieceType::King);
     if king_pieces.get(0).is_none() {
         return vec![];
     }
     let king = king_pieces.remove(0);
-    let attacking_pieces = find_attacking_pieces(board, color, king.at().unwrap());
+    let attacking_pieces = find_attacking_pieces(board, color, &king.at().unwrap());
+
     // use piece.at and king.at to generate a range of Coordinates where pieces can interpose at
     let mut pins = vec![];
-
     for attacking_piece in attacking_pieces.iter() {
         // if piece is knight skip
         // if piece is one square away from the king then skip
@@ -344,21 +354,43 @@ fn find_pinned_pieces(board: &Board, color: Color) -> Vec<Pin> {
             // walk through the squares, from attacking piece to the king
             // if only one defender is in those squares then it's a pin
             let path = get_path(&from, &to);
-
-            // let pinned_piece =
-            let pin = Pin {
-                pinned_piece,
-                pinned_by: attacking_piece.clone(),
-                pinned_to: king.clone(),
-                can_move_to:
-            };
-            pins.push(pin);
+            if path.is_none() {
+                panic!("invalid path")
+            }
+            let path = path.unwrap();
+            // @todo:
+            let mut defenders: Vec<Piece> = vec![];
+            for coordinate in path.iter() {
+                let piece = board.get_piece_at(coordinate);
+                if piece.is_none() {
+                    continue;
+                } else {
+                    let piece = piece.unwrap();
+                    if piece.color == color.opposite() {
+                        continue;
+                    } else {
+                        defenders.push(piece.clone());
+                    }
+                }
+            }
+            if defenders.len() == 1 {
+                let mut can_move_to = path.clone();
+                // piece can move to where the king is, but can move to the attacker
+                can_move_to.pop();
+                let pinned_piece = defenders.pop().unwrap();
+                let pin = Pin {
+                    pinned_piece,
+                    pinned_by: attacking_piece.clone(),
+                    pinned_to: king.clone(),
+                    can_move_to,
+                };
+                pins.push(pin);
+            }
         }
     }
-
-    let pins = attacking_pieces.iter().map(|attacking_piece| {
-
-    }).collect();
+    // let pins = attacking_pieces.iter().map(|attacking_piece| {
+    //
+    // }).collect();
     pins
 }
 
