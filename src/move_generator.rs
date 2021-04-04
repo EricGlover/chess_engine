@@ -225,14 +225,16 @@ fn test_find_pinned_pieces() {
 
 // ignores blocking pieces
 fn find_attacking_pieces(board: &Board, attackers_color: Color, attack_coordinate: &Coordinate) -> Vec<Piece>{
-    // vec![]
+    let mut attacking_pieces:Vec<Piece> = vec![];
+    // how to make sure the pieces returned are unique ?
+    // pieces can't attack the same square twice , so we're good
     let moves = gen_attack_moves(board, attackers_color);
     for m in moves {
-        if m.to == at {
-            return true;
+        if &m.to == attack_coordinate {
+            attacking_pieces.push(m.piece.clone());
         }
     }
-    false
+    attacking_pieces
 }
 
 
