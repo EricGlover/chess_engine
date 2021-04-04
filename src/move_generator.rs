@@ -259,6 +259,7 @@ fn test_get_path() {
     ];
     assert_eq!(path, expected);
 
+    // right
     let a = Coordinate::new(1, 1);
     let b = Coordinate::new(2, 1);
     let path = get_path(&a, &b);
@@ -271,7 +272,7 @@ fn test_get_path() {
     ];
     assert_eq!(path, expected);
 
-
+    // up
     let a = Coordinate::new(1, 1);
     let b = Coordinate::new(1, 2);
     let path = get_path(&a, &b);
@@ -283,7 +284,12 @@ fn test_get_path() {
         b.clone(),
     ];
     assert_eq!(path, expected);
+
     // test no path
+    let a = Coordinate::new(1, 1);
+    let b = Coordinate::new(2, 3);
+    let path = get_path(&a, &b);
+    assert!(path.is_none(), "There is no path");
 }
 
 // gets a straight path
@@ -300,13 +306,14 @@ fn get_path(from : &Coordinate, to : &Coordinate) -> Option<Vec<Coordinate>> {
     if !is_straight(&from, &to) {
         return None;
     }
-    let delta_x = if x_diff > 0 { 1 } else { - 1 };
-    let delta_y = if y_diff > 0 { 1 } else { -1 };
+    let delta_x = if x_diff > 0 { 1 } else if x_diff < 0 { - 1 } else { 0 };
+    let delta_y = if y_diff > 0 { 1 } else if y_diff < 0 { -1 } else { 0 };
     let mut path:Vec<Coordinate> = vec![];
     let mut current = from.clone();
     while &current != to {
         path.push(current.clone());
         current = current.add(delta_x, delta_y);
+        println!("current = {:?}", current);
     }
     path.push(current.clone());
     Some(path)
