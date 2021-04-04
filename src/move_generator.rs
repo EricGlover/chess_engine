@@ -222,20 +222,19 @@ fn test_find_pinned_pieces() {
     let pinned_piece_attacks_kings =
         "rnb1k1nr/ppp2qpp/8/B1b1p2Q/3p4/1K2P2P/PPP2PP1/RN3B1R w kq - 0 17";
 }
-//
-// // ignores blocking pieces
-// fn find_attacking_pieces(board: &Board, attacking_color: Color, ) -> Vec<Piece>{
-//     let moves = gen_attack_moves(self, color.opposite());
-//     let king = self.get_king(color).unwrap();
-//     let at = king.at().unwrap();
-//     for m in moves {
-//         if m.to == at {
-//             return true;
-//         }
-//     }
-//     false
-// }
-//
+
+// ignores blocking pieces
+fn find_attacking_pieces(board: &Board, attackers_color: Color, attack_coordinate: &Coordinate) -> Vec<Piece>{
+    // vec![]
+    let moves = gen_attack_moves(board, attackers_color);
+    for m in moves {
+        if m.to == at {
+            return true;
+        }
+    }
+    false
+}
+
 
 #[test]
 fn test_get_path() {
@@ -322,40 +321,43 @@ fn get_path(from : &Coordinate, to : &Coordinate) -> Option<Vec<Coordinate>> {
 fn find_pinned_pieces(board: &Board, color: Color) -> Vec<Pin> {
     //@todo generate legal? moves
     vec![]
-    // let mut king_pieces = board.get_pieces(color, PieceType::King);
-    // if king_pieces.get(0).is_none() {
-    //     return vec![];
-    // }
-    // let king = king_pieces.remove(0);
-    // let attacking_pieces = find_attacking_pieces(board, color);
-    // // use piece.at and king.at to generate a range of Coordinates where pieces can interpose at
-    // let mut pins = vec![];
-    //
-    // for attacking_piece in attacking_pieces.iter() {
-    //     // if piece is knight skip
-    //     // if piece is one square away from the king then skip
-    //     // assume King and Pawn can't attack the enemy king / from more than a square away
-    //     let t = attacking_piece.piece_type;
-    //     if t == PieceType::Queen || t == PieceType::Bishop || t == PieceType::Rook {
-    //         // if piece is Queen, Bishop, or Rook then
-    //         // walk through the squares, from attacking piece to the king
-    //         // if only one defender is in those squares then it's a pin
-    //
-    //         // let pinned_piece =
-    //         let pin = Pin {
-    //             pinned_piece,
-    //             pinned_by: attacking_piece.clone(),
-    //             pinned_to: king.clone(),
-    //             can_move_to:
-    //         };
-    //         pins.push(pin);
-    //     }
-    // }
-    //
-    // let pins = attacking_pieces.iter().map(|attacking_piece| {
-    //
-    // }).collect();
-    // pins
+    let mut king_pieces = board.get_pieces(color, PieceType::King);
+    if king_pieces.get(0).is_none() {
+        return vec![];
+    }
+    let king = king_pieces.remove(0);
+    let attacking_pieces = find_attacking_pieces(board, color, king.at().unwrap());
+    // use piece.at and king.at to generate a range of Coordinates where pieces can interpose at
+    let mut pins = vec![];
+
+    for attacking_piece in attacking_pieces.iter() {
+        // if piece is knight skip
+        // if piece is one square away from the king then skip
+        // assume King and Pawn can't attack the enemy king / from more than a square away
+        let t = attacking_piece.piece_type;
+        if t == PieceType::Queen || t == PieceType::Bishop || t == PieceType::Rook {
+            let from = attacking_piece.at().unwrap();
+            let to = king.at().unwrap();
+            // if piece is Queen, Bishop, or Rook then
+            // walk through the squares, from attacking piece to the king
+            // if only one defender is in those squares then it's a pin
+            let path = get_path(&from, &to);
+
+            // let pinned_piece =
+            let pin = Pin {
+                pinned_piece,
+                pinned_by: attacking_piece.clone(),
+                pinned_to: king.clone(),
+                can_move_to:
+            };
+            pins.push(pin);
+        }
+    }
+
+    let pins = attacking_pieces.iter().map(|attacking_piece| {
+
+    }).collect();
+    pins
 }
 
 // @todo: check if piece is pinned , if pinned check if the move is legal
