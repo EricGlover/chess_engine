@@ -70,8 +70,12 @@ impl Game {
 
             // print eval
             let eval = AI::evaluator::evaluate(&self.board);
-            println!("white eval {}", eval);
+            println!("eval {}", eval.score);
             print_board(&self.board);
+            if eval.mated_player.is_some() {
+                println!("{} wins", eval.mated_player.unwrap().opposite());
+                break;
+            }
 
             // black moves now
             let m = self.ai.make_move(&self.board).unwrap();
@@ -82,8 +86,12 @@ impl Game {
             // self.moves.push(m);
             println!("Black moves... {}", m);
             let eval = AI::evaluator::evaluate(&self.board);
-            println!("white eval {}", eval);
+            println!("eval {}", eval.score);
             print_board(&self.board);
+            if eval.mated_player.is_some() {
+                println!("{} wins", eval.mated_player.unwrap().opposite());
+                break;
+            }
         }
     }
 }

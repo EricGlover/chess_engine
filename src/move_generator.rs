@@ -1,12 +1,12 @@
-mod pseudo_legal_move_generator;
 mod path;
+mod pseudo_legal_move_generator;
 
 use crate::board::*;
 use crate::fen_reader::make_board;
 #[cfg(test)]
 use crate::fen_reader::make_initial_board;
-use crate::move_generator::pseudo_legal_move_generator::*;
 use crate::move_generator::path::*;
+use crate::move_generator::pseudo_legal_move_generator::*;
 use std::fmt;
 use std::fmt::Formatter;
 
@@ -192,10 +192,18 @@ fn test_find_attacking_pieces() {
     assert!(king_pieces.get(0).is_some(), "king not found");
     let king = king_pieces.remove(0);
     let mut attacking_pieces = find_attacking_pieces(&board, Color::Black, &king.at().unwrap());
-    assert_eq!(attacking_pieces.len(), 1, "one piece should be attacking the king");
+    assert_eq!(
+        attacking_pieces.len(),
+        1,
+        "one piece should be attacking the king"
+    );
     let piece = attacking_pieces.pop().unwrap();
     assert_eq!(piece.color, Color::Black, "piece is black");
-    assert_eq!(piece.at().unwrap(), Coordinate::new(2, 4), " piece is at 2, 4");
+    assert_eq!(
+        piece.at().unwrap(),
+        Coordinate::new(2, 4),
+        " piece is at 2, 4"
+    );
     assert_eq!(piece.piece_type, PieceType::Bishop, "piece is a bishop");
 }
 
@@ -248,7 +256,10 @@ fn test_find_pinned_pieces() {
     assert_eq!(found_pin.pinned_to, king);
     assert_eq!(found_pin.can_move_to, can_move_to);
 
-    assert_eq!(found_pin, expected_pin, "Black bishop pins white bishop to king");
+    assert_eq!(
+        found_pin, expected_pin,
+        "Black bishop pins white bishop to king"
+    );
 
     // am I pinned if you're pinned ?
     let pinned_piece_attacks_kings =
@@ -323,10 +334,30 @@ fn find_pinned_pieces(board: &Board, defender_color: Color) -> Vec<Pin> {
     pins
 }
 
+#[test]
+fn test_gen_legal_moves_checkmate() {
+    let black_mates = "rnb1k1nr/pp2pp1p/Q5pb/2pp4/2PP4/N7/PP1qPPPP/R3KBNR w KQkq - 0 7";
+    let board = make_board(black_mates);
+    let moves = gen_legal_moves(&board, Color::White);
+    assert_eq!(moves.len(), 0, "White has no moves");
+    let white_mates = "2kQ4/pp3p2/4p1p1/7p/4P3/8/PP3PPP/3R2K1 b - - 0 21";
+    let board = make_board(white_mates);
+    let moves = gen_legal_moves(&board, Color::Black);
+    assert_eq!(moves.len(), 0, "Black has no moves");
+}
+
 // @todo : sort this nonsense out
 // @todo: consider using a board_get_all_pieces_ref instead of cloning the pieces
 
-// @todo: check if piece is pinned , if pinned check if the move is legal
+pub fn get_checks(board: &Board, color: Color) -> Vec<Move> {
+    let moves = gen_attack_moves(board, color.opposite());
+    let mut king_pieces = board.get_pieces(color, PieceType::King);
+    let king = king_pieces.get(0).unwrap();
+    let at = king.at().unwrap();
+    moves.into_iter().filter(|m| m.to == at).collect()
+}
+
+// @todo pass attacker moves so you only calculate it once
 pub fn gen_legal_moves(board: &Board, color: Color) -> Vec<Move> {
     let mut moves: Vec<Move> = Vec::new();
     let pieces = board.get_all_pieces(color);
@@ -334,26 +365,42 @@ pub fn gen_legal_moves(board: &Board, color: Color) -> Vec<Move> {
         let m = gen_moves_for(board, piece);
         moves.extend(m.into_iter());
     }
-    let pinned_pieces = find_pinned_pieces(board, color);
-    fn is_pinned(piece: &Piece, pinned_pieces: &Vec<Pin>) -> bool {
-        pinned_pieces.iter().any(|p| &p.pinned_piece == piece)
+    // if in check do any of these moves resolve it ?
+    // let enemy_moves = gen_attack_moves(board, color.opposite());
+    let checks = get_checks(board, color);
+    if checks.len() > 0 {
+        let filtered_moves: Vec<Move> = moves
+            .into_iter()
+            .filter(|m| {
+                let new_board = board.make_move(m);
+                let checks = get_checks(&new_board, color);
+                checks.len() == 0
+            })
+            .collect();
+        return filtered_moves;
+    } else {
+        let pinned_pieces = find_pinned_pieces(board, color);
+        fn is_pinned(piece: &Piece, pinned_pieces: &Vec<Pin>) -> bool {
+            pinned_pieces.iter().any(|p| &p.pinned_piece == piece)
+        }
+        fn get_pin<'a>(piece: &Piece, pinned_pieces: &'a Vec<Pin>) -> Option<&'a Pin> {
+            pinned_pieces.iter().find(|p| &p.pinned_piece == piece)
+        }
+        // if not in check, will this move expose my king ?
+        let filtered_moves: Vec<Move> = moves
+            .into_iter()
+            .filter(|m| {
+                // is this piece pinned ?
+                if is_pinned(&m.piece, &pinned_pieces) {
+                    let pin = get_pin(&m.piece, &pinned_pieces).unwrap();
+                    // check if the pinned piece can move here
+                    return pin.can_move_to.iter().any(|c| c == &m.to);
+                }
+                true
+            })
+            .collect();
+        return filtered_moves;
     }
-    fn get_pin<'a>(piece: &Piece, pinned_pieces: &'a Vec<Pin>) -> Option<&'a Pin> {
-        pinned_pieces.iter().find(|p| &p.pinned_piece == piece)
-    }
-    let filtered_moves: Vec<Move> = moves
-        .into_iter()
-        .filter(|m| {
-            // is this piece pinned ?
-            if is_pinned(&m.piece, &pinned_pieces) {
-                let pin = get_pin(&m.piece, &pinned_pieces).unwrap();
-                // check if the pinned piece can move here
-                return pin.can_move_to.iter().any(|c| c == &m.to)
-            }
-            true
-        })
-        .collect();
-    filtered_moves
 }
 
 // ignores enemy captures

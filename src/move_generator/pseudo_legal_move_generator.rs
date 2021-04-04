@@ -2,10 +2,8 @@ use crate::board::*;
 use crate::fen_reader::make_board;
 #[cfg(test)]
 use crate::fen_reader::make_initial_board;
-use crate::move_generator::Move;
 use crate::move_generator::path::{get_path_from, Direction};
-
-
+use crate::move_generator::Move;
 
 pub fn gen_moves_for(board: &Board, piece: &Piece) -> Vec<Move> {
     let moves = match piece.piece_type {
@@ -19,7 +17,6 @@ pub fn gen_moves_for(board: &Board, piece: &Piece) -> Vec<Move> {
     return moves;
 }
 
-
 pub fn gen_vectors_for(board: &Board, piece: &Piece) -> Vec<Move> {
     let moves = match piece.piece_type {
         PieceType::King => gen_king_moves(board, piece),
@@ -31,7 +28,6 @@ pub fn gen_vectors_for(board: &Board, piece: &Piece) -> Vec<Move> {
     };
     return moves;
 }
-
 
 // @todo : test
 fn make_moves(path: Vec<Coordinate>, board: &Board, piece: &Piece) -> Vec<Move> {
@@ -153,9 +149,9 @@ fn gen_queen_vector(board: &Board, piece: &Piece) -> Vec<Move> {
         gen_bishop_vector(board, piece),
         gen_rook_vector(board, piece),
     ]
-        .into_iter()
-        .flatten()
-        .collect()
+    .into_iter()
+    .flatten()
+    .collect()
 }
 
 fn gen_bishop_moves(board: &Board, piece: &Piece) -> Vec<Move> {
@@ -170,9 +166,9 @@ fn gen_bishop_moves(board: &Board, piece: &Piece) -> Vec<Move> {
         make_moves(down_left, board, piece),
         make_moves(down_right, board, piece),
     ]
-        .into_iter()
-        .flatten()
-        .collect()
+    .into_iter()
+    .flatten()
+    .collect()
 }
 
 fn gen_bishop_vector(board: &Board, piece: &Piece) -> Vec<Move> {
@@ -187,9 +183,9 @@ fn gen_bishop_vector(board: &Board, piece: &Piece) -> Vec<Move> {
         make_vector_moves(down_left, board, piece),
         make_vector_moves(down_right, board, piece),
     ]
-        .into_iter()
-        .flatten()
-        .collect()
+    .into_iter()
+    .flatten()
+    .collect()
 }
 
 fn gen_knight_moves(board: &Board, piece: &Piece) -> Vec<Move> {
@@ -226,9 +222,9 @@ fn gen_rook_moves(board: &Board, piece: &Piece) -> Vec<Move> {
         make_moves(up, board, piece),
         make_moves(down, board, piece),
     ]
-        .into_iter()
-        .flatten()
-        .collect()
+    .into_iter()
+    .flatten()
+    .collect()
 }
 
 fn gen_rook_vector(board: &Board, piece: &Piece) -> Vec<Move> {
@@ -243,9 +239,9 @@ fn gen_rook_vector(board: &Board, piece: &Piece) -> Vec<Move> {
         make_vector_moves(up, board, piece),
         make_vector_moves(down, board, piece),
     ]
-        .into_iter()
-        .flatten()
-        .collect()
+    .into_iter()
+    .flatten()
+    .collect()
 }
 
 /**

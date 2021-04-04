@@ -69,7 +69,7 @@ fn test_get_files() {
 
 #[derive(Debug)]
 pub struct Board {
-    pub white_to_move: bool,
+    pub player_to_move: Color,
     white_can_castle_king_side: bool,
     white_can_castle_queen_side: bool,
     black_can_castle_king_side: bool,
@@ -82,7 +82,7 @@ pub struct Board {
 
 impl Board {
     pub fn make_board(
-        white_to_move: bool,
+        player_to_move: Color,
         white_can_castle_king_side: bool,
         white_can_castle_queen_side: bool,
         black_can_castle_king_side: bool,
@@ -92,7 +92,7 @@ impl Board {
         full_move_number: u8,
     ) -> Board {
         Board {
-            white_to_move,
+            player_to_move,
             white_can_castle_king_side,
             white_can_castle_queen_side,
             black_can_castle_king_side,
@@ -105,7 +105,7 @@ impl Board {
     }
     pub fn new() -> Board {
         Board {
-            white_to_move: true,
+            player_to_move: Color::White,
             white_can_castle_king_side: true,
             white_can_castle_queen_side: true,
             black_can_castle_king_side: true,
@@ -177,7 +177,7 @@ impl Board {
     // doesn't check legality of moves
     pub fn make_move_mut(&mut self, m: &Move) {
         // update white to move flag
-        self.white_to_move = m.piece.color != Color::Black;
+        self.player_to_move = m.piece.color.opposite();
 
         let enemy_piece = self.remove_piece(&m.to);
         // is this a capture
@@ -321,7 +321,7 @@ impl Board {
             squares.push(new_row);
         }
         Board {
-            white_to_move: self.white_to_move,
+            player_to_move: self.player_to_move,
             white_can_castle_king_side: self.white_can_castle_king_side,
             white_can_castle_queen_side: self.white_can_castle_queen_side,
             black_can_castle_king_side: self.black_can_castle_king_side,

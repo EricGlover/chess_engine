@@ -15,12 +15,12 @@ impl Direction {
     pub fn x(&self) -> i8 {
         match self {
             Direction::Up => 0,
-            Direction::Down =>  0,
+            Direction::Down => 0,
             Direction::Right => 1,
-            Direction::Left =>  -1,
-            Direction::UpLeft =>  -1,
+            Direction::Left => -1,
+            Direction::UpLeft => -1,
             Direction::UpRight => 1,
-            Direction::DownLeft =>  -1,
+            Direction::DownLeft => -1,
             Direction::DownRight => 1,
         }
     }
@@ -52,7 +52,7 @@ fn get_path(from: &Coordinate, delta_x: i8, delta_y: i8) -> Vec<Coordinate> {
 
 pub fn get_path_from(from: &Coordinate, direction: Direction) -> Vec<Coordinate> {
     let delta_x = direction.x();
-    let delta_y  = direction.y();
+    let delta_y = direction.y();
     get_path(from, delta_x, delta_y)
 }
 
@@ -86,7 +86,7 @@ pub fn get_path_to(from: &Coordinate, to: &Coordinate) -> Option<Vec<Coordinate>
     };
     let mut path: Vec<Coordinate> = vec![];
     let mut current = from.clone();
-    while current.is_valid_coordinate() && &current != to{
+    while current.is_valid_coordinate() && &current != to {
         path.push(current.clone());
         current = current.add(delta_x, delta_y);
     }

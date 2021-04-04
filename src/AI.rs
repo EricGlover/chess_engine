@@ -7,6 +7,7 @@ use rand::Rng;
 pub struct AI {
     rng: ThreadRng,
     color: Color,
+    search_depth: u8,
 }
 
 impl AI {
@@ -14,6 +15,7 @@ impl AI {
         AI {
             rng: rand::thread_rng(),
             color,
+            search_depth: 1,
         }
     }
 
@@ -30,7 +32,7 @@ impl AI {
         color: Color,
         depth: u8,
         moves: Vec<Move>,
-    ) -> (f32, Board, Vec<Move>) {
+    ) -> (evaluator::Evaluation, Board, Vec<Move>) {
         // end of recursion
         if depth == 0 {
             return (evaluator::evaluate(&board), board, moves);
@@ -54,8 +56,8 @@ impl AI {
                 return Some((eval, final_board, move_list));
             }
             let (best_eval, best_board, best_moves) = acc.unwrap();
-            if (Color::White == color && eval > best_eval)
-                || (Color::Black == color && eval < best_eval)
+            if (Color::White == color && eval.score > best_eval.score)
+                || (Color::Black == color && eval.score < best_eval.score)
             {
                 return Some((eval, final_board, move_list));
             }
@@ -66,7 +68,7 @@ impl AI {
 
     // do an exhaustive search , depth-first search
     // should return an eval, board, and move list to reach that board
-    fn search(&self, board: &Board, depth: u8) -> Option<(f32, Move)> {
+    fn search(&self, board: &Board, depth: u8) -> Option<(evaluator::Evaluation, Move)> {
         if depth < 1 {
             return None;
         }
@@ -79,8 +81,8 @@ impl AI {
 
     pub fn make_move(&self, board: &Board) -> Option<Move> {
         let m = match self.color {
-            Color::White => self.search(board, 4),
-            Color::Black => self.search(board, 4),
+            Color::White => self.search(board, self.search_depth),
+            Color::Black => self.search(board, self.search_depth),
         };
 
         match m {

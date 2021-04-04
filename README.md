@@ -13,9 +13,11 @@ The project is currently setup to play a chess game on the command line, you'll 
 The AI uses an unoptimized depth first search (minimax) over all possible legal moves to evaluate all board states 3 moves ahead (3 ply). 
 Ohh and unfortunately I haven't fully implemented algebraic move notation parsing so you'd have to look at the code to see 
 how to write moves that it can correctly parse.
+I do have a FEN reader that works that you can probably use btw, that thing is actually pretty handy.
 
 ### Plans 
 - Game needs to handle checkmate
 - Implement draws
-- Implement Alpha - Beta Searching 
+- Implement Alpha - Beta Searching
+- Fully Implement algebraic notation parsing 
 - Print pgn files of the engine playing itself for the lolz
