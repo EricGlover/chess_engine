@@ -18,7 +18,7 @@ impl AI {
     }
 
     fn choose_random_move(&mut self, board: &Board) -> Move {
-        let mut moves = gen_moves(&board, self.color);
+        let mut moves = gen_legal_moves(&board, self.color);
         let moveCount = moves.iter().len();
         let i = self.rng.gen_range(0..moveCount);
         moves.remove(i)
@@ -36,7 +36,7 @@ impl AI {
             return (evaluator::evaluate(&board), board, moves);
         }
         // search moves
-        let mut moves_to_try = gen_moves(&board, color);
+        let mut moves_to_try = gen_legal_moves(&board, color);
         if moves_to_try.len() == 0 {
             return (evaluator::evaluate(&board), board, moves);
         }
@@ -79,8 +79,8 @@ impl AI {
 
     pub fn make_move(&self, board: &Board) -> Option<Move> {
         let m = match self.color {
-            Color::White => self.search(board, 3),
-            Color::Black => self.search(board, 3),
+            Color::White => self.search(board, 4),
+            Color::Black => self.search(board, 4),
         };
 
         match m {

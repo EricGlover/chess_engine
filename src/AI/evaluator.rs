@@ -236,8 +236,8 @@ pub fn evaluate(board: &Board) -> f32 {
     let pawn_structure = 0.5 * (doubled + isolated + blocked) as f32;
 
     // mobility
-    let white_moves = move_generator::gen_moves(board, Color::White);
-    let black_moves = move_generator::gen_moves(board, Color::Black);
+    let white_moves = move_generator::gen_legal_moves(board, Color::White);
+    let black_moves = move_generator::gen_legal_moves(board, Color::Black);
     let mobility = 0.1 * (white_moves.iter().len() as i32 - black_moves.iter().len() as i32) as f32;
     (k + q + r + b + p) as f32 + mobility + pawn_structure
 }

@@ -43,8 +43,8 @@ mod move_gen_tester {
     #[test]
     fn move_gen() {
         let board = fen_reader::make_board(fen_reader::INITIAL_BOARD);
-        let white_moves = gen_moves(&board, Color::White);
-        let black_moves = gen_moves(&board, Color::Black);
+        let white_moves = gen_legal_moves(&board, Color::White);
+        let black_moves = gen_legal_moves(&board, Color::Black);
         println!("White moves");
         for m in white_moves.iter() {
             println!("{}", m);

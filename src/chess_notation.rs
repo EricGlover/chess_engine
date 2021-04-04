@@ -6,7 +6,7 @@ pub mod pgn {
     use crate::board::{Board, Coordinate, PieceType};
     use crate::fen_reader::make_board;
     use crate::game::Game as chess_game;
-    use crate::move_generator::{gen_moves, Move};
+    use crate::move_generator::{gen_legal_moves, Move};
     use std::fmt;
     use std::fmt::Formatter;
 
@@ -105,7 +105,7 @@ Nf2 42. g4 Bd3 43. Re6 1/2-1/2"#;
         fn get_piece_specifier(m: &Move, board: &Board) -> String {
             // search for other moves , if similar moves we have to get specific about what piece is moving
             let mover_color = m.piece.color;
-            let mut moves = gen_moves(board, mover_color);
+            let mut moves = gen_legal_moves(board, mover_color);
             let similar_moves: Vec<Move> = moves
                 .drain(..)
                 .filter(|m2| m2.piece.piece_type == m.piece.piece_type && m2.to == m.to)
@@ -303,7 +303,7 @@ pub fn read_move(str: &str, board: &Board, color: Color) -> Option<Move> {
     let (piece_type, to) = parse_move(str);
 
     // find what piece they're talking about by looking through the possible moves
-    let mut moves = gen_moves(board, color);
+    let mut moves = gen_legal_moves(board, color);
     moves
         .into_iter()
         .find(|m| m.piece.piece_type == piece_type && m.to == to)

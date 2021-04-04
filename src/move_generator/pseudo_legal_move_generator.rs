@@ -3,6 +3,7 @@ use crate::fen_reader::make_board;
 #[cfg(test)]
 use crate::fen_reader::make_initial_board;
 use crate::move_generator::Move;
+use crate::move_generator::path::{get_path_from, Direction};
 
 // @todo: split out gen_moves and gen_moves_illegal or something
 // difference between legal and pseudo-legal moves ?
@@ -13,6 +14,18 @@ pub fn gen_moves_for(board: &Board, piece: &Piece) -> Vec<Move> {
         PieceType::Bishop => gen_bishop_moves(board, piece),
         PieceType::Knight => gen_knight_moves(board, piece),
         PieceType::Rook => gen_rook_moves(board, piece),
+        PieceType::Pawn => gen_pawn_moves(board, piece),
+    };
+    return moves;
+}
+
+pub fn gen_vectors_for(board: &Board, piece: &Piece) -> Vec<Move> {
+    let moves = match piece.piece_type {
+        PieceType::King => gen_king_moves(board, piece),
+        PieceType::Queen => gen_queen_vector(board, piece),
+        PieceType::Bishop => gen_bishop_vector(board, piece),
+        PieceType::Knight => gen_knight_moves(board, piece),
+        PieceType::Rook => gen_rook_vector(board, piece),
         PieceType::Pawn => gen_pawn_moves(board, piece),
     };
     return moves;
@@ -168,6 +181,92 @@ fn gen_knight_moves(board: &Board, piece: &Piece) -> Vec<Move> {
         .filter(|m| is_on_board(&m.to) && square_occupiable_by(board, &m.to, piece.color))
         .collect()
 }
+
+// @todo : test
+fn make_moves(path: Vec<Coordinate>, board: &Board, piece: &Piece) -> Vec<Move> {
+    let from = piece.at().unwrap();
+    let make_move =
+        |to: Coordinate| Move::new(from, to.clone(), piece.clone(), board.has_piece(&to));
+
+    let mut moves: Vec<Move> = Vec::new();
+
+    // for each path , ignore the first square, walk, if blocked by friendly piece stop
+    for (i, coordinate) in path.into_iter().enumerate() {
+        if 0usize == i {
+            continue;
+        }
+        if square_occupiable_by(board, &coordinate, piece.color) {
+            moves.push(make_move(coordinate))
+        }
+        if !square_is_empty(board, &coordinate) {
+            break;
+        }
+    }
+    moves
+}
+
+fn make_vector_moves(path: Vec<Coordinate>, board: &Board, piece: &Piece) -> Vec<Move> {
+    let from = piece.at().unwrap();
+    let make_move =
+        |to: Coordinate| Move::new(from, to.clone(), piece.clone(), board.has_piece(&to));
+
+    let mut moves: Vec<Move> = Vec::new();
+
+    // for each path , ignore the first square, walk, if blocked by friendly piece stop
+    for (i, coordinate) in path.into_iter().enumerate() {
+        if 0usize == i {
+            continue;
+        }
+        if square_occupiable_by(board, &coordinate, piece.color) {
+            moves.push(make_move(coordinate))
+        }
+    }
+    moves
+}
+
+fn gen_queen_vector(board: &Board, piece: &Piece) -> Vec<Move> {
+    vec![
+        gen_bishop_vector(board, piece),
+        gen_rook_vector(board, piece),
+    ]
+        .into_iter()
+        .flatten()
+        .collect()
+}
+
+fn gen_bishop_vector(board: &Board, piece: &Piece) -> Vec<Move> {
+    let from = piece.at().unwrap();
+    let up_left = get_path_from(&from, Direction::UpLeft);
+    let up_right = get_path_from(&from, Direction::UpRight);
+    let down_left = get_path_from(&from, Direction::DownLeft);
+    let down_right = get_path_from(&from, Direction::DownRight);
+    vec![
+        make_vector_moves(up_left, board, piece),
+        make_vector_moves(up_right, board, piece),
+        make_vector_moves(down_left, board, piece),
+        make_vector_moves(down_right, board, piece),
+    ]
+        .into_iter()
+        .flatten()
+        .collect()
+}
+
+fn gen_rook_vector(board: &Board, piece: &Piece) -> Vec<Move> {
+    let from = piece.at().unwrap();
+    let left = get_path_from(&from, Direction::Left);
+    let right = get_path_from(&from, Direction::Right);
+    let up = get_path_from(&from, Direction::Up);
+    let down = get_path_from(&from, Direction::Down);
+    vec![
+        make_vector_moves(left, board, piece),
+        make_vector_moves(right, board, piece),
+        make_vector_moves(up, board, piece),
+        make_vector_moves(down, board, piece),
+    ]
+        .into_iter()
+        .flatten()
+        .collect()
+}
 fn gen_rook_moves(board: &Board, piece: &Piece) -> Vec<Move> {
     let mut moves: Vec<Move> = Vec::new();
     let from = piece.at().unwrap();
@@ -302,6 +401,7 @@ fn square_is_empty(board: &Board, at: &Coordinate) -> bool {
     board.get_piece_at(at).is_none()
 }
 
+// if square is off board || square has friendly price => false
 fn square_occupiable_by(board: &Board, at: &Coordinate, color: Color) -> bool {
     if !is_on_board(at) {
         return false;
