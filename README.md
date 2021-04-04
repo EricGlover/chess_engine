@@ -1,0 +1,21 @@
+# chess_engine
+Chess engine in Rust
+
+### Purpose 
+This is just a learning exercise for me to get a little more familiar with Rust. Feel free to browse around if you're curious.
+If you are looking for a chess engine in rust https://docs.rs/chess/3.2.0/chess/ has a board and move generator. 
+I haven't looked into chess engines in Rust much but you should use this instead of anything in my project. 
+You could probably write your own using the board package and then writing the search algorithms yourself.
+The chess programming wiki https://www.chessprogramming.org/Main_Page goes pretty in depth about Searching.
+
+### Project Current State
+The project is currently setup to play a chess game on the command line, you'll play against my AI which is quite bad.
+The AI uses an unoptimized depth first search (minimax) over all possible legal moves to evaluate all board states 3 moves ahead (3 ply). 
+Ohh and unfortunately I haven't fully implemented algebraic move notation parsing so you'd have to look at the code to see 
+how to write moves that it can correctly parse.
+
+### Plans 
+- Game needs to handle checkmate
+- Implement draws
+- Implement Alpha - Beta Searching 
+- Print pgn files of the engine playing itself for the lolz
