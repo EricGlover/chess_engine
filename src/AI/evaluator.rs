@@ -234,7 +234,7 @@ pub fn evaluate(board: &Board) -> f32 {
     let (white_blocked_pawns, black_blocked_pawns) = count_blocked_pawns(board);
     let blocked: i32 = (white_blocked_pawns as i32) - (black_blocked_pawns as i32);
     let pawn_structure = 0.5 * (doubled + isolated + blocked) as f32;
-
+    // (k + q + r + b + p) as f32  + pawn_structure
     // mobility
     let white_moves = move_generator::gen_legal_moves(board, Color::White);
     let black_moves = move_generator::gen_legal_moves(board, Color::Black);

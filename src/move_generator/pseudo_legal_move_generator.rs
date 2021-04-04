@@ -5,8 +5,8 @@ use crate::fen_reader::make_initial_board;
 use crate::move_generator::Move;
 use crate::move_generator::path::{get_path_from, Direction};
 
-// @todo: split out gen_moves and gen_moves_illegal or something
-// difference between legal and pseudo-legal moves ?
+
+
 pub fn gen_moves_for(board: &Board, piece: &Piece) -> Vec<Move> {
     let moves = match piece.piece_type {
         PieceType::King => gen_king_moves(board, piece),
@@ -19,6 +19,7 @@ pub fn gen_moves_for(board: &Board, piece: &Piece) -> Vec<Move> {
     return moves;
 }
 
+
 pub fn gen_vectors_for(board: &Board, piece: &Piece) -> Vec<Move> {
     let moves = match piece.piece_type {
         PieceType::King => gen_king_moves(board, piece),
@@ -29,6 +30,53 @@ pub fn gen_vectors_for(board: &Board, piece: &Piece) -> Vec<Move> {
         PieceType::Pawn => gen_pawn_moves(board, piece),
     };
     return moves;
+}
+
+
+// @todo : test
+fn make_moves(path: Vec<Coordinate>, board: &Board, piece: &Piece) -> Vec<Move> {
+    let from = piece.at().unwrap();
+    let make_move =
+        |to: Coordinate| Move::new(from, to.clone(), piece.clone(), board.has_piece(&to));
+
+    let mut moves: Vec<Move> = Vec::new();
+
+    // for each path , ignore the first square, walk, if blocked by friendly piece stop
+    for (i, coordinate) in path.into_iter().enumerate() {
+        if 0usize == i {
+            continue;
+        }
+        // if square is off board || square has friendly price then stop
+        if !square_occupiable_by(board, &coordinate, piece.color) {
+            break;
+        }
+        moves.push(make_move(coordinate));
+        // if it wasn't empty then it had an enemy piece so stop
+        if !square_is_empty(board, &coordinate) {
+            break;
+        }
+    }
+    moves
+}
+
+fn make_vector_moves(path: Vec<Coordinate>, board: &Board, piece: &Piece) -> Vec<Move> {
+    let from = piece.at().unwrap();
+    let make_move =
+        |to: Coordinate| Move::new(from, to.clone(), piece.clone(), board.has_piece(&to));
+
+    let mut moves: Vec<Move> = Vec::new();
+
+    // for each path , ignore the first square, walk, if blocked by friendly piece stop
+    for (i, coordinate) in path.into_iter().enumerate() {
+        if 0usize == i {
+            continue;
+        }
+        if !square_occupiable_by(board, &coordinate, piece.color) {
+            break;
+        }
+        moves.push(make_move(coordinate))
+    }
+    moves
 }
 
 // one square any direction
@@ -92,12 +140,6 @@ fn gen_king_moves(board: &Board, piece: &Piece) -> Vec<Move> {
         }
     }
     moves
-    // @todo: fix the infinite loop
-    // let filtered_moves: Vec<Move> = moves.into_iter().filter(|m| {
-    //     let new_board = board.make_move(&m);
-    //     new_board.is_in_check(m.piece.color)
-    // }).collect();
-    // filtered_moves
 }
 
 fn gen_queen_moves(board: &Board, piece: &Piece) -> Vec<Move> {
@@ -105,129 +147,28 @@ fn gen_queen_moves(board: &Board, piece: &Piece) -> Vec<Move> {
     moves.extend(gen_bishop_moves(board, piece).into_iter());
     moves
 }
-fn gen_bishop_moves(board: &Board, piece: &Piece) -> Vec<Move> {
-    let mut moves: Vec<Move> = Vec::new();
-    let from = piece.at().unwrap();
-    let make_move =
-        |to: Coordinate| Move::new(from, to.clone(), piece.clone(), board.has_piece(&to));
-    // up right
-    let mut to = from.clone();
-    loop {
-        to = to.add(1, 1);
-        if !is_on_board(&to) || !square_occupiable_by(board, &to, piece.color) {
-            break;
-        }
-        moves.push(make_move(to));
-        if !square_is_empty(board, &to) {
-            break;
-        }
-    }
-    // up left
-    let mut to = from.clone();
-    loop {
-        to = to.add(-1, 1);
-        if !is_on_board(&to) || !square_occupiable_by(board, &to, piece.color) {
-            break;
-        }
-        moves.push(make_move(to));
-        if !square_is_empty(board, &to) {
-            break;
-        }
-    }
-    // down left
-    let mut to = from.clone();
-    loop {
-        to = to.add(-1, -1);
-        if !is_on_board(&to) || !square_occupiable_by(board, &to, piece.color) {
-            break;
-        }
-        moves.push(make_move(to));
-        if !square_is_empty(board, &to) {
-            break;
-        }
-    }
-    // down right
-    let mut to = from.clone();
-    loop {
-        to = to.add(1, -1);
-        if !is_on_board(&to) || !square_occupiable_by(board, &to, piece.color) {
-            break;
-        }
-        moves.push(make_move(to));
-        if !square_is_empty(board, &to) {
-            break;
-        }
-    }
-    moves
-}
-fn gen_knight_moves(board: &Board, piece: &Piece) -> Vec<Move> {
-    let from = piece.at().unwrap();
-    let make_move = |x, y| {
-        let to = from.add(x, y);
-        Move::new(from, to, piece.clone(), board.has_piece(&to))
-    };
-    let moves = vec![
-        make_move(-2, 1),
-        make_move(-1, 2),
-        make_move(1, 2),
-        make_move(2, 1),
-        make_move(2, -1),
-        make_move(1, -2),
-        make_move(-1, -2),
-        make_move(-2, -1),
-    ];
-    moves
-        .into_iter()
-        .filter(|m| is_on_board(&m.to) && square_occupiable_by(board, &m.to, piece.color))
-        .collect()
-}
-
-// @todo : test
-fn make_moves(path: Vec<Coordinate>, board: &Board, piece: &Piece) -> Vec<Move> {
-    let from = piece.at().unwrap();
-    let make_move =
-        |to: Coordinate| Move::new(from, to.clone(), piece.clone(), board.has_piece(&to));
-
-    let mut moves: Vec<Move> = Vec::new();
-
-    // for each path , ignore the first square, walk, if blocked by friendly piece stop
-    for (i, coordinate) in path.into_iter().enumerate() {
-        if 0usize == i {
-            continue;
-        }
-        if square_occupiable_by(board, &coordinate, piece.color) {
-            moves.push(make_move(coordinate))
-        }
-        if !square_is_empty(board, &coordinate) {
-            break;
-        }
-    }
-    moves
-}
-
-fn make_vector_moves(path: Vec<Coordinate>, board: &Board, piece: &Piece) -> Vec<Move> {
-    let from = piece.at().unwrap();
-    let make_move =
-        |to: Coordinate| Move::new(from, to.clone(), piece.clone(), board.has_piece(&to));
-
-    let mut moves: Vec<Move> = Vec::new();
-
-    // for each path , ignore the first square, walk, if blocked by friendly piece stop
-    for (i, coordinate) in path.into_iter().enumerate() {
-        if 0usize == i {
-            continue;
-        }
-        if square_occupiable_by(board, &coordinate, piece.color) {
-            moves.push(make_move(coordinate))
-        }
-    }
-    moves
-}
 
 fn gen_queen_vector(board: &Board, piece: &Piece) -> Vec<Move> {
     vec![
         gen_bishop_vector(board, piece),
         gen_rook_vector(board, piece),
+    ]
+        .into_iter()
+        .flatten()
+        .collect()
+}
+
+fn gen_bishop_moves(board: &Board, piece: &Piece) -> Vec<Move> {
+    let from = piece.at().unwrap();
+    let up_left = get_path_from(&from, Direction::UpLeft);
+    let up_right = get_path_from(&from, Direction::UpRight);
+    let down_left = get_path_from(&from, Direction::DownLeft);
+    let down_right = get_path_from(&from, Direction::DownRight);
+    vec![
+        make_moves(up_left, board, piece),
+        make_moves(up_right, board, piece),
+        make_moves(down_left, board, piece),
+        make_moves(down_right, board, piece),
     ]
         .into_iter()
         .flatten()
@@ -251,6 +192,45 @@ fn gen_bishop_vector(board: &Board, piece: &Piece) -> Vec<Move> {
         .collect()
 }
 
+fn gen_knight_moves(board: &Board, piece: &Piece) -> Vec<Move> {
+    let from = piece.at().unwrap();
+    let make_move = |x, y| {
+        let to = from.add(x, y);
+        Move::new(from, to, piece.clone(), board.has_piece(&to))
+    };
+    let moves = vec![
+        make_move(-2, 1),
+        make_move(-1, 2),
+        make_move(1, 2),
+        make_move(2, 1),
+        make_move(2, -1),
+        make_move(1, -2),
+        make_move(-1, -2),
+        make_move(-2, -1),
+    ];
+    moves
+        .into_iter()
+        .filter(|m| is_on_board(&m.to) && square_occupiable_by(board, &m.to, piece.color))
+        .collect()
+}
+
+fn gen_rook_moves(board: &Board, piece: &Piece) -> Vec<Move> {
+    let from = piece.at().unwrap();
+    let left = get_path_from(&from, Direction::Left);
+    let right = get_path_from(&from, Direction::Right);
+    let up = get_path_from(&from, Direction::Up);
+    let down = get_path_from(&from, Direction::Down);
+    vec![
+        make_moves(left, board, piece),
+        make_moves(right, board, piece),
+        make_moves(up, board, piece),
+        make_moves(down, board, piece),
+    ]
+        .into_iter()
+        .flatten()
+        .collect()
+}
+
 fn gen_rook_vector(board: &Board, piece: &Piece) -> Vec<Move> {
     let from = piece.at().unwrap();
     let left = get_path_from(&from, Direction::Left);
@@ -266,61 +246,6 @@ fn gen_rook_vector(board: &Board, piece: &Piece) -> Vec<Move> {
         .into_iter()
         .flatten()
         .collect()
-}
-fn gen_rook_moves(board: &Board, piece: &Piece) -> Vec<Move> {
-    let mut moves: Vec<Move> = Vec::new();
-    let from = piece.at().unwrap();
-    let make_move =
-        |to: Coordinate| Move::new(from, to.clone(), piece.clone(), board.has_piece(&to));
-    // left
-    let mut to = from.clone();
-    loop {
-        to = to.add(-1, 0);
-        if !is_on_board(&to) || !square_occupiable_by(board, &to, piece.color) {
-            break;
-        }
-        moves.push(make_move(to));
-        if !square_is_empty(board, &to) {
-            break;
-        }
-    }
-    // right
-    let mut to = from.clone();
-    loop {
-        to = to.add(1, 0);
-        if !is_on_board(&to) || !square_occupiable_by(board, &to, piece.color) {
-            break;
-        }
-        moves.push(make_move(to));
-        if !square_is_empty(board, &to) {
-            break;
-        }
-    }
-    // up
-    let mut to = from.clone();
-    loop {
-        to = to.add(0, 1);
-        if !is_on_board(&to) || !square_occupiable_by(board, &to, piece.color) {
-            break;
-        }
-        moves.push(make_move(to));
-        if !square_is_empty(board, &to) {
-            break;
-        }
-    }
-    // down
-    let mut to = from.clone();
-    loop {
-        to = to.add(0, -1);
-        if !is_on_board(&to) || !square_occupiable_by(board, &to, piece.color) {
-            break;
-        }
-        moves.push(make_move(to));
-        if !square_is_empty(board, &to) {
-            break;
-        }
-    }
-    moves
 }
 
 /**

@@ -84,7 +84,13 @@ pub fn get_path_to(from: &Coordinate, to: &Coordinate) -> Option<Vec<Coordinate>
     } else {
         0
     };
-    let path = get_path(from, delta_x, delta_y);
+    let mut path: Vec<Coordinate> = vec![];
+    let mut current = from.clone();
+    while current.is_valid_coordinate() && &current != to{
+        path.push(current.clone());
+        current = current.add(delta_x, delta_y);
+    }
+    path.push(current);
     Some(path)
 }
 
@@ -116,6 +122,7 @@ fn test_get_path() {
     let path = get_path_to(&a, &b);
     assert!(path.is_some(), "There is a path");
     let path = path.unwrap();
+    println!("{:?}", path);
     assert_eq!(path.len(), 2);
     let expected: Vec<Coordinate> = vec![a.clone(), b.clone()];
     assert_eq!(path, expected);

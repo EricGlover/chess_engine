@@ -356,27 +356,6 @@ pub fn gen_legal_moves(board: &Board, color: Color) -> Vec<Move> {
     filtered_moves
 }
 
-// generates all moves to squares on the board
-// could be illegal
-//@todo: test
-// pub fn gen_legal_moves(board: &Board, color: Color) -> Vec<Move> {
-//     let mut moves: Vec<Move> = Vec::new();
-//     let pieces = board.get_all_pieces(color);
-//     for piece in pieces.iter() {
-//         let m = gen_moves_for(board, piece);
-//         moves.extend(m.into_iter());
-//     }
-//     // @todo: fix the infinite loop
-//     let filtered_moves: Vec<Move> = moves
-//         .into_iter()
-//         .filter(|m| {
-//             let new_board = board.make_move(&m);
-//             !new_board.is_in_check(m.piece.color)
-//         })
-//         .collect();
-//     filtered_moves
-// }
-
 // ignores enemy captures
 pub fn gen_attack_vectors(board: &Board, color: Color) -> Vec<Move> {
     let mut moves: Vec<Move> = Vec::new();
