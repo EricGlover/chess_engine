@@ -11,6 +11,16 @@ mod test {
     use crate::fen_reader;
 
     #[test]
+    fn test_get_pieces() {
+        let board = fen_reader::make_board(fen_reader::BLACK_IN_CHECK);
+        let pieces = board.get_pieces(Color::Black, PieceType::King);
+        assert_eq!(pieces.len(), 1, "there is one black king");
+        let found_black_king = pieces.get(0).unwrap();
+        let black_king = Piece::new(Color::Black, PieceType::King, Some(Coordinate::new(5,8)));
+        assert_eq!(&black_king, found_black_king);
+    }
+
+    #[test]
     fn test_clone() {
         let board = fen_reader::make_board(fen_reader::BLACK_IN_CHECK);
         let cloned = board.clone();
@@ -283,9 +293,24 @@ impl Board {
         }
     }
 
-    pub fn get_pieces(&self, color: Color, piece_type: PieceType) -> Vec<Piece> {
-        let mut pieces: Vec<Piece> = vec![];
+    pub fn get_kings(&self)-> Vec<Piece> {
+        vec![]
+    }
 
+    pub fn get_pieces(&self, color: Color, piece_type: PieceType) -> Vec<Piece> {
+        // self.squares
+        //     .iter()
+        //     .flatten()
+        //     .filter(|&square| {
+        //         if square.piece.is_none() {
+        //             return false;
+        //         }
+        //         let piece = square.piece.unwrap();
+        //         return piece.piece_type == piece_type && piece.color == color;
+        //     })
+        //     .map(|square| square.piece.unwrap().clone())
+        //     .collect()
+        let mut pieces: Vec<Piece> = vec![];
         // @todo : try filtering
         for row in self.squares.iter() {
             for square in row.iter() {

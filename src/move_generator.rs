@@ -145,6 +145,7 @@ mod tests {
         let black_mates = "rnb1k1nr/pp2pp1p/Q5pb/2pp4/2PP4/N7/PP1qPPPP/R3KBNR w KQkq - 0 7";
         let board = make_board(black_mates);
         let moves = gen_legal_moves(&board, Color::White);
+        println!("{:?}", moves);
         assert_eq!(moves.len(), 0, "White has no moves");
         let white_mates = "2kQ4/pp3p2/4p1p1/7p/4P3/8/PP3PPP/3R2K1 b - - 0 21";
         let board = make_board(white_mates);
@@ -487,12 +488,16 @@ fn find_pinned_pieces(board: &Board, defender_color: Color) -> Vec<Pin> {
 pub fn get_checks(board: &Board, color_being_checked: Color) -> Vec<Move> {
     let moves = gen_pseudo_legal_moves(board, color_being_checked.opposite());
     let mut king_pieces = board.get_pieces(color_being_checked, PieceType::King);
+    if king_pieces.len() == 0 {
+        return vec![];
+    }
     let king = king_pieces.get(0).unwrap();
     let at = king.at().unwrap();
     moves.into_iter().filter(|m| m.to == at).collect()
 }
 
 // fn find_moves_to_resolve_check<'a>(board: &Board, checks: &Vec<Move>, possible_moves: &'a Vec<Move>) -> Vec<&'a Move> {
+// @todo: this doesn't work in so many ways.... :/
 fn find_moves_to_resolve_check(
     board: &Board,
     checks: &Vec<Move>,
@@ -512,7 +517,7 @@ fn find_moves_to_resolve_check(
             return false;
         }
         let new_board = board.make_move(m);
-        get_checks(&new_board, Color::Black).len() == 0
+        get_checks(&new_board, m.piece.color).len() == 0
     }
     moves
         .into_iter()
@@ -540,20 +545,11 @@ pub fn gen_legal_moves(board: &Board, color: Color) -> Vec<Move> {
     // let enemy_moves = gen_attack_moves(board, color.opposite());
     let checks = get_checks(board, color);
     if checks.len() > 0 {
-        return find_moves_to_resolve_check(board, &checks, &moves);
-
-
-
-        //@todo::
-        // let filtered_moves: Vec<Move> = moves
-        //     .into_iter()
-        //     .filter(|m| {
-        //         let new_board = board.make_move(m);
-        //         let checks = get_checks(&new_board, color);
-        //         checks.len() == 0
-        //     })
-        //     .collect();
-        // return filtered_moves;
+        return moves.into_iter().filter(|m| {
+            let new_board = board.make_move(m);
+            get_checks(&new_board, m.piece.color).len() == 0
+        }).collect();
+        // return find_moves_to_resolve_check(board, &checks, &moves);
     } else {
         let pinned_pieces = find_pinned_pieces(board, color);
         fn is_pinned(piece: &Piece, pinned_pieces: &Vec<Pin>) -> bool {

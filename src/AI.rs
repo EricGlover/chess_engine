@@ -37,12 +37,19 @@ impl AI {
         if depth == 0 {
             return (evaluator::evaluate(&board), board, moves);
         }
+        // also end recursion if someone lost a king
+
         // search moves
         let mut moves_to_try = gen_legal_moves(&board, color);
         if moves_to_try.len() == 0 {
             return (evaluator::evaluate(&board), board, moves);
         }
         let best = moves_to_try.into_iter().fold(None, |acc, m| {
+            // @todo : if this move takes the king return
+            let piece_captured = board.get_piece_at(&m.to);
+            if piece_captured.is_some() && piece_captured.unwrap().piece_type == PieceType::King {
+
+            }
             // add this move to the move list
             let mut move_list = moves.clone();
             move_list.push(m);
