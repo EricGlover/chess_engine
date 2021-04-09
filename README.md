@@ -17,7 +17,12 @@ I do have a FEN reader that works that you can probably use btw, that thing is a
 
 ### Plans 
 - Game needs to handle checkmate
+- track down bug involve piece.at.unwrap() (at ?)
+- Switch to use Result<> more often 
+- Board Traits
 - Implement draws
 - Implement Alpha - Beta Searching
 - Fully Implement algebraic notation parsing 
 - Print pgn files of the engine playing itself for the lolz
+- Bit boards
+- /#[bench] benchmarking 

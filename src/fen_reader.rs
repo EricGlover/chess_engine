@@ -75,7 +75,11 @@ pub fn make_initial_board() -> Board {
 
 pub fn make_board(fen_string: &str) -> Board {
     let parts = fen_string.split(" ").collect::<Vec<&str>>();
-    let player_to_move = if parts[1] == "w" {Color::White} else {Color::Black};
+    let player_to_move = if parts[1] == "w" {
+        Color::White
+    } else {
+        Color::Black
+    };
     let white_can_castle_king_side = parts[2].contains("K");
     let white_can_castle_queen_side = parts[2].contains("Q");
     let black_can_castle_king_side = parts[2].contains("k");

@@ -6,8 +6,10 @@ use crate::chess_notation::pgn::make_move_log;
 use crate::fen_reader;
 use crate::move_generator::Move;
 use crate::AI;
+use std::fs::File;
 use std::io;
 use std::io::prelude::*;
+use std::path::Path;
 
 pub struct Game {
     board: Board,
@@ -23,6 +25,29 @@ impl Game {
             ai: AI::AI::new(Color::Black),
             ai2: AI::AI::new(Color::White),
             moves: vec![],
+        }
+    }
+
+    pub fn moves(&self) -> Vec<String> {
+        self.moves.clone()
+    }
+
+    fn write_log(&self) {
+        let path = Path::new("output.txt");
+        let display = path.display();
+
+        // Open a file in write-only mode, returns `io::Result<File>`
+        let mut file = match File::create(&path) {
+            Err(why) => panic!("couldn't create {}: {}", display, why),
+            Ok(file) => file,
+        };
+
+        let log = self.moves.join("\n");
+
+        // Write the `LOREM_IPSUM` string to `file`, returns `io::Result<()>`
+        match file.write_all(log.as_bytes()) {
+            Err(why) => panic!("couldn't write to {}: {}", display, why),
+            Ok(_) => println!("successfully wrote to {}", display),
         }
     }
 
@@ -68,6 +93,8 @@ impl Game {
             self.moves.push(log);
             self.board.make_move_mut(&m);
 
+            self.write_log();
+
             // print eval
             let eval = AI::evaluator::evaluate(&self.board);
             println!("eval {}", eval.score);
@@ -88,6 +115,7 @@ impl Game {
             let eval = AI::evaluator::evaluate(&self.board);
             println!("eval {}", eval.score);
             print_board(&self.board);
+            self.write_log();
             if eval.mated_player.is_some() {
                 println!("{} wins", eval.mated_player.unwrap().opposite());
                 break;

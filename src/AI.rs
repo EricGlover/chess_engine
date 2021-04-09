@@ -15,7 +15,7 @@ impl AI {
         AI {
             rng: rand::thread_rng(),
             color,
-            search_depth: 1,
+            search_depth: 4,
         }
     }
 

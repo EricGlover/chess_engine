@@ -5,6 +5,32 @@ use crate::fen_reader::make_initial_board;
 use crate::move_generator::path::{get_path_from, Direction};
 use crate::move_generator::Move;
 
+mod tests {
+    use crate::board::Coordinate;
+    use crate::board::*;
+    use crate::fen_reader;
+    use crate::move_generator::pseudo_legal_move_generator::*;
+    use crate::move_generator::Move;
+
+    #[test]
+    fn test_gen_queen_moves() {
+        let board =
+            fen_reader::make_board("rnb3nr/pp1kpp1p/6pb/1Qpp4/qPPP4/N7/P3PPPP/R1B1KBNR b KQ - 2 7");
+        let white_queen = board.get_piece_at(&Coordinate::new(2, 5)).unwrap();
+        println!("{:?}", white_queen);
+        let test_move = Move::new(
+            Coordinate::new(2, 5),
+            Coordinate::new(4, 7),
+            white_queen,
+            true,
+        );
+        let moves = gen_queen_moves(&board, &white_queen);
+        moves.iter().for_each(|m| println!("{}", m));
+        let found = moves.iter().any(|m| m == &test_move);
+        assert!(found, "queen can take king ");
+    }
+}
+
 pub fn gen_moves_for(board: &Board, piece: &Piece) -> Vec<Move> {
     let moves = match piece.piece_type {
         PieceType::King => gen_king_moves(board, piece),

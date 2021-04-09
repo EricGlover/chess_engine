@@ -1,0 +1,16 @@
+test move_generator::tests::bench_gen_attack_vectors     ... bench:       5,006 ns/iter (+/- 126)
+test move_generator::tests::bench_gen_find_pinned_pieces ... bench:       5,306 ns/iter (+/- 111)
+test move_generator::tests::bench_gen_legal_moves        ... bench:     269,827 ns/iter (+/- 6,827)
+
+
+--before
+test move_generator::tests::bench_gen_attack_vectors     ... bench:       4,974 ns/iter (+/- 93)
+test move_generator::tests::bench_gen_find_pinned_pieces ... bench:       5,308 ns/iter (+/- 83)
+test move_generator::tests::bench_gen_legal_moves        ... bench:     312,921 ns/iter (+/- 6,870)
+test move_generator::tests::bench_gen_pseudo_legal_moves ... bench:      19,392 ns/iter (+/- 663)
+
+--after find_moves_to_resolve_check naive approach
+test move_generator::tests::bench_gen_attack_vectors     ... bench:       4,880 ns/iter (+/- 165)
+test move_generator::tests::bench_gen_find_pinned_pieces ... bench:       5,297 ns/iter (+/- 79)
+test move_generator::tests::bench_gen_legal_moves        ... bench:      76,991 ns/iter (+/- 1,067)
+test move_generator::tests::bench_gen_pseudo_legal_moves ... bench:      19,394 ns/iter (+/- 231)

@@ -213,7 +213,7 @@ fn count_isolated_pawns(white: &PawnCountByFile, black: &PawnCountByFile) -> (u8
     (white_p, black_p)
 }
 
-#[derive( Debug)]
+#[derive(Debug)]
 pub struct Evaluation {
     pub score: f32,
     pub mated_player: Option<Color>,
@@ -258,6 +258,6 @@ pub fn evaluate(board: &Board) -> Evaluation {
 
     Evaluation {
         score: (k + q + r + b + p) as f32 + mobility + pawn_structure,
-        mated_player
+        mated_player,
     }
 }

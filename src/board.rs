@@ -1,10 +1,44 @@
 mod board_stuff;
 use crate::board_console_printer::print_board;
 use crate::fen_reader;
-use crate::move_generator::{gen_attack_moves, Move};
+use crate::move_generator::{gen_pseudo_legal_moves, Move};
 pub use board_stuff::*;
 use std::fmt;
 use std::fmt::Formatter;
+
+mod test {
+    use crate::board::*;
+    use crate::fen_reader;
+
+    #[test]
+    fn test_clone() {
+        let board = fen_reader::make_board(fen_reader::BLACK_IN_CHECK);
+        let cloned = board.clone();
+        // assert_eq!(board, cloned);
+    }
+
+    #[test]
+    fn test_in_check() {
+        let board = fen_reader::make_board(fen_reader::BLACK_IN_CHECK);
+        assert!(board.is_in_check(Color::Black));
+        assert!(!board.is_in_check(Color::White));
+        let board = fen_reader::make_board(fen_reader::WHITE_IN_CHECK);
+        assert!(!board.is_in_check(Color::Black));
+        assert!(board.is_in_check(Color::White));
+    }
+
+    #[test]
+    fn test_get_files() {
+        let board = fen_reader::make_board(fen_reader::INITIAL_BOARD);
+        let files = board.get_files();
+        for (j, row) in files.iter().enumerate() {
+            for (i, s) in row.iter().enumerate() {
+                assert_eq!((i + 1) as u8, s.coordinate.y());
+                assert_eq!((j + 1) as u8, s.coordinate.x());
+            }
+        }
+    }
+}
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub struct Piece {
@@ -43,28 +77,6 @@ pub struct Square {
     pub coordinate: Coordinate,
     pub piece: Option<Piece>,
     pub color: Color,
-}
-
-#[test]
-fn test_in_check() {
-    let board = fen_reader::make_board(fen_reader::BLACK_IN_CHECK);
-    assert!(board.is_in_check(Color::Black));
-    assert!(!board.is_in_check(Color::White));
-    let board = fen_reader::make_board(fen_reader::WHITE_IN_CHECK);
-    assert!(!board.is_in_check(Color::Black));
-    assert!(board.is_in_check(Color::White));
-}
-
-#[test]
-fn test_get_files() {
-    let board = fen_reader::make_board(fen_reader::INITIAL_BOARD);
-    let files = board.get_files();
-    for (j, row) in files.iter().enumerate() {
-        for (i, s) in row.iter().enumerate() {
-            assert_eq!((i + 1) as u8, s.coordinate.y());
-            assert_eq!((j + 1) as u8, s.coordinate.x());
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -163,7 +175,7 @@ impl Board {
 
     // change return to piece list or something ?
     pub fn is_in_check(&self, color: Color) -> bool {
-        let moves = gen_attack_moves(self, color.opposite());
+        let moves = gen_pseudo_legal_moves(self, color.opposite());
         let king = self.get_king(color).unwrap();
         let at = king.at().unwrap();
         for m in moves {
@@ -229,6 +241,8 @@ impl Board {
             self.full_move_number = self.full_move_number + 1;
         }
     }
+
+    // pub fn unmake_move(&self, m: &Move)
 
     pub fn make_move(&self, m: &Move) -> Board {
         let mut board = self.clone();
