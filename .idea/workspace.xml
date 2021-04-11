@@ -6,8 +6,13 @@
   <component name="ChangeListManager">
     <list default="true" id="49ae807d-88c8-4d8d-a8ce-b8e901995cf7" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/output.txt" beforeDir="false" afterPath="$PROJECT_DIR$/output.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/AI.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/AI.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/AI/evaluator.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/AI/evaluator.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/board.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/board.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/fen_reader.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/fen_reader.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/game.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/game.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/move_generator.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/move_generator.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -76,7 +81,7 @@
       <workItem from="1616721253364" duration="9840000" />
       <workItem from="1616813393318" duration="135859000" />
       <workItem from="1617469148596" duration="5321000" />
-      <workItem from="1617486126215" duration="57453000" />
+      <workItem from="1617486126215" duration="61989000" />
     </task>
     <servers />
   </component>

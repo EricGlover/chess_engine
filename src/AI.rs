@@ -3,11 +3,15 @@ use crate::board::*;
 use crate::move_generator::*;
 use rand::prelude::ThreadRng;
 use rand::Rng;
+use std::time::{Duration, Instant};
 
 pub struct AI {
     rng: ThreadRng,
     color: Color,
-    search_depth: u8,
+    default_search_depth: u8,
+    started_at: Instant,
+    time_elapsed_during_search: Option<Duration>,
+    minimax_calls: i64,
 }
 
 impl AI {
@@ -15,8 +19,23 @@ impl AI {
         AI {
             rng: rand::thread_rng(),
             color,
-            search_depth: 4,
+            default_search_depth: 4,
+            started_at: Instant::now(),
+            time_elapsed_during_search: None,
+            minimax_calls: 0,
         }
+    }
+
+    pub fn minimax_calls(&self) -> i64 {
+        self.minimax_calls
+    }
+
+    pub fn color(&self) -> Color {
+        self.color
+    }
+
+    pub fn time_elapsed(&self) -> Option<Duration> {
+        self.time_elapsed_during_search
     }
 
     fn choose_random_move(&mut self, board: &Board) -> Move {
@@ -27,7 +46,7 @@ impl AI {
     }
 
     fn minimax(
-        &self,
+        &mut self,
         board: Board,
         color: Color,
         depth: u8,
@@ -35,10 +54,14 @@ impl AI {
     ) -> (evaluator::Evaluation, Board, Vec<Move>) {
         // end of recursion
         if depth == 0 {
+            self.minimax_calls = self.minimax_calls + 1;
             return (evaluator::evaluate(&board), board, moves);
         }
         // also end recursion if someone lost a king
-
+        let kings = board.get_kings();
+        if kings.len() < 2 {
+            return (evaluator::evaluate(&board), board, moves);
+        }
         // search moves
         let mut moves_to_try = gen_legal_moves(&board, color);
         if moves_to_try.len() == 0 {
@@ -75,23 +98,28 @@ impl AI {
 
     // do an exhaustive search , depth-first search
     // should return an eval, board, and move list to reach that board
-    fn search(&self, board: &Board, depth: u8) -> Option<(evaluator::Evaluation, Move)> {
-        if depth < 1 {
+    fn search(&mut self, board: &Board, depth: u8, color: Color) -> Option<(evaluator::Evaluation, Move)> {
+        self.minimax_calls = 0;
+        self.started_at = Instant::now();
+        // if depth < 1 {
+        //     return None;
+        // }
+        let (eval, best_board, moves) = self.minimax(board._clone(), color, depth, vec![]);
+        if moves.len() == 0 {
             return None;
         }
-        let (eval, best_board, moves) = self.minimax(board._clone(), self.color, depth, vec![]);
-
         // print stuff here
-
+        self.time_elapsed_during_search = Some(self.started_at.elapsed());
         return Some((eval, moves[0]));
     }
 
-    pub fn make_move(&self, board: &Board) -> Option<Move> {
-        let m = match self.color {
-            Color::White => self.search(board, self.search_depth),
-            Color::Black => self.search(board, self.search_depth),
+    pub fn make_move(&mut self, board: &Board, depth: Option<u8>) -> Option<Move> {
+        let search_depth = if depth.is_some() {
+            depth.unwrap()
+        } else {
+            self.default_search_depth
         };
-
+        let m = self.search(board, search_depth, self.color);
         match m {
             None => None,
             Some((_eval, m)) => Some(m),

@@ -15,12 +15,12 @@ Ohh and unfortunately I haven't fully implemented algebraic move notation parsin
 how to write moves that it can correctly parse.
 I do have a FEN reader that works that you can probably use btw, that thing is actually pretty handy.
 
-### Plans 
-- Game needs to handle checkmate
-- track down bug involve piece.at.unwrap() (at ?)
+### Plans
+- Implement draws
+  - I think this is why perft is failing at depth 3
 - Switch to use Result<> more often 
 - Board Traits
-- Implement draws
+
 - Implement Alpha - Beta Searching
 - Fully Implement algebraic notation parsing 
 - Print pgn files of the engine playing itself for the lolz

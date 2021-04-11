@@ -22,6 +22,25 @@ use std::fmt::Formatter;
 mod tests {
     use super::*;
     use test::Bencher;
+    use crate::AI::AI;
+
+    #[test]
+    fn perft_initial_position() {
+        let board = fen_reader::make_initial_board();
+        let mut ai = AI::new(Color::White);
+        ai.make_move(&board, Some(0));
+        assert_eq!(ai.minimax_calls(), 1, "1 node visited at depth 0");
+        ai.make_move(&board, Some(1));
+        assert_eq!(ai.minimax_calls(), 20, "20 nodes visited at depth 1");
+        ai.make_move(&board, Some(2));
+        assert_eq!(ai.minimax_calls(), 400, "400 nodes visited at depth 2");
+        ai.make_move(&board, Some(3));
+        assert_eq!(ai.minimax_calls(), 8902, "8902 nodes visited at depth 3");
+        ai.make_move(&board, Some(4));
+        assert_eq!(ai.minimax_calls(), 197281, "197281 nodes visited at depth 4");
+        ai.make_move(&board, Some(5));
+        assert_eq!(ai.minimax_calls(), 4865609, "4865609 nodes visited at depth 5");
+    }
 
     #[test]
     fn test_find_moves_to_resolve_check() {

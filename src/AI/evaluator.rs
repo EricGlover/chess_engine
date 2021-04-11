@@ -110,7 +110,7 @@ fn test_count_pawn_structure() {
     let (w, b) = count_blocked_pawns(&board);
     assert_eq!(3, b);
     assert_eq!(1, w);
-    print_board(&board);
+    // print_board(&board);
     let (w_count, b_count) = make_pawn_count_by_file(&board);
     println!("{:?}", w_count);
     let (w, b) = count_doubled_pawns(&w_count, &b_count);

@@ -294,36 +294,48 @@ impl Board {
     }
 
     pub fn get_kings(&self)-> Vec<Piece> {
-        vec![]
+        self.squares
+            .iter()
+            .flatten()
+            .filter(|&square| {
+                if square.piece.is_none() {
+                    return false;
+                }
+                let piece = square.piece.unwrap();
+                piece.piece_type == PieceType::King
+            })
+            .map(|square| square.piece.unwrap().clone())
+            .collect()
     }
 
     pub fn get_pieces(&self, color: Color, piece_type: PieceType) -> Vec<Piece> {
-        // self.squares
-        //     .iter()
-        //     .flatten()
-        //     .filter(|&square| {
-        //         if square.piece.is_none() {
-        //             return false;
-        //         }
-        //         let piece = square.piece.unwrap();
-        //         return piece.piece_type == piece_type && piece.color == color;
-        //     })
-        //     .map(|square| square.piece.unwrap().clone())
-        //     .collect()
-        let mut pieces: Vec<Piece> = vec![];
-        // @todo : try filtering
-        for row in self.squares.iter() {
-            for square in row.iter() {
+        self.squares
+            .iter()
+            .flatten()
+            .filter(|&square| {
                 if square.piece.is_none() {
-                    continue;
+                    return false;
                 }
                 let piece = square.piece.unwrap();
-                if piece.piece_type == piece_type && piece.color == color {
-                    pieces.push(piece.clone());
-                }
-            }
-        }
-        pieces
+                return piece.piece_type == piece_type && piece.color == color;
+            })
+            .map(|square| square.piece.unwrap().clone())
+            .collect()
+
+        // let mut pieces: Vec<Piece> = vec![];
+        // // @todo : try filtering
+        // for row in self.squares.iter() {
+        //     for square in row.iter() {
+        //         if square.piece.is_none() {
+        //             continue;
+        //         }
+        //         let piece = square.piece.unwrap();
+        //         if piece.piece_type == piece_type && piece.color == color {
+        //             pieces.push(piece.clone());
+        //         }
+        //     }
+        // }
+        // pieces
     }
 
     pub fn get_all_pieces(&self, color: Color) -> Vec<Piece> {

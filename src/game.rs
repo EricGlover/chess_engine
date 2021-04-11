@@ -51,25 +51,31 @@ impl Game {
         }
     }
 
+    fn ai1_make_move(&mut self) {
+        println!("{} to move", self.ai.color());
+        print_board(&self.board);
+
+        let m = self.ai.make_move(&self.board, None).unwrap();
+        let log = make_move_log(&m, &self.board);
+        println!("{} moves \n{}", self.ai.color(), log);
+        self.moves.push(log);
+        self.board.make_move_mut(&m);
+    }
+    fn ai2_make_move(&mut self) {
+        println!("{} to move", self.ai2.color());
+        print_board(&self.board);
+
+        let m = self.ai2.make_move(&self.board, None).unwrap();
+        let log = make_move_log(&m, &self.board);
+        println!("{} moves \n{}", self.ai2.color(), log);
+        self.moves.push(log);
+        self.board.make_move_mut(&m);
+    }
+
     pub fn run_ai_versus_ai(mut self) {
         loop {
-            println!("White to move");
-            print_board(&self.board);
-
-            let m = self.ai2.make_move(&self.board).unwrap();
-            let log = make_move_log(&m, &self.board);
-            println!("White moves \n{}", log);
-            self.moves.push(log);
-            self.board.make_move_mut(&m);
-
-            println!("Black to move");
-            print_board(&self.board);
-
-            let m = self.ai.make_move(&self.board).unwrap();
-            let log = make_move_log(&m, &self.board);
-            println!("Black moves \n{}", log);
-            self.moves.push(log);
-            self.board.make_move_mut(&m);
+            self.ai1_make_move();
+            self.ai2_make_move();
         }
     }
 
@@ -105,7 +111,7 @@ impl Game {
             }
 
             // black moves now
-            let m = self.ai.make_move(&self.board).unwrap();
+            let m = self.ai.make_move(&self.board, None).unwrap();
             let log = make_move_log(&m, &self.board);
             println!("move = \n{}", log);
             self.moves.push(log);
@@ -114,6 +120,7 @@ impl Game {
             println!("Black moves... {}", m);
             let eval = AI::evaluator::evaluate(&self.board);
             println!("eval {}", eval.score);
+            println!("moves evaluated {}, time elapsed {:?}", self.ai.minimax_calls(), self.ai.time_elapsed().unwrap());
             print_board(&self.board);
             self.write_log();
             if eval.mated_player.is_some() {

@@ -110,7 +110,7 @@ pub fn make_board(fen_string: &str) -> Board {
 #[test]
 fn test_initial_board() {
     let board = make_board(INITIAL_BOARD);
-    print_board(&board);
+    // print_board(&board);
     let white_pieces = board.get_all_pieces(Color::White);
     let black_pieces = board.get_all_pieces(Color::Black);
 
@@ -137,7 +137,7 @@ fn test_board_2() {
     fn has_piece(board: &Board, at: &Coordinate) -> bool {
         board.has_piece(at)
     }
-    board_console_printer::print_board(&board);
+    // board_console_printer::print_board(&board);
 
     // test if pieces are in the correct spot
     // todo: test if pieces themselves are the correct kind
