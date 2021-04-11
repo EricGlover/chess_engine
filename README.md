@@ -20,6 +20,10 @@ I do have a FEN reader that works that you can probably use btw, that thing is a
   - I think this is why perft is failing at depth 3
 - Switch to use Result<> more often 
 - Board Traits
+- Try optimizing the move generation
+- Test / benchmark
+  https://crates.io/crates/chess
+- Try bit boards ?
 
 - Implement Alpha - Beta Searching
 - Fully Implement algebraic notation parsing 

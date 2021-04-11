@@ -10,6 +10,7 @@ use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::path::Path;
+use crate::AI::evaluator::evaluate;
 
 pub struct Game {
     board: Board,
@@ -33,7 +34,7 @@ impl Game {
     }
 
     fn write_log(&self) {
-        let path = Path::new("output.txt");
+        let path = Path::new("./GameLogs/output.txt");
         let display = path.display();
 
         // Open a file in write-only mode, returns `io::Result<File>`
@@ -72,10 +73,24 @@ impl Game {
         self.board.make_move_mut(&m);
     }
 
+    fn end_game(&self, winner: Color) {
+        print_board(&self.board);
+        self.write_log();
+        println!("{} wins", winner);
+    }
+
     pub fn run_ai_versus_ai(mut self) {
         loop {
             self.ai1_make_move();
+            let evaluation = evaluate(&self.board);
+            if evaluation.is_checkmate() {
+                self.end_game(evaluation.mated_player.unwrap().opposite());
+            }
             self.ai2_make_move();
+            let evaluation = evaluate(&self.board);
+            if evaluation.is_checkmate() {
+                self.end_game(evaluation.mated_player.unwrap().opposite());
+            }
         }
     }
 
@@ -85,7 +100,6 @@ impl Game {
         print_board(&self.board);
         println!("What's your move?");
         for line in stdin.lock().lines() {
-            //@ todo : check for checkmate
             // white move
             let command = line.unwrap().clone();
             let m = chess_notation::read_move(command.as_str(), &self.board, Color::White);
@@ -104,12 +118,12 @@ impl Game {
             // print eval
             let eval = AI::evaluator::evaluate(&self.board);
             println!("eval {}", eval.score);
-            print_board(&self.board);
-            if eval.mated_player.is_some() {
-                println!("{} wins", eval.mated_player.unwrap().opposite());
+            if eval.is_checkmate() {
+                self.end_game(eval.mated_player.unwrap().opposite());
                 break;
             }
 
+            print_board(&self.board);
             // black moves now
             let m = self.ai.make_move(&self.board, None).unwrap();
             let log = make_move_log(&m, &self.board);
@@ -121,12 +135,12 @@ impl Game {
             let eval = AI::evaluator::evaluate(&self.board);
             println!("eval {}", eval.score);
             println!("moves evaluated {}, time elapsed {:?}", self.ai.minimax_calls(), self.ai.time_elapsed().unwrap());
-            print_board(&self.board);
-            self.write_log();
-            if eval.mated_player.is_some() {
-                println!("{} wins", eval.mated_player.unwrap().opposite());
+            if eval.is_checkmate() {
+                self.end_game(eval.mated_player.unwrap().opposite());
                 break;
             }
+            print_board(&self.board);
+            self.write_log();
         }
     }
 }

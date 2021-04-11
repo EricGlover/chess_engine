@@ -219,6 +219,12 @@ pub struct Evaluation {
     pub mated_player: Option<Color>,
 }
 
+impl Evaluation {
+    pub fn is_checkmate(&self) -> bool {
+        self.mated_player.is_some()
+    }
+}
+
 pub fn evaluate(board: &Board) -> Evaluation {
     let c = PieceCount::new(board);
     let k: i32 = 200 * (c.white_king as i32 - c.black_king as i32);
