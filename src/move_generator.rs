@@ -22,12 +22,12 @@ use std::fmt::Formatter;
 mod tests {
     use super::*;
     // use test::Bencher;
-    use crate::Ai::AI;
+    use crate::ai::ai;
 
     #[test]
     fn perft_initial_position() {
         let board = fen_reader::make_initial_board();
-        let mut ai = AI::new(Color::White);
+        let mut ai = ai::new(Color::White);
         ai.make_move(&board, Some(0));
         assert_eq!(ai.minimax_calls(), 1, "1 node visited at depth 0");
         ai.make_move(&board, Some(1));
@@ -400,25 +400,6 @@ struct Pin {
     pub can_move_to: Vec<Coordinate>,
 }
 
-fn move_list_eq(m: &Vec<&Move>, m2: &Vec<&Move>) -> bool {
-    if m.len() != m2.len() {
-        return false;
-    }
-    for &&mov in m.iter() {
-        let mut found = false;
-        for &&mov_2 in m2.iter() {
-            if (mov.from == mov_2.from) && (mov.to == mov_2.to) {
-                found = true;
-                break;
-            }
-        }
-        if !found {
-            return false;
-        }
-    }
-    return true;
-}
-
 // ignores blocking pieces
 // don't ignore same color pieces that are in the way
 fn find_attacking_pieces(
@@ -514,7 +495,7 @@ fn find_pinned_pieces(board: &Board, defender_color: Color) -> Vec<Pin> {
 // get checks against color
 pub fn get_checks(board: &Board, color_being_checked: Color) -> Vec<Move> {
     let moves = gen_pseudo_legal_moves(board, color_being_checked.opposite());
-    let mut king_pieces = board.get_pieces(color_being_checked, PieceType::King);
+    let king_pieces = board.get_pieces(color_being_checked, PieceType::King);
     if king_pieces.len() == 0 {
         return vec![];
     }
@@ -530,7 +511,7 @@ fn find_moves_to_resolve_check(
     checks: &Vec<Move>,
     possible_moves: &Vec<Move>,
 ) -> Vec<Move> {
-    let mut moves: Vec<Move> = possible_moves.iter().map(|m| m.clone()).collect();
+    let moves: Vec<Move> = possible_moves.iter().map(|m| m.clone()).collect();
 
     // if no checks , BOOM problem is solved
     if checks.len() == 0 {

@@ -5,6 +5,7 @@ use crate::fen_reader::make_initial_board;
 use crate::move_generator::path::{get_path_from, Direction};
 use crate::move_generator::Move;
 
+#[cfg(test)]
 mod tests {
     use crate::board::Coordinate;
     use crate::board::*;
@@ -29,6 +30,48 @@ mod tests {
         let found = moves.iter().any(|m| m == &test_move);
         assert!(found, "queen can take king ");
     }
+
+    #[test]
+    fn test_pawn_moves() {
+        let board = make_initial_board();
+        let pawn = board.get_piece_at(&Coordinate::new(1, 2)).unwrap();
+        let moves = gen_pawn_moves(&board, &pawn);
+        let correct_moves: Vec<Move> = vec![
+            Move::new(
+                Coordinate::new(1, 2),
+                Coordinate::new(1, 3),
+                pawn.clone(),
+                false,
+            ),
+            Move::new(
+                Coordinate::new(1, 2),
+                Coordinate::new(1, 4),
+                pawn.clone(),
+                false,
+            ),
+        ];
+        assert!(move_list_eq(&moves, &correct_moves));
+    }
+    #[cfg(test)]
+    fn move_list_eq(m: &Vec<Move>, m2: &Vec<Move>) -> bool {
+        if m.len() != m2.len() {
+            return false;
+        }
+        for mov in m.iter() {
+            let mut found = false;
+            for mov_2 in m2.iter() {
+                if mov == mov_2 {
+                    found = true;
+                    break;
+                }
+            }
+            if !found {
+                return false;
+            }
+        }
+        return true;
+    }
+
 }
 
 pub fn gen_moves_for(board: &Board, piece: &Piece) -> Vec<Move> {
@@ -387,48 +430,4 @@ fn has_enemy_piece(board: &Board, at: &Coordinate, own_color: Color) -> bool {
 
 fn is_on_board(c: &Coordinate) -> bool {
     c.x() >= LOW_X && c.x() <= HIGH_X && c.y() >= LOW_Y && c.y() <= HIGH_Y
-}
-
-fn is_legal(move_: Move) -> bool {
-    true
-}
-
-#[test]
-fn test_pawn_moves() {
-    let board = make_initial_board();
-    let pawn = board.get_piece_at(&Coordinate::new(1, 2)).unwrap();
-    let moves = gen_pawn_moves(&board, &pawn);
-    let correct_moves: Vec<Move> = vec![
-        Move::new(
-            Coordinate::new(1, 2),
-            Coordinate::new(1, 3),
-            pawn.clone(),
-            false,
-        ),
-        Move::new(
-            Coordinate::new(1, 2),
-            Coordinate::new(1, 4),
-            pawn.clone(),
-            false,
-        ),
-    ];
-    assert!(move_list_eq(&moves, &correct_moves));
-}
-fn move_list_eq(m: &Vec<Move>, m2: &Vec<Move>) -> bool {
-    if m.len() != m2.len() {
-        return false;
-    }
-    for mov in m.iter() {
-        let mut found = false;
-        for mov_2 in m2.iter() {
-            if mov == mov_2 {
-                found = true;
-                break;
-            }
-        }
-        if !found {
-            return false;
-        }
-    }
-    return true;
 }

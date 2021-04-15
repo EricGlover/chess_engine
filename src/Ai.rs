@@ -4,7 +4,7 @@ use crate::move_generator::*;
 use rand::prelude::ThreadRng;
 use rand::Rng;
 use std::time::{Duration, Instant};
-use crate::Ai::evaluator::{Evaluation};
+use crate::ai::evaluator::{Evaluation};
 
 #[cfg(test)]
 mod tests {
@@ -21,7 +21,7 @@ mod tests {
     fn test_alpha_beta() {
         //@todo : test more boards.... use pgn ????
         fn test_initial_board_at_depth( depth: u8) {
-            let mut ai = AI::new(Color::White);
+            let mut ai = ai::new(Color::White);
             let board =  make_initial_board();
             let (eval, best_move) = ai.alpha_beta(board._clone(), Color::White, depth, None, None);
             let (expected_eval, final_board, expected_best_move) = ai.minimax(board._clone(), Color::White, depth, vec![]);
@@ -42,11 +42,12 @@ mod tests {
 enum AiSearch {
     AlphaBeta,
     Minimax,
+    Random,
 }
 
 //@todo : pass in an Evaluator struct, or Evaluation function
 // need to understand Box<> or something first
-pub struct AI {
+pub struct ai {
     rng: ThreadRng,
     color: Color,
     default_search_depth: u8,
@@ -56,9 +57,9 @@ pub struct AI {
     ai_search_function: AiSearch,
 }
 
-impl AI {
-    pub fn new(color: Color) -> AI {
-        AI {
+impl ai {
+    pub fn new(color: Color) -> ai {
+        ai {
             rng: rand::thread_rng(),
             color,
             default_search_depth: 4,
@@ -177,11 +178,15 @@ impl AI {
         return (best_eval.unwrap(), best_move);
     }
 
-    fn choose_random_move(&mut self, board: &Board) -> Move {
+    fn choose_random_move(&mut self, board: &Board) -> (evaluator::Evaluation, Option<Move>) {
         let mut moves = gen_legal_moves(&board, self.color);
+        if moves.len() == 0 {
+            return (evaluator::evaluate(board), None);
+        }
         let move_count = moves.iter().len();
         let i = self.rng.gen_range(0..move_count);
-        moves.remove(i)
+        let chosen_move = moves.remove(i);
+        (evaluator::evaluate(&board.make_move(&chosen_move)), Some(chosen_move))
     }
 
     fn minimax(
@@ -254,15 +259,15 @@ impl AI {
         self.started_at = Instant::now();
         let (eval, best_move) : (Evaluation, Option<Move>) = match self.ai_search_function {
             AiSearch::AlphaBeta => self.alpha_beta(board._clone(), color, depth, None, None),
-            _ => panic!("don't use minimax you fool"),
-            // AiSearch::Minimax => {
-            //     let (eval, best_board, mut moves) = self.minimax(board._clone(), color, depth, vec![]);
-            //     if moves.len() == 0 {
-            //         (eval, None)
-            //     } else {
-            //         (eval, Some(moves.remove(0)))
-            //     }
-            // }
+            AiSearch::Minimax => {
+                let (eval, best_board, mut moves) = self.minimax(board._clone(), color, depth, vec![]);
+                if moves.len() == 0 {
+                    (eval, None)
+                } else {
+                    (eval, Some(moves.remove(0)))
+                }
+            },
+            AiSearch::Random => self.choose_random_move(board)
         };
         // print stuff here
         self.time_elapsed_during_search = Some(self.started_at.elapsed());

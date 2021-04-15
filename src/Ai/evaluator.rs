@@ -1,7 +1,42 @@
 use crate::board::*;
-use crate::board_console_printer::print_board;
-use crate::fen_reader;
 use crate::move_generator;
+
+#[cfg(test)]
+mod tests {
+    use crate::board_console_printer::print_board;
+    use crate::fen_reader;
+    use super::*;
+
+    #[test]
+    fn test_pawn_count() {
+        let fen = "rnb1kr2/pp1p1p1p/1qB2n2/7Q/1P1pPP1p/b4N1R/P1P3P1/RNB1K3 b Qq - 4 10";
+        let board = fen_reader::make_board(fen);
+        let (w_count, b_count) = make_pawn_count_by_file(&board);
+        let white_file: [u8; 8] = [1, 1, 1, 0, 1, 1, 1, 0];
+        let black_file: [u8; 8] = [1, 1, 0, 2, 0, 1, 0, 2];
+        assert_eq!(w_count.files, white_file);
+        assert_eq!(b_count.files, black_file);
+    }
+
+    #[test]
+    fn test_count_pawn_structure() {
+        let fen = "rnb1kr2/pp1p1p1p/1qB2n2/7Q/1P1pPP1p/b4N1R/P1P3P1/RNB1K3 b Qq - 4 10";
+        let board = fen_reader::make_board(fen);
+        let (w, b) = count_blocked_pawns(&board);
+        assert_eq!(3, b);
+        assert_eq!(1, w);
+        // print_board(&board);
+        let (w_count, b_count) = make_pawn_count_by_file(&board);
+        println!("{:?}", w_count);
+        let (w, b) = count_doubled_pawns(&w_count, &b_count);
+        assert_eq!(0, w);
+        assert_eq!(4, b);
+        let (w, b) = count_isolated_pawns(&w_count, &b_count);
+        assert_eq!(5, b);
+        assert_eq!(0, w);
+    }
+}
+
 
 #[derive(Debug)]
 struct PawnCountByFile {
@@ -103,24 +138,6 @@ fn count_doubled_pawns(white: &PawnCountByFile, black: &PawnCountByFile) -> (u8,
     (white_doubled, black_doubled)
 }
 
-#[test]
-fn test_count_pawn_structure() {
-    let fen = "rnb1kr2/pp1p1p1p/1qB2n2/7Q/1P1pPP1p/b4N1R/P1P3P1/RNB1K3 b Qq - 4 10";
-    let board = fen_reader::make_board(fen);
-    let (w, b) = count_blocked_pawns(&board);
-    assert_eq!(3, b);
-    assert_eq!(1, w);
-    // print_board(&board);
-    let (w_count, b_count) = make_pawn_count_by_file(&board);
-    println!("{:?}", w_count);
-    let (w, b) = count_doubled_pawns(&w_count, &b_count);
-    assert_eq!(0, w);
-    assert_eq!(4, b);
-    let (w, b) = count_isolated_pawns(&w_count, &b_count);
-    assert_eq!(5, b);
-    assert_eq!(0, w);
-}
-
 fn count_blocked_pawns(board: &Board) -> (u8, u8) {
     let files = board.get_files();
     let mut white_blocked: u8 = 0;
@@ -148,17 +165,6 @@ fn count_blocked_pawns(board: &Board) -> (u8, u8) {
         })
     });
     (white_blocked, black_blocked)
-}
-
-#[test]
-fn test_pawn_count() {
-    let fen = "rnb1kr2/pp1p1p1p/1qB2n2/7Q/1P1pPP1p/b4N1R/P1P3P1/RNB1K3 b Qq - 4 10";
-    let board = fen_reader::make_board(fen);
-    let (w_count, b_count) = make_pawn_count_by_file(&board);
-    let white_file: [u8; 8] = [1, 1, 1, 0, 1, 1, 1, 0];
-    let black_file: [u8; 8] = [1, 1, 0, 2, 0, 1, 0, 2];
-    assert_eq!(w_count.files, white_file);
-    assert_eq!(b_count.files, black_file);
 }
 
 fn make_pawn_count_by_file(board: &Board) -> (PawnCountByFile, PawnCountByFile) {

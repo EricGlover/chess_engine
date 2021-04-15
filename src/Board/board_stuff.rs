@@ -1,27 +1,33 @@
 use std::fmt;
 use std::fmt::Formatter;
 
-#[test]
-fn from_coordinate_test() {
-    assert_eq!(Coordinate::from("a1"), Coordinate::new(1, 1));
-    assert_eq!(Coordinate::from("h3"), Coordinate::new(8, 3));
-    assert_eq!(Coordinate::from("b7"), Coordinate::new(2, 7));
-    assert_eq!(Coordinate::from("d5"), Coordinate::new(4, 5));
-    assert_eq!(Coordinate::from("a8"), Coordinate::new(1, 8));
-    assert_eq!(Coordinate::from("e4"), Coordinate::new(5, 4));
-    assert_eq!(Coordinate::from("e5"), Coordinate::new(5, 5));
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn from_coordinate_test() {
+        assert_eq!(Coordinate::from("a1"), Coordinate::new(1, 1));
+        assert_eq!(Coordinate::from("h3"), Coordinate::new(8, 3));
+        assert_eq!(Coordinate::from("b7"), Coordinate::new(2, 7));
+        assert_eq!(Coordinate::from("d5"), Coordinate::new(4, 5));
+        assert_eq!(Coordinate::from("a8"), Coordinate::new(1, 8));
+        assert_eq!(Coordinate::from("e4"), Coordinate::new(5, 4));
+        assert_eq!(Coordinate::from("e5"), Coordinate::new(5, 5));
+    }
+
+    #[test]
+    fn to_coordinate_test() {
+        assert_eq!(Coordinate::to(Coordinate::new(1, 1)), "a1");
+        assert_eq!(Coordinate::to(Coordinate::new(8, 3)), "h3");
+        assert_eq!(Coordinate::to(Coordinate::new(2, 7)), "b7");
+        assert_eq!(Coordinate::to(Coordinate::new(4, 5)), "d5");
+        assert_eq!(Coordinate::to(Coordinate::new(1, 8)), "a8");
+        assert_eq!(Coordinate::to(Coordinate::new(5, 4)), "e4");
+        assert_eq!(Coordinate::to(Coordinate::new(5, 5)), "e5");
+    }
 }
 
-#[test]
-fn to_coordinate_test() {
-    assert_eq!(Coordinate::to(Coordinate::new(1, 1)), "a1");
-    assert_eq!(Coordinate::to(Coordinate::new(8, 3)), "h3");
-    assert_eq!(Coordinate::to(Coordinate::new(2, 7)), "b7");
-    assert_eq!(Coordinate::to(Coordinate::new(4, 5)), "d5");
-    assert_eq!(Coordinate::to(Coordinate::new(1, 8)), "a8");
-    assert_eq!(Coordinate::to(Coordinate::new(5, 4)), "e4");
-    assert_eq!(Coordinate::to(Coordinate::new(5, 5)), "e5");
-}
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub struct Coordinate {

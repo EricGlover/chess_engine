@@ -405,10 +405,6 @@ impl Board {
         piece
     }
 
-    fn is_on_board(c: Coordinate) -> bool {
-        c.x() >= LOW_X && c.x() <= HIGH_X && c.y() >= LOW_Y && c.y() <= HIGH_Y
-    }
-
     fn get_square(&self, at: &Coordinate) -> &Square {
         self.squares
             .get((at.y() - 1) as usize)

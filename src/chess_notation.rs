@@ -87,14 +87,6 @@ Nf2 42. g4 Bd3 43. Re6 1/2-1/2"#;
                                                     pieces able to reach the same square, as a result of one or more pawns having promoted).
                                                     **/
 
-    #[test]
-    fn test_make_move_log() {
-        // double capture
-        let double_capture = "rnbqkbnr/ppppp1pp/8/5p2/4P1P1/8/PPPP1P1P/RNBQKBNR b KQkq g3 0 2";
-        let board = make_board(double_capture);
-        // let m = Move::new()
-    }
-
     pub fn make_move_log(m: &Move, board: &Board) -> String {
         if m.is_king_side_castle() {
             return String::from("O-O"); // O not 0
@@ -248,18 +240,30 @@ Nf2 42. g4 Bd3 43. Re6 1/2-1/2",
         }
     }
 
-    #[test]
-    fn test_pgn() {
-        let game = Game {
-            event: String::from(r#""F/S Return Match""#),
-            site: String::from(r#""Belgrade, Serbia JUG""#),
-            date: String::from(r#""1992.11.04""#),
-            round: String::from(r#""29""#),
-            white: String::from(r#""Fischer, Robert J.""#),
-            black: String::from(r#""Spassky, Boris V.""#),
-            result: String::from(r#""1/2-1/2""#),
-            move_text: String::from(
-                "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 {This opening is called the Ruy Lopez.}
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn test_make_move_log() {
+            // double capture
+            let double_capture = "rnbqkbnr/ppppp1pp/8/5p2/4P1P1/8/PPPP1P1P/RNBQKBNR b KQkq g3 0 2";
+            let board = make_board(double_capture);
+            // let m = Move::new()
+        }
+
+        #[test]
+        fn test_pgn() {
+            let game = Game {
+                event: String::from(r#""F/S Return Match""#),
+                site: String::from(r#""Belgrade, Serbia JUG""#),
+                date: String::from(r#""1992.11.04""#),
+                round: String::from(r#""29""#),
+                white: String::from(r#""Fischer, Robert J.""#),
+                black: String::from(r#""Spassky, Boris V.""#),
+                result: String::from(r#""1/2-1/2""#),
+                move_text: String::from(
+                    "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 {This opening is called the Ruy Lopez.}
 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 d6 8. c3 O-O 9. h3 Nb8 10. d4 Nbd7
 11. c4 c6 12. cxb5 axb5 13. Nc3 Bb7 14. Bg5 b4 15. Nb1 h6 16. Bh4 c5 17. dxe5
 Nxe4 18. Bxe7 Qxe7 19. exd6 Qf6 20. Nbd2 Nxd6 21. Nc4 Nxc4 22. Bxc4 Nb6
@@ -267,14 +271,16 @@ Nxe4 18. Bxe7 Qxe7 19. exd6 Qf6 20. Nbd2 Nxd6 21. Nc4 Nxc4 22. Bxc4 Nb6
 hxg5 29. b3 Ke6 30. a3 Kd6 31. axb4 cxb4 32. Ra5 Nd5 33. f3 Bc8 34. Kf2 Bf5
 35. Ra7 g6 36. Ra6+ Kc5 37. Ke1 Nf4 38. g3 Nxh3 39. Kd2 Kb5 40. Rd6 Kc5 41. Ra6
 Nf2 42. g4 Bd3 43. Re6 1/2-1/2",
-            ),
-        };
-        // println!("{}", game);
-        let str = String::from(TEST_PGN);
-        // println!("original === \n{}", str.to_string());
-        // println!("mine ===\n{}", format!("{}", game).to_string());
-        assert_eq!(str.to_string(), format!("{}", game).to_string())
+                ),
+            };
+            // println!("{}", game);
+            let str = String::from(TEST_PGN);
+            // println!("original === \n{}", str.to_string());
+            // println!("mine ===\n{}", format!("{}", game).to_string());
+            assert_eq!(str.to_string(), format!("{}", game).to_string())
+        }
     }
+
 }
 /**
 chess move reader
@@ -320,18 +326,24 @@ pub fn read_move(str: &str, board: &Board, color: Color) -> Option<Move> {
         .find(|m| m.piece.piece_type == piece_type && m.to == to)
 }
 
-#[test]
-fn read_move_test() {
-    let board = fen_reader::make_board(fen_reader::INITIAL_BOARD);
-    let s = "Ra2";
-    let s2 = "a4";
-    let m = read_move(s, &board, Color::White);
-    let m2 = read_move(s2, &board, Color::White).unwrap();
-    let a1 = Coordinate::from("a1");
-    let a2 = Coordinate::from("a2");
-    let a4 = Coordinate::from("a4");
-    let rook = Piece::new(Color::White, PieceType::Rook, Some(a1.clone()));
-    let pawn = Piece::new(Color::White, PieceType::Pawn, Some(a2.clone()));
-    assert!(m.is_none());
-    assert_eq!(m2, Move::new(a2.clone(), a4.clone(), pawn.clone(), false));
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn read_move_test() {
+        let board = fen_reader::make_board(fen_reader::INITIAL_BOARD);
+        let s = "Ra2";
+        let s2 = "a4";
+        let m = read_move(s, &board, Color::White);
+        let m2 = read_move(s2, &board, Color::White).unwrap();
+        let a1 = Coordinate::from("a1");
+        let a2 = Coordinate::from("a2");
+        let a4 = Coordinate::from("a4");
+        let rook = Piece::new(Color::White, PieceType::Rook, Some(a1.clone()));
+        let pawn = Piece::new(Color::White, PieceType::Pawn, Some(a2.clone()));
+        assert!(m.is_none());
+        assert_eq!(m2, Move::new(a2.clone(), a4.clone(), pawn.clone(), false));
+    }
+
 }

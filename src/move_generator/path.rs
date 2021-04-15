@@ -94,52 +94,57 @@ pub fn get_path_to(from: &Coordinate, to: &Coordinate) -> Option<Vec<Coordinate>
     Some(path)
 }
 
-#[test]
-fn test_get_path() {
-    // diagonal
-    let a = Coordinate::new(1, 1);
-    let b = Coordinate::new(8, 8);
-    let path = get_path_to(&a, &b);
-    assert!(path.is_some(), "There is a path");
-    let path = path.unwrap();
-    assert_eq!(path.len(), 8);
-    println!("{:?}", path);
-    let expected: Vec<Coordinate> = vec![
-        Coordinate::new(1, 1),
-        Coordinate::new(2, 2),
-        Coordinate::new(3, 3),
-        Coordinate::new(4, 4),
-        Coordinate::new(5, 5),
-        Coordinate::new(6, 6),
-        Coordinate::new(7, 7),
-        Coordinate::new(8, 8),
-    ];
-    assert_eq!(path, expected);
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    // right
-    let a = Coordinate::new(1, 1);
-    let b = Coordinate::new(2, 1);
-    let path = get_path_to(&a, &b);
-    assert!(path.is_some(), "There is a path");
-    let path = path.unwrap();
-    println!("{:?}", path);
-    assert_eq!(path.len(), 2);
-    let expected: Vec<Coordinate> = vec![a.clone(), b.clone()];
-    assert_eq!(path, expected);
+    #[test]
+    fn test_get_path() {
+        // diagonal
+        let a = Coordinate::new(1, 1);
+        let b = Coordinate::new(8, 8);
+        let path = get_path_to(&a, &b);
+        assert!(path.is_some(), "There is a path");
+        let path = path.unwrap();
+        assert_eq!(path.len(), 8);
+        println!("{:?}", path);
+        let expected: Vec<Coordinate> = vec![
+            Coordinate::new(1, 1),
+            Coordinate::new(2, 2),
+            Coordinate::new(3, 3),
+            Coordinate::new(4, 4),
+            Coordinate::new(5, 5),
+            Coordinate::new(6, 6),
+            Coordinate::new(7, 7),
+            Coordinate::new(8, 8),
+        ];
+        assert_eq!(path, expected);
 
-    // up
-    let a = Coordinate::new(1, 1);
-    let b = Coordinate::new(1, 2);
-    let path = get_path_to(&a, &b);
-    assert!(path.is_some(), "There is a path");
-    let path = path.unwrap();
-    assert_eq!(path.len(), 2);
-    let expected: Vec<Coordinate> = vec![a.clone(), b.clone()];
-    assert_eq!(path, expected);
+        // right
+        let a = Coordinate::new(1, 1);
+        let b = Coordinate::new(2, 1);
+        let path = get_path_to(&a, &b);
+        assert!(path.is_some(), "There is a path");
+        let path = path.unwrap();
+        println!("{:?}", path);
+        assert_eq!(path.len(), 2);
+        let expected: Vec<Coordinate> = vec![a.clone(), b.clone()];
+        assert_eq!(path, expected);
 
-    // test no path
-    let a = Coordinate::new(1, 1);
-    let b = Coordinate::new(2, 3);
-    let path = get_path_to(&a, &b);
-    assert!(path.is_none(), "There is no path");
+        // up
+        let a = Coordinate::new(1, 1);
+        let b = Coordinate::new(1, 2);
+        let path = get_path_to(&a, &b);
+        assert!(path.is_some(), "There is a path");
+        let path = path.unwrap();
+        assert_eq!(path.len(), 2);
+        let expected: Vec<Coordinate> = vec![a.clone(), b.clone()];
+        assert_eq!(path, expected);
+
+        // test no path
+        let a = Coordinate::new(1, 1);
+        let b = Coordinate::new(2, 3);
+        let path = get_path_to(&a, &b);
+        assert!(path.is_none(), "There is no path");
+    }
 }

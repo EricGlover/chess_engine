@@ -1,10 +1,7 @@
 extern crate getopts;
 use chess_engine::game;
-use dialoguer::Confirm;
-use dialoguer::MultiSelect;
 use getopts::Options;
 use std::env;
-use std::io::Result as IoResult;
 
 fn print_help_menu() {
     println!("For ai vs ai game \ncargo run -- --ai\n");
@@ -17,8 +14,6 @@ alpha - beta searching
 fn main() {
     //@todo:  use get opts for choosing the game modes and stuff
     let args: Vec<String> = env::args().collect();
-    let program = args[0].clone();
-
     let mut opts = Options::new();
     opts.optflag("a", "ai", "run ai versus ai game");
     opts.optflag("h", "help", "print this help menu");

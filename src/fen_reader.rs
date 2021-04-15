@@ -59,7 +59,7 @@ fn read_pieces(piece_string: &str, board: &mut Board) {
             if numbers.contains(char) {
                 x += char.to_string().parse::<u8>().unwrap();
             } else if piece_chars.contains(char) {
-                let mut piece = read_piece(char.to_string().as_str());
+                let piece = read_piece(char.to_string().as_str());
                 board.place_piece(piece, coordinate);
                 x += 1;
             } else {
@@ -107,113 +107,118 @@ pub fn make_board(fen_string: &str) -> Board {
     return board;
 }
 
-#[test]
-fn test_initial_board() {
-    let board = make_board(INITIAL_BOARD);
-    // print_board(&board);
-    let white_pieces = board.get_all_pieces(Color::White);
-    let black_pieces = board.get_all_pieces(Color::Black);
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    assert_eq!(white_pieces.len(), 16);
-    assert_eq!(black_pieces.len(), 16);
+    #[test]
+    fn test_initial_board() {
+        let board = make_board(INITIAL_BOARD);
+        // print_board(&board);
+        let white_pieces = board.get_all_pieces(Color::White);
+        let black_pieces = board.get_all_pieces(Color::Black);
 
-    for piece in white_pieces.iter() {
-        match piece.piece_type {
-            PieceType::King => {
-                assert_eq!(piece.at().unwrap(), Coordinate::new(5, 1));
+        assert_eq!(white_pieces.len(), 16);
+        assert_eq!(black_pieces.len(), 16);
+
+        for piece in white_pieces.iter() {
+            match piece.piece_type {
+                PieceType::King => {
+                    assert_eq!(piece.at().unwrap(), Coordinate::new(5, 1));
+                }
+                PieceType::Queen => {}
+                PieceType::Bishop => {}
+                PieceType::Knight => {}
+                PieceType::Rook => {}
+                PieceType::Pawn => {}
             }
-            PieceType::Queen => {}
-            PieceType::Bishop => {}
-            PieceType::Knight => {}
-            PieceType::Rook => {}
-            PieceType::Pawn => {}
         }
     }
-}
 
-#[test]
-fn test_board_2() {
-    let board = make_board(TEST_BOARD_2);
-    fn has_piece(board: &Board, at: &Coordinate) -> bool {
-        board.has_piece(at)
+    #[test]
+    fn test_board_2() {
+        let board = make_board(TEST_BOARD_2);
+        fn has_piece(board: &Board, at: &Coordinate) -> bool {
+            board.has_piece(at)
+        }
+        // board_console_printer::print_board(&board);
+
+        // test if pieces are in the correct spot
+        // todo: test if pieces themselves are the correct kind
+
+        // row 8
+        assert_eq!(board.has_piece(&Coordinate::new(1, 8)), false);
+        assert_eq!(board.has_piece(&Coordinate::new(2, 8)), false);
+        assert_eq!(board.has_piece(&Coordinate::new(3, 8)), true);
+        assert_eq!(board.has_piece(&Coordinate::new(4, 8)), true);
+        assert_eq!(board.has_piece(&Coordinate::new(5, 8)), false);
+        assert_eq!(board.has_piece(&Coordinate::new(6, 8)), true);
+        assert_eq!(board.has_piece(&Coordinate::new(7, 8)), false);
+        assert_eq!(board.has_piece(&Coordinate::new(8, 8)), true);
+
+        // row 7
+        assert_eq!(has_piece(&board, &Coordinate::new(1, 7)), false);
+        assert_eq!(has_piece(&board, &Coordinate::new(2, 7)), true);
+        assert_eq!(has_piece(&board, &Coordinate::new(3, 7)), true);
+        assert_eq!(has_piece(&board, &Coordinate::new(4, 7)), false);
+        assert_eq!(has_piece(&board, &Coordinate::new(5, 7)), false);
+        assert_eq!(has_piece(&board, &Coordinate::new(6, 7)), false);
+        assert_eq!(has_piece(&board, &Coordinate::new(7, 7)), false);
+        assert_eq!(has_piece(&board, &Coordinate::new(8, 7)), true);
+        // row 6
+        assert_eq!(has_piece(&board, &Coordinate::new(1, 6)), true);
+        assert_eq!(has_piece(&board, &Coordinate::new(2, 6)), true);
+        assert_eq!(has_piece(&board, &Coordinate::new(3, 6)), true);
+        assert_eq!(has_piece(&board, &Coordinate::new(4, 6)), false);
+        assert_eq!(has_piece(&board, &Coordinate::new(5, 6)), false);
+        assert_eq!(has_piece(&board, &Coordinate::new(6, 6)), false);
+        assert_eq!(has_piece(&board, &Coordinate::new(7, 6)), true);
+        assert_eq!(has_piece(&board, &Coordinate::new(8, 6)), false);
+        // row 5
+        assert_eq!(has_piece(&board, &Coordinate::new(1, 5)), false);
+        assert_eq!(has_piece(&board, &Coordinate::new(2, 5)), true);
+        assert_eq!(has_piece(&board, &Coordinate::new(3, 5)), false);
+        assert_eq!(has_piece(&board, &Coordinate::new(4, 5)), true);
+        assert_eq!(has_piece(&board, &Coordinate::new(5, 5)), true);
+        assert_eq!(has_piece(&board, &Coordinate::new(6, 5)), true);
+        assert_eq!(has_piece(&board, &Coordinate::new(7, 5)), false);
+        assert_eq!(has_piece(&board, &Coordinate::new(8, 5)), false);
+
+        // row 4
+        assert_eq!(has_piece(&board, &Coordinate::new(1, 4)), true);
+        assert_eq!(has_piece(&board, &Coordinate::new(2, 4)), false);
+        assert_eq!(has_piece(&board, &Coordinate::new(3, 4)), false);
+        assert_eq!(has_piece(&board, &Coordinate::new(4, 4)), true);
+        assert_eq!(has_piece(&board, &Coordinate::new(5, 4)), true);
+        assert_eq!(has_piece(&board, &Coordinate::new(6, 4)), true);
+        assert_eq!(has_piece(&board, &Coordinate::new(7, 4)), true);
+        assert_eq!(has_piece(&board, &Coordinate::new(8, 4)), true);
+        // row 3
+        assert_eq!(has_piece(&board, &Coordinate::new(1, 3)), true);
+        assert_eq!(has_piece(&board, &Coordinate::new(2, 3)), false);
+        assert_eq!(has_piece(&board, &Coordinate::new(3, 3)), true);
+        assert_eq!(has_piece(&board, &Coordinate::new(4, 3)), false);
+        assert_eq!(has_piece(&board, &Coordinate::new(5, 3)), false);
+        assert_eq!(has_piece(&board, &Coordinate::new(6, 3)), false);
+        assert_eq!(has_piece(&board, &Coordinate::new(7, 3)), false);
+        assert_eq!(has_piece(&board, &Coordinate::new(8, 3)), false);
+        // row 2
+        assert_eq!(has_piece(&board, &Coordinate::new(1, 2)), false);
+        assert_eq!(has_piece(&board, &Coordinate::new(2, 2)), true);
+        assert_eq!(has_piece(&board, &Coordinate::new(3, 2)), false);
+        assert_eq!(has_piece(&board, &Coordinate::new(4, 2)), false);
+        assert_eq!(has_piece(&board, &Coordinate::new(5, 2)), false);
+        assert_eq!(has_piece(&board, &Coordinate::new(6, 2)), true);
+        assert_eq!(has_piece(&board, &Coordinate::new(7, 2)), true);
+        assert_eq!(has_piece(&board, &Coordinate::new(8, 2)), true);
+        // row 1
+        assert_eq!(has_piece(&board, &Coordinate::new(1, 1)), false);
+        assert_eq!(has_piece(&board, &Coordinate::new(2, 1)), false);
+        assert_eq!(has_piece(&board, &Coordinate::new(3, 1)), false);
+        assert_eq!(has_piece(&board, &Coordinate::new(4, 1)), false);
+        assert_eq!(has_piece(&board, &Coordinate::new(5, 1)), true);
+        assert_eq!(has_piece(&board, &Coordinate::new(6, 1)), true);
+        assert_eq!(has_piece(&board, &Coordinate::new(7, 1)), true);
+        assert_eq!(has_piece(&board, &Coordinate::new(8, 1)), false);
     }
-    // board_console_printer::print_board(&board);
-
-    // test if pieces are in the correct spot
-    // todo: test if pieces themselves are the correct kind
-
-    // row 8
-    assert_eq!(board.has_piece(&Coordinate::new(1, 8)), false);
-    assert_eq!(board.has_piece(&Coordinate::new(2, 8)), false);
-    assert_eq!(board.has_piece(&Coordinate::new(3, 8)), true);
-    assert_eq!(board.has_piece(&Coordinate::new(4, 8)), true);
-    assert_eq!(board.has_piece(&Coordinate::new(5, 8)), false);
-    assert_eq!(board.has_piece(&Coordinate::new(6, 8)), true);
-    assert_eq!(board.has_piece(&Coordinate::new(7, 8)), false);
-    assert_eq!(board.has_piece(&Coordinate::new(8, 8)), true);
-
-    // row 7
-    assert_eq!(has_piece(&board, &Coordinate::new(1, 7)), false);
-    assert_eq!(has_piece(&board, &Coordinate::new(2, 7)), true);
-    assert_eq!(has_piece(&board, &Coordinate::new(3, 7)), true);
-    assert_eq!(has_piece(&board, &Coordinate::new(4, 7)), false);
-    assert_eq!(has_piece(&board, &Coordinate::new(5, 7)), false);
-    assert_eq!(has_piece(&board, &Coordinate::new(6, 7)), false);
-    assert_eq!(has_piece(&board, &Coordinate::new(7, 7)), false);
-    assert_eq!(has_piece(&board, &Coordinate::new(8, 7)), true);
-    // row 6
-    assert_eq!(has_piece(&board, &Coordinate::new(1, 6)), true);
-    assert_eq!(has_piece(&board, &Coordinate::new(2, 6)), true);
-    assert_eq!(has_piece(&board, &Coordinate::new(3, 6)), true);
-    assert_eq!(has_piece(&board, &Coordinate::new(4, 6)), false);
-    assert_eq!(has_piece(&board, &Coordinate::new(5, 6)), false);
-    assert_eq!(has_piece(&board, &Coordinate::new(6, 6)), false);
-    assert_eq!(has_piece(&board, &Coordinate::new(7, 6)), true);
-    assert_eq!(has_piece(&board, &Coordinate::new(8, 6)), false);
-    // row 5
-    assert_eq!(has_piece(&board, &Coordinate::new(1, 5)), false);
-    assert_eq!(has_piece(&board, &Coordinate::new(2, 5)), true);
-    assert_eq!(has_piece(&board, &Coordinate::new(3, 5)), false);
-    assert_eq!(has_piece(&board, &Coordinate::new(4, 5)), true);
-    assert_eq!(has_piece(&board, &Coordinate::new(5, 5)), true);
-    assert_eq!(has_piece(&board, &Coordinate::new(6, 5)), true);
-    assert_eq!(has_piece(&board, &Coordinate::new(7, 5)), false);
-    assert_eq!(has_piece(&board, &Coordinate::new(8, 5)), false);
-
-    // row 4
-    assert_eq!(has_piece(&board, &Coordinate::new(1, 4)), true);
-    assert_eq!(has_piece(&board, &Coordinate::new(2, 4)), false);
-    assert_eq!(has_piece(&board, &Coordinate::new(3, 4)), false);
-    assert_eq!(has_piece(&board, &Coordinate::new(4, 4)), true);
-    assert_eq!(has_piece(&board, &Coordinate::new(5, 4)), true);
-    assert_eq!(has_piece(&board, &Coordinate::new(6, 4)), true);
-    assert_eq!(has_piece(&board, &Coordinate::new(7, 4)), true);
-    assert_eq!(has_piece(&board, &Coordinate::new(8, 4)), true);
-    // row 3
-    assert_eq!(has_piece(&board, &Coordinate::new(1, 3)), true);
-    assert_eq!(has_piece(&board, &Coordinate::new(2, 3)), false);
-    assert_eq!(has_piece(&board, &Coordinate::new(3, 3)), true);
-    assert_eq!(has_piece(&board, &Coordinate::new(4, 3)), false);
-    assert_eq!(has_piece(&board, &Coordinate::new(5, 3)), false);
-    assert_eq!(has_piece(&board, &Coordinate::new(6, 3)), false);
-    assert_eq!(has_piece(&board, &Coordinate::new(7, 3)), false);
-    assert_eq!(has_piece(&board, &Coordinate::new(8, 3)), false);
-    // row 2
-    assert_eq!(has_piece(&board, &Coordinate::new(1, 2)), false);
-    assert_eq!(has_piece(&board, &Coordinate::new(2, 2)), true);
-    assert_eq!(has_piece(&board, &Coordinate::new(3, 2)), false);
-    assert_eq!(has_piece(&board, &Coordinate::new(4, 2)), false);
-    assert_eq!(has_piece(&board, &Coordinate::new(5, 2)), false);
-    assert_eq!(has_piece(&board, &Coordinate::new(6, 2)), true);
-    assert_eq!(has_piece(&board, &Coordinate::new(7, 2)), true);
-    assert_eq!(has_piece(&board, &Coordinate::new(8, 2)), true);
-    // row 1
-    assert_eq!(has_piece(&board, &Coordinate::new(1, 1)), false);
-    assert_eq!(has_piece(&board, &Coordinate::new(2, 1)), false);
-    assert_eq!(has_piece(&board, &Coordinate::new(3, 1)), false);
-    assert_eq!(has_piece(&board, &Coordinate::new(4, 1)), false);
-    assert_eq!(has_piece(&board, &Coordinate::new(5, 1)), true);
-    assert_eq!(has_piece(&board, &Coordinate::new(6, 1)), true);
-    assert_eq!(has_piece(&board, &Coordinate::new(7, 1)), true);
-    assert_eq!(has_piece(&board, &Coordinate::new(8, 1)), false);
 }
