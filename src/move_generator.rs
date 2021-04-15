@@ -22,7 +22,7 @@ use std::fmt::Formatter;
 mod tests {
     use super::*;
     // use test::Bencher;
-    use crate::Ai3::AI;
+    use crate::Ai::AI;
 
     #[test]
     fn perft_initial_position() {

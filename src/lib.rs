@@ -1,6 +1,6 @@
 // #![feature(test)]
 // extern crate test;
-pub mod Ai3;
+pub mod Ai;
 pub mod board;
 pub mod board_console_printer;
 pub mod chess_notation;

@@ -4,7 +4,7 @@ use crate::move_generator::*;
 use rand::prelude::ThreadRng;
 use rand::Rng;
 use std::time::{Duration, Instant};
-use crate::Ai3::evaluator::{Evaluation};
+use crate::Ai::evaluator::{Evaluation};
 
 #[cfg(test)]
 mod tests {
