@@ -5,8 +5,8 @@ use crate::chess_notation;
 use crate::chess_notation::pgn::make_move_log;
 use crate::fen_reader;
 use crate::move_generator::Move;
-use crate::AI;
-use crate::AI::evaluator::evaluate;
+use crate::Ai3;
+use crate::Ai3::evaluator::evaluate;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
@@ -15,16 +15,16 @@ use std::path::Path;
 pub struct Game {
     board: Board,
     moves: Vec<String>,
-    ai: AI::AI,
-    ai2: AI::AI,
+    ai: Ai3::AI,
+    ai2: Ai3::AI,
 }
 
 impl Game {
     pub fn new() -> Game {
         Game {
             board: fen_reader::make_board(fen_reader::INITIAL_BOARD),
-            ai: AI::AI::new(Color::Black),
-            ai2: AI::AI::new(Color::White),
+            ai: Ai3::AI::new(Color::Black),
+            ai2: Ai3::AI::new(Color::White),
             moves: vec![],
         }
     }
@@ -116,7 +116,7 @@ impl Game {
             self.write_log();
 
             // print eval
-            let eval = AI::evaluator::evaluate(&self.board);
+            let eval = Ai3::evaluator::evaluate(&self.board);
             println!("eval {}", eval.score);
             if eval.is_checkmate() {
                 self.end_game(eval.mated_player.unwrap().opposite());
@@ -132,7 +132,7 @@ impl Game {
             self.board.make_move_mut(&m);
             // self.moves.push(m);
             println!("Black moves... {}", m);
-            let eval = AI::evaluator::evaluate(&self.board);
+            let eval = Ai3::evaluator::evaluate(&self.board);
             println!("eval {}", eval.score);
             println!(
                 "moves evaluated {}, time elapsed {:?}",

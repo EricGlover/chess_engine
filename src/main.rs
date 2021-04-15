@@ -6,23 +6,6 @@ use getopts::Options;
 use std::env;
 use std::io::Result as IoResult;
 
-fn run() -> IoResult<String> {
-    // with this you could print out moves to choose from ... interesting ...
-    let items = vec!["Option 1", "Option 2"];
-    let chosen: Vec<usize> = MultiSelect::new().items(&items).interact()?;
-    println!("{:?}", chosen);
-    IoResult::Ok(String::from("ok"))
-
-    // if Confirm::new().with_prompt("Do you want to continue?").interact()? {
-    //     println!("Looks like you want to continue");
-    // } else {
-    //     println!("nevermind then :(");
-    // }
-    // Ok(true)
-}
-
-enum GameMode {}
-
 fn print_help_menu() {
     println!("For ai vs ai game \ncargo run -- --ai\n");
     println!("For human vs ai game \ncargo run\n");
@@ -43,7 +26,7 @@ fn main() {
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => m,
         Err(f) => {
-            panic!(f.to_string())
+            panic!("{}", f.to_string())
         }
     };
     if matches.opt_present("h") {

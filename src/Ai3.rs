@@ -4,7 +4,7 @@ use crate::move_generator::*;
 use rand::prelude::ThreadRng;
 use rand::Rng;
 use std::time::{Duration, Instant};
-use crate::AI::evaluator::{Evaluation};
+use crate::Ai3::evaluator::{Evaluation};
 
 #[cfg(test)]
 mod tests {
@@ -179,8 +179,8 @@ impl AI {
 
     fn choose_random_move(&mut self, board: &Board) -> Move {
         let mut moves = gen_legal_moves(&board, self.color);
-        let moveCount = moves.iter().len();
-        let i = self.rng.gen_range(0..moveCount);
+        let move_count = moves.iter().len();
+        let i = self.rng.gen_range(0..move_count);
         moves.remove(i)
     }
 

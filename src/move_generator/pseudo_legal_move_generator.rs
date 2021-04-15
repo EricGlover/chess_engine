@@ -367,7 +367,7 @@ fn square_occupiable_by(board: &Board, at: &Coordinate, color: Color) -> bool {
 }
 
 fn has_enemy_piece(board: &Board, at: &Coordinate, own_color: Color) -> bool {
-    let enemyColor = match own_color {
+    let enemy_color = match own_color {
         Color::White => Color::Black,
         Color::Black => Color::White,
     };
@@ -378,7 +378,7 @@ fn has_enemy_piece(board: &Board, at: &Coordinate, own_color: Color) -> bool {
     let piece = board.get_piece_at(at);
     if piece.is_some() {
         let piece = piece.unwrap();
-        if piece.color == enemyColor {
+        if piece.color == enemy_color {
             return true;
         }
     }
