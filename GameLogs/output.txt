@@ -1,0 +1,7 @@
+e4
+d5
+xd5
+Qxd5
+Nc3
+Qe5
+Be2

@@ -1,0 +1,51 @@
+
+    Finished test [unoptimized + debuginfo] target(s) in 1.03s
+     Running target\debug\deps\chess_engine-3112be51bb7131fc.exe
+
+running 24 tests
+test board::board_stuff::to_coordinate_test ... ok
+test board::board_stuff::from_coordinate_test ... ok
+test chess_notation::pgn::test_make_move_log ... ok
+test fen_reader::test_initial_board ... ok
+test board::test::test_get_files ... ok
+test chess_notation::pgn::test_pgn ... ok
+test board::test::test_clone ... ok
+test AI::evaluator::test_pawn_count ... ok
+test AI::evaluator::test_count_pawn_structure ... ok
+test board::test::test_get_pieces ... ok
+test move_generator::path::test_get_path ... ok
+test fen_reader::test_board_2 ... ok
+test move_generator::pseudo_legal_move_generator::test_pawn_moves ... ok
+test move_generator::pseudo_legal_move_generator::tests::test_gen_queen_moves ... ok
+test chess_notation::read_move_test ... ok
+test board::test::test_in_check ... ok
+test move_generator::tests::test_find_attacking_pieces ... ok
+test move_generator::tests::test_find_pinned_pieces ... ok
+test move_generator::tests::test_find_moves_to_resolve_check ... ok
+test tests::move_gen_tester::move_list_is_same ... ok
+test tests::move_gen_tester::move_gen ... ok
+test tests::eval_tester::test_eval ... ok
+test move_generator::tests::test_gen_legal_moves_checkmate ... ok
+test move_generator::tests::perft_initial_position ... test move_generator::tests::perft_initial_position has been running for over 60 seconds
+test move_generator::tests::perft_initial_position ... FAILED
+
+failures:
+
+---- move_generator::tests::perft_initial_position stdout ----
+thread 'move_generator::tests::perft_initial_position' panicked at 'assertion failed: `(left == right)`
+  left: `197309`,
+ right: `197281`: 197281 nodes visited at depth 4', src\move_generator.rs:40:9
+stack backtrace:
+   0: std::panicking::begin_panic_handler
+             at /rustc/2fd73fabe469357a12c2c974c140f67e7cdd76d0\/library\std\src\panicking.rs:493
+   1: core::panicking::panic_fmt
+             at /rustc/2fd73fabe469357a12c2c974c140f67e7cdd76d0\/library\core\src\panicking.rs:92
+   2: chess_engine::move_generator::tests::perft_initial_position
+             at .\src\move_generator.rs:40
+   3: chess_engine::move_generator::tests::perft_initial_position::{{closure}}
+             at .\src\move_generator.rs:28
+   4: core::ops::function::FnOnce::call_once<closure-0,tuple<>>
+             at C:\Users\15732\.rustup\toolchains\stable-x86_64-pc-windows-msvc\lib\rustlib\src\rust\library\core\src\ops\function.rs:227
+   5: core::ops::function::FnOnce::call_once
+             at /rustc/2fd73fabe469357a12c2c974c140f67e7cdd76d0\library\core\src\ops\function.rs:227
+note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.

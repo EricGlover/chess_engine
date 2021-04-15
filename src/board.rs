@@ -6,6 +6,7 @@ pub use board_stuff::*;
 use std::fmt;
 use std::fmt::Formatter;
 
+#[cfg(test)]
 mod test {
     use crate::board::*;
     use crate::fen_reader;
@@ -16,7 +17,7 @@ mod test {
         let pieces = board.get_pieces(Color::Black, PieceType::King);
         assert_eq!(pieces.len(), 1, "there is one black king");
         let found_black_king = pieces.get(0).unwrap();
-        let black_king = Piece::new(Color::Black, PieceType::King, Some(Coordinate::new(5,8)));
+        let black_king = Piece::new(Color::Black, PieceType::King, Some(Coordinate::new(5, 8)));
         assert_eq!(&black_king, found_black_king);
     }
 
@@ -216,7 +217,12 @@ impl Board {
         }
 
         // get piece to move
-        let mut moving_piece = self.remove_piece(&m.from).unwrap();
+        let removed = self.remove_piece(&m.from);
+        if removed.is_none() {
+            println!("{}", m);
+            panic!("trying to remove a piece that isn't there.");
+        }
+        let mut moving_piece = removed.unwrap();
 
         // if it gets promoted, then switch it's type
         if m.promoted_to.is_some() && m.piece.piece_type == PieceType::Pawn {
@@ -293,7 +299,7 @@ impl Board {
         }
     }
 
-    pub fn get_kings(&self)-> Vec<Piece> {
+    pub fn get_kings(&self) -> Vec<Piece> {
         self.squares
             .iter()
             .flatten()

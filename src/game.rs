@@ -6,11 +6,11 @@ use crate::chess_notation::pgn::make_move_log;
 use crate::fen_reader;
 use crate::move_generator::Move;
 use crate::AI;
+use crate::AI::evaluator::evaluate;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::path::Path;
-use crate::AI::evaluator::evaluate;
 
 pub struct Game {
     board: Board,
@@ -134,7 +134,11 @@ impl Game {
             println!("Black moves... {}", m);
             let eval = AI::evaluator::evaluate(&self.board);
             println!("eval {}", eval.score);
-            println!("moves evaluated {}, time elapsed {:?}", self.ai.minimax_calls(), self.ai.time_elapsed().unwrap());
+            println!(
+                "moves evaluated {}, time elapsed {:?}",
+                self.ai.minimax_calls(),
+                self.ai.time_elapsed().unwrap()
+            );
             if eval.is_checkmate() {
                 self.end_game(eval.mated_player.unwrap().opposite());
                 break;

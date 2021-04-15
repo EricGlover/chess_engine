@@ -213,7 +213,7 @@ fn count_isolated_pawns(white: &PawnCountByFile, black: &PawnCountByFile) -> (u8
     (white_p, black_p)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct Evaluation {
     pub score: f32,
     pub mated_player: Option<Color>,
@@ -224,6 +224,59 @@ impl Evaluation {
         self.mated_player.is_some()
     }
 }
+//
+// pub trait Evaluator {
+//     fn evaluate(board: &Board)-> Evaluation;
+// }
+//
+// pub struct BasicEvaluator {
+//
+// }
+//
+// impl Evaluator for BasicEvaluator {
+//     pub fn evaluate(board: &Board) -> Evaluation {
+//         let c = PieceCount::new(board);
+//         let k: i32 = 200 * (c.white_king as i32 - c.black_king as i32);
+//         let q: i32 = 9 * (c.white_queen as i32 - c.black_queen as i32);
+//         let r: i32 = 5 * (c.white_rook as i32 - c.black_rook as i32);
+//         let b: i32 = 3
+//             * (c.white_bishop as i32 - c.black_bishop as i32 + c.white_knight as i32
+//             - c.black_knight as i32);
+//         let p: i32 = 1 * (c.white_pawn as i32 - c.black_pawn as i32);
+//
+//         // pawn structure evaluation
+//         let (white_pawn_file, black_pawn_file) = make_pawn_count_by_file(board);
+//         let (white_doubled_pawns, black_doubled_pawns) =
+//             count_doubled_pawns(&white_pawn_file, &black_pawn_file);
+//         let doubled: i32 = white_doubled_pawns as i32 - black_doubled_pawns as i32;
+//         let (white_isolated_pawns, black_isolated_pawns) =
+//             count_isolated_pawns(&white_pawn_file, &black_pawn_file);
+//         let isolated: i32 = white_isolated_pawns as i32 - black_isolated_pawns as i32;
+//         let (white_blocked_pawns, black_blocked_pawns) = count_blocked_pawns(board);
+//         let blocked: i32 = (white_blocked_pawns as i32) - (black_blocked_pawns as i32);
+//         let pawn_structure = 0.5 * (doubled + isolated + blocked) as f32;
+//
+//         // mobility
+//         let white_moves = move_generator::gen_legal_moves(board, Color::White);
+//         let black_moves = move_generator::gen_legal_moves(board, Color::Black);
+//
+//         // checkmate
+//         let mated_player = if board.player_to_move == Color::White && white_moves.len() == 0 {
+//             Some(Color::White)
+//         } else if board.player_to_move == Color::Black && black_moves.len() == 0 {
+//             Some(Color::Black)
+//         } else {
+//             None
+//         };
+//
+//         let mobility = 0.1 * (white_moves.iter().len() as i32 - black_moves.iter().len() as i32) as f32;
+//
+//         Evaluation {
+//             score: (k + q + r + b + p) as f32 + mobility + pawn_structure,
+//             mated_player,
+//         }
+//     }
+// }
 
 pub fn evaluate(board: &Board) -> Evaluation {
     let c = PieceCount::new(board);

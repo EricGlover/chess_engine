@@ -18,7 +18,7 @@ use std::fmt::Formatter;
 /**
 
 **/
-
+#[cfg(test)]
 mod tests {
     use super::*;
     // use test::Bencher;
@@ -37,9 +37,17 @@ mod tests {
         ai.make_move(&board, Some(3));
         assert_eq!(ai.minimax_calls(), 8902, "8902 nodes visited at depth 3");
         ai.make_move(&board, Some(4));
-        assert_eq!(ai.minimax_calls(), 197281, "197281 nodes visited at depth 4");
+        assert_eq!(
+            ai.minimax_calls(),
+            197281,
+            "197281 nodes visited at depth 4"
+        );
         ai.make_move(&board, Some(5));
-        assert_eq!(ai.minimax_calls(), 4865609, "4865609 nodes visited at depth 5");
+        assert_eq!(
+            ai.minimax_calls(),
+            4865609,
+            "4865609 nodes visited at depth 5"
+        );
     }
 
     #[test]
@@ -564,10 +572,13 @@ pub fn gen_legal_moves(board: &Board, color: Color) -> Vec<Move> {
     // let enemy_moves = gen_attack_moves(board, color.opposite());
     let checks = get_checks(board, color);
     if checks.len() > 0 {
-        return moves.into_iter().filter(|m| {
-            let new_board = board.make_move(m);
-            get_checks(&new_board, m.piece.color).len() == 0
-        }).collect();
+        return moves
+            .into_iter()
+            .filter(|m| {
+                let new_board = board.make_move(m);
+                get_checks(&new_board, m.piece.color).len() == 0
+            })
+            .collect();
         // return find_moves_to_resolve_check(board, &checks, &moves);
     } else {
         let pinned_pieces = find_pinned_pieces(board, color);

@@ -1,17 +1,15 @@
 extern crate getopts;
 use chess_engine::game;
 use dialoguer::Confirm;
-use std::io::Result as IoResult;
 use dialoguer::MultiSelect;
-use std::env;
 use getopts::Options;
+use std::env;
+use std::io::Result as IoResult;
 
 fn run() -> IoResult<String> {
     // with this you could print out moves to choose from ... interesting ...
     let items = vec!["Option 1", "Option 2"];
-    let chosen : Vec<usize> = MultiSelect::new()
-        .items(&items)
-        .interact()?;
+    let chosen: Vec<usize> = MultiSelect::new().items(&items).interact()?;
     println!("{:?}", chosen);
     IoResult::Ok(String::from("ok"))
 
@@ -23,9 +21,7 @@ fn run() -> IoResult<String> {
     // Ok(true)
 }
 
-enum GameMode {
-
-}
+enum GameMode {}
 
 fn print_help_menu() {
     println!("For ai vs ai game \ncargo run -- --ai\n");
@@ -45,8 +41,10 @@ fn main() {
     opts.optflag("h", "help", "print this help menu");
 
     let matches = match opts.parse(&args[1..]) {
-        Ok(m) => { m }
-        Err(f) => { panic!(f.to_string()) }
+        Ok(m) => m,
+        Err(f) => {
+            panic!(f.to_string())
+        }
     };
     if matches.opt_present("h") {
         print_help_menu();

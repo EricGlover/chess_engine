@@ -307,7 +307,7 @@ fn gen_pawn_moves(board: &Board, piece: &Piece) -> Vec<Move> {
                 moves.push(m);
             }
         }
-    } else if is_on_board(&to) && square_occupiable_by(board, &to, piece.color) {
+    } else if is_on_board(&to) && square_is_empty(board, &to) {
         // normal pawn move
         moves.push(Move::new(from, to, piece.clone(), board.has_piece(&to)));
     }
