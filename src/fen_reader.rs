@@ -35,6 +35,44 @@ pub const BLACK_IN_CHECK: &str =
 pub const WHITE_IN_CHECK: &str =
     "rn2k2r/ppp2ppp/5n2/3Pp1q1/1b1PK3/P1N2N2/1PP2PPP/R1BQ3R w kq - 3 13";
 
+fn piece_to_fen(piece : &Piece) -> String {
+    let str = match piece.piece_type {
+        PieceType::King=> "k",
+        PieceType::Queen=> "q",
+        PieceType::Bishop=> "b",
+        PieceType::Knight=> "n",
+        PieceType::Rook=> "r",
+        PieceType::Pawn=> "p",
+    };
+    if piece.color == Color::White {
+        return str.to_uppercase();
+    } else {
+        return String::from(str);
+    }
+}
+//@todo : print fen of board
+// @todo : print timestamp+output.txt for games
+// @todo : run ai v ai
+// @todo : use fen to debug the board.make_move for the king castling bug 
+fn make_fen_pieces(board: &Board) -> String {
+    for i in 1u8..8 {
+        board.get_rank(i).iter().map(|&square| {
+            if square.piece.is_some() {
+                piece_to_fen(&square.piece.unwrap())
+            } else {
+                return String::new();
+            }
+        })
+    }
+    String::new()
+}
+
+fn make_fen(board: &Board) -> String {
+    // read pieces
+    // board.get_files()
+    String::new()
+}
+
 fn read_piece(char: &str) -> Piece {
     let color = if char.to_lowercase() == char {
         Color::Black

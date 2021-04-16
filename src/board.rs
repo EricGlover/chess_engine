@@ -12,6 +12,16 @@ mod test {
     use crate::fen_reader;
 
     #[test]
+    fn test_get_rank() {
+        let board = fen_reader::make_initial_board();
+        let rank = board.get_rank(1);
+        let square = rank.get(0);
+        assert!(square.is_some(), "there is a square at 1 1 ");
+        let at = Coordinate::new(1,1);
+        assert_eq!(square.unwrap().coordinate, at, "at 1 1");
+    }
+
+    #[test]
     fn test_get_pieces() {
         let board = fen_reader::make_board(fen_reader::BLACK_IN_CHECK);
         let pieces = board.get_pieces(Color::Black, PieceType::King);
@@ -162,6 +172,15 @@ impl Board {
             })
             .flatten()
             .collect()
+    }
+
+    pub fn get_rank(&self, y: u8) -> Vec<&Square> {
+        if y < 1 || y > 8 {
+            panic!("invalid rank");
+        }
+        // self.squares.get((y - 1) as usize)
+        let rank = self.squares.get((y - 1) as usize).unwrap();
+        rank.iter().map(|square| square).collect()
     }
 
     pub fn get_files(&self) -> Vec<Vec<&Square>> {

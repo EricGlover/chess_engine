@@ -1,5 +1,5 @@
-// #![feature(test)]
-// extern crate test;
+#![feature(test)]
+extern crate test;
 pub mod ai;
 pub mod board;
 pub mod board_console_printer;

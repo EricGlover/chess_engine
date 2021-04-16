@@ -81,12 +81,12 @@ impl Game {
 
     pub fn run_ai_versus_ai(mut self) {
         loop {
-            self.ai1_make_move();
+            self.ai2_make_move();
             let evaluation = evaluate(&self.board);
             if evaluation.is_checkmate() {
                 self.end_game(evaluation.mated_player.unwrap().opposite());
             }
-            self.ai2_make_move();
+            self.ai1_make_move();
             let evaluation = evaluate(&self.board);
             if evaluation.is_checkmate() {
                 self.end_game(evaluation.mated_player.unwrap().opposite());

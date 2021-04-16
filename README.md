@@ -16,17 +16,21 @@ how to write moves that it can correctly parse.
 I do have a FEN reader that works that you can probably use btw, that thing is actually pretty handy.
 
 ### Plans
+- Make/Unmake boards
+- Try going back to Piece pointers
+- benchmark board cloning 
 - Implement draws
   - I think this is why perft is failing at depth 3
 - Switch to use Result<> more often 
+- Fix bug in bug.log 
 - Board Traits
 - Try optimizing the move generation
 - Test / benchmark
   https://crates.io/crates/chess
 - Try bit boards ?
 
-- Implement Alpha - Beta Searching
+- DONE: Implement Alpha - Beta Searching
 - Fully Implement algebraic notation parsing 
 - Print pgn files of the engine playing itself for the lolz
 - Bit boards
-- /#[bench] benchmarking 
+- do more /#[bench] benchmarking 

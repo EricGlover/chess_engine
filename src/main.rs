@@ -1,4 +1,4 @@
-extern crate getopts;
+#![warn(unused_extern_crates)]
 use chess_engine::game;
 use getopts::Options;
 use std::env;
@@ -8,9 +8,6 @@ fn print_help_menu() {
     println!("For human vs ai game \ncargo run\n");
 }
 
-/**
-alpha - beta searching
-**/
 fn main() {
     //@todo:  use get opts for choosing the game modes and stuff
     let args: Vec<String> = env::args().collect();
