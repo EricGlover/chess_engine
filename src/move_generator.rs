@@ -21,8 +21,8 @@ use std::fmt::Formatter;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use test::Bencher;
     use crate::ai::ai;
+    use test::Bencher;
 
     #[test]
     fn perft_initial_position() {
@@ -210,7 +210,6 @@ mod tests {
             let moves = gen_pseudo_legal_moves(&initial_board, Color::White);
             let moves = gen_pseudo_legal_moves(&initial_board, Color::Black);
         })
-
     }
 
     #[bench]

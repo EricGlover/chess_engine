@@ -1,3 +1,6 @@
+use chrono::{Local, DateTime};
+use crate::ai;
+use crate::ai::evaluator::evaluate;
 use crate::board::*;
 use crate::board::{Board, Coordinate};
 use crate::board_console_printer::print_board;
@@ -5,8 +8,6 @@ use crate::chess_notation;
 use crate::chess_notation::pgn::make_move_log;
 use crate::fen_reader;
 use crate::move_generator::Move;
-use crate::ai;
-use crate::ai::evaluator::evaluate;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
@@ -17,6 +18,7 @@ pub struct Game {
     moves: Vec<String>,
     ai: ai::ai,
     ai2: ai::ai,
+    start_time: String,
 }
 
 impl Game {
@@ -26,6 +28,7 @@ impl Game {
             ai: ai::ai::new(Color::Black),
             ai2: ai::ai::new(Color::White),
             moves: vec![],
+            start_time: Local::now().format("%Y-%m-%d_%H%M%S").to_string(),
         }
     }
 
@@ -34,7 +37,8 @@ impl Game {
     }
 
     fn write_log(&self) {
-        let path = Path::new("./GameLogs/output.txt");
+        let path_str = format!("./GameLogs/{}-output.txt", self.start_time);
+        let path = Path::new(path_str.as_str());
         let display = path.display();
 
         // Open a file in write-only mode, returns `io::Result<File>`
@@ -43,7 +47,9 @@ impl Game {
             Ok(file) => file,
         };
 
-        let log = self.moves.join("\n");
+        let moves = self.moves.join("\n");
+        let fen = fen_reader::make_fen(&self.board);
+        let log = format!("{}\n{}", moves, fen);
 
         // Write the `LOREM_IPSUM` string to `file`, returns `io::Result<()>`
         match file.write_all(log.as_bytes()) {
@@ -86,11 +92,13 @@ impl Game {
             if evaluation.is_checkmate() {
                 self.end_game(evaluation.mated_player.unwrap().opposite());
             }
+            self.write_log();
             self.ai1_make_move();
             let evaluation = evaluate(&self.board);
             if evaluation.is_checkmate() {
                 self.end_game(evaluation.mated_player.unwrap().opposite());
             }
+            self.write_log();
         }
     }
 

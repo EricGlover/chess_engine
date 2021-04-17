@@ -1,1 +1,8 @@
-e4
+e3
+e6
+Qf3
+Qf6
+Qxf6
+xf6
+Bd3
+rnb1kbnr/pppp1p1p/4pp2/8/8/3BP3/PPPP1PPP/RNB1K1NR b KQkq - 3 4

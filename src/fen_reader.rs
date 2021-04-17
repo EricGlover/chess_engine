@@ -1,6 +1,7 @@
 use crate::board::*;
 use crate::board_console_printer;
 use crate::board_console_printer::print_board;
+use std::path::Prefix::Verbatim;
 
 // @todo : board -> fen string
 
@@ -35,14 +36,14 @@ pub const BLACK_IN_CHECK: &str =
 pub const WHITE_IN_CHECK: &str =
     "rn2k2r/ppp2ppp/5n2/3Pp1q1/1b1PK3/P1N2N2/1PP2PPP/R1BQ3R w kq - 3 13";
 
-fn piece_to_fen(piece : &Piece) -> String {
+fn piece_to_fen(piece: &Piece) -> String {
     let str = match piece.piece_type {
-        PieceType::King=> "k",
-        PieceType::Queen=> "q",
-        PieceType::Bishop=> "b",
-        PieceType::Knight=> "n",
-        PieceType::Rook=> "r",
-        PieceType::Pawn=> "p",
+        PieceType::King => "k",
+        PieceType::Queen => "q",
+        PieceType::Bishop => "b",
+        PieceType::Knight => "n",
+        PieceType::Rook => "r",
+        PieceType::Pawn => "p",
     };
     if piece.color == Color::White {
         return str.to_uppercase();
@@ -50,27 +51,76 @@ fn piece_to_fen(piece : &Piece) -> String {
         return String::from(str);
     }
 }
-//@todo : print fen of board
+
 // @todo : print timestamp+output.txt for games
 // @todo : run ai v ai
-// @todo : use fen to debug the board.make_move for the king castling bug 
+// @todo : use fen to debug the board.make_move for the king castling bug
 fn make_fen_pieces(board: &Board) -> String {
-    for i in 1u8..8 {
-        board.get_rank(i).iter().map(|&square| {
-            if square.piece.is_some() {
-                piece_to_fen(&square.piece.unwrap())
-            } else {
-                return String::new();
+    (1u8..9)
+        .into_iter()
+        .map(|i| {
+            let mut pieces: Vec<String> = vec![];
+            let mut empty = 0;
+            board.get_rank(i).iter().for_each(|&square| {
+                // insert empty
+                if empty > 0 && square.piece.is_some() {
+                    pieces.push(empty.to_string());
+                    empty = 0;
+                }
+                if square.piece.is_some() {
+                    pieces.push(piece_to_fen(&square.piece.unwrap()));
+                } else {
+                    empty = empty + 1;
+                }
+            });
+            // insert empty
+            if empty > 0 {
+                pieces.push(empty.to_string());
+                empty = 0;
             }
+            pieces.concat()
         })
-    }
-    String::new()
+        .rev()
+        .collect::<Vec<String>>()
+        .join("/")
 }
 
-fn make_fen(board: &Board) -> String {
-    // read pieces
-    // board.get_files()
-    String::new()
+pub fn make_fen(board: &Board) -> String {
+    // piece location string
+    let piece_string = make_fen_pieces(&board);
+    // player to move
+    let to_move = board.player_to_move().to_char();
+    // castling rights
+    let mut castle_rights = String::new();
+    if board.can_castle_king_side(Color::White) {
+        castle_rights.push('K');
+    }
+    if board.can_castle_queen_side(Color::White) {
+        castle_rights.push('Q');
+    }
+    if board.can_castle_king_side(Color::Black) {
+        castle_rights.push('k');
+    }
+    if board.can_castle_queen_side(Color::Black) {
+        castle_rights.push('q');
+    }
+    if castle_rights.is_empty() {
+        castle_rights.push('-');
+    }
+    // en passant square
+    let en_passant = if board.en_passant_target().is_some() {
+        board.en_passant_target().unwrap().clone().to_string()
+    } else {
+        String::from('-')
+    };
+    // half move
+    let half_move = board.half_move_clock().to_string();
+    // full move
+    let full_move = board.full_move_number().to_string();
+    format!(
+        "{} {} {} {} {} {}",
+        piece_string, to_move, castle_rights, en_passant, half_move, full_move
+    )
 }
 
 fn read_piece(char: &str) -> Piece {
@@ -148,6 +198,25 @@ pub fn make_board(fen_string: &str) -> Board {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_make_fen_pieces() {
+        let expected = String::from("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
+        let board = make_initial_board();
+        let result = make_fen_pieces(&board);
+        assert_eq!(expected, result, "reads pieces");
+    }
+
+    #[test]
+    fn test_make_fen() {
+        let board = make_initial_board();
+        let fen_result = make_fen(&board);
+        // "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        let expected = self::INITIAL_BOARD;
+        assert_eq!(expected, fen_result, "initial board fen string is correct");
+        println!("{}", fen_result.as_str());
+    }
+
 
     #[test]
     fn test_initial_board() {

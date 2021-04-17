@@ -1,16 +1,26 @@
 pub mod evaluator;
+use crate::ai::evaluator::Evaluation;
 use crate::board::*;
 use crate::move_generator::*;
 use rand::prelude::ThreadRng;
 use rand::Rng;
 use std::time::{Duration, Instant};
-use crate::ai::evaluator::{Evaluation};
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::fen_reader::{make_initial_board, make_board};
     use std::time::{Duration, Instant};
-    use crate::fen_reader::make_initial_board;
+    use ai;
+
+
+    #[test]
+    fn bug_alpha_beta() {
+        let fen = "rnb1kbnr/pppp1p1p/4pp2/8/8/3BP3/PPPP1PPP/RNB1K1NR b KQkq - 3 4";
+        let board = make_board(fen);
+        let mut ai = ai::new(Color::Black);
+        ai.make_move(&board, Some(4));
+    }
 
     #[test]
     fn search() {
@@ -20,15 +30,23 @@ mod tests {
     #[test]
     fn test_alpha_beta() {
         //@todo : test more boards.... use pgn ????
-        fn test_initial_board_at_depth( depth: u8) {
+        fn test_initial_board_at_depth(depth: u8) {
             let mut ai = ai::new(Color::White);
-            let board =  make_initial_board();
+            let board = make_initial_board();
             let (eval, best_move) = ai.alpha_beta(board._clone(), Color::White, depth, None, None);
-            let (expected_eval, final_board, expected_best_move) = ai.minimax(board._clone(), Color::White, depth, vec![]);
+            let (expected_eval, final_board, expected_best_move) =
+                ai.minimax(board._clone(), Color::White, depth, vec![]);
 
             assert!(best_move.is_some(), "there is a best move");
-            assert_eq!(best_move.unwrap(), expected_best_move[0], "alpha beta and minimax find the same move");
-            assert_eq!(eval.score, expected_eval.score, "alpha beta and minimax evaluate the same");
+            assert_eq!(
+                best_move.unwrap(),
+                expected_best_move[0],
+                "alpha beta and minimax find the same move"
+            );
+            assert_eq!(
+                eval.score, expected_eval.score,
+                "alpha beta and minimax evaluate the same"
+            );
         }
         test_initial_board_at_depth(1);
         test_initial_board_at_depth(2);
@@ -37,7 +55,6 @@ mod tests {
         // test_initial_board_at_depth(4);
     }
 }
-
 
 enum AiSearch {
     AlphaBeta,
@@ -92,7 +109,6 @@ impl ai {
         depth_to_go: u8,
         mut lower_bound: Option<evaluator::Evaluation>,
         mut upper_bound: Option<evaluator::Evaluation>,
-
     ) -> (evaluator::Evaluation, Option<Move>) {
         // end of recursion, depth_to_go = 0 so eval the board
         if depth_to_go == 0 {
@@ -105,7 +121,7 @@ impl ai {
             return (evaluator::evaluate(&board), None);
         }
         // search moves
-        let mut moves_to_try = gen_legal_moves(&board, player_moving);
+        let moves_to_try = gen_legal_moves(&board, player_moving);
         // this should cover checkmates so we don't try to search further,
         // @todo: draws
         if moves_to_try.len() == 0 {
@@ -114,8 +130,8 @@ impl ai {
 
         // dfs with bounds
         // find the best move out of the legal moves
-        let mut best_move:Option<Move> = None;
-        let mut best_eval:Option<Evaluation> = None;
+        let mut best_move: Option<Move> = None;
+        let mut best_eval: Option<Evaluation> = None;
         for a_move in moves_to_try {
             // player takes move , examine this board
             // assuming this player and the opponent make optimal moves
@@ -125,7 +141,7 @@ impl ai {
                 player_moving.opposite(),
                 depth_to_go - 1,
                 lower_bound,
-                upper_bound
+                upper_bound,
             );
             // println!("{:?}, depth = {} move = {:?} ", eval, depth_to_go, a_move);
 
@@ -152,13 +168,19 @@ impl ai {
             // alpha - beta bound checking
             // check our bounds here
             // if score is lower than lower bound then white will object
-            if Color::Black == player_moving && lower_bound.is_some() && eval.score < lower_bound.as_ref().unwrap().score {
+            if Color::Black == player_moving
+                && lower_bound.is_some()
+                && eval.score < lower_bound.as_ref().unwrap().score
+            {
                 // println!("{:?}, depth = {} move = {:?} ", eval, depth_to_go, a_move);
                 // println!("returning early");
                 return (best_eval.unwrap(), best_move);
             }
             // if score is higher than higher bound then black will object
-            if Color::White == player_moving && upper_bound.is_some() && eval.score > upper_bound.as_ref().unwrap().score {
+            if Color::White == player_moving
+                && upper_bound.is_some()
+                && eval.score > upper_bound.as_ref().unwrap().score
+            {
                 // println!("{:?}, depth = {} move = {:?} ", eval, depth_to_go, a_move);
                 // println!("returning early");
                 return (best_eval.unwrap(), best_move);
@@ -166,11 +188,13 @@ impl ai {
 
             // set bounds
             // if no bounds set, then set them
-            if Color::White == player_moving && lower_bound.is_none() { // ????
+            if Color::White == player_moving && lower_bound.is_none() {
+                // ????
                 lower_bound = Some(eval.clone());
                 best_move = Some(a_move);
             }
-            if Color::Black == player_moving && upper_bound.is_none() { // ????
+            if Color::Black == player_moving && upper_bound.is_none() {
+                // ????
                 upper_bound = Some(eval.clone());
                 best_move = Some(a_move);
             }
@@ -186,7 +210,10 @@ impl ai {
         let move_count = moves.iter().len();
         let i = self.rng.gen_range(0..move_count);
         let chosen_move = moves.remove(i);
-        (evaluator::evaluate(&board.make_move(&chosen_move)), Some(chosen_move))
+        (
+            evaluator::evaluate(&board.make_move(&chosen_move)),
+            Some(chosen_move),
+        )
     }
 
     fn minimax(
@@ -246,7 +273,6 @@ impl ai {
         return best.unwrap();
     }
 
-
     // do an exhaustive search , depth-first search
     // should return an eval, board, and move list to reach that board
     fn search(
@@ -257,18 +283,33 @@ impl ai {
     ) -> Option<(evaluator::Evaluation, Move)> {
         self.minimax_calls = 0;
         self.started_at = Instant::now();
-        let (eval, best_move) : (Evaluation, Option<Move>) = match self.ai_search_function {
+        let (eval, best_move): (Evaluation, Option<Move>) = match self.ai_search_function {
             AiSearch::AlphaBeta => self.alpha_beta(board._clone(), color, depth, None, None),
             AiSearch::Minimax => {
-                let (eval, best_board, mut moves) = self.minimax(board._clone(), color, depth, vec![]);
+                let (eval, best_board, mut moves) =
+                    self.minimax(board._clone(), color, depth, vec![]);
                 if moves.len() == 0 {
                     (eval, None)
                 } else {
                     (eval, Some(moves.remove(0)))
                 }
-            },
-            AiSearch::Random => self.choose_random_move(board)
+            }
+            AiSearch::Random => self.choose_random_move(board),
         };
+        // check move
+        if best_move.is_some() {
+            let best_move = best_move.unwrap();
+            let all_moves = gen_legal_moves(&board, self.color);
+            let best_move_is_legal = all_moves.iter().any(|m| {
+                m == &best_move
+            });
+            if !best_move_is_legal {
+                println!("best move \n{}", best_move);
+                println!("all moves \n{}", all_moves.iter().map(|m| m.to_string()).collect::<Vec<String>>().join("\n"));
+                panic!("AI SEARCH TRYING ILLEGAL MOVE");
+            }
+        }
+
         // print stuff here
         self.time_elapsed_during_search = Some(self.started_at.elapsed());
         return Some((eval, best_move.unwrap()));

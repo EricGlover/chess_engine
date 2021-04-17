@@ -3,9 +3,9 @@ use crate::move_generator;
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::board_console_printer::print_board;
     use crate::fen_reader;
-    use super::*;
 
     #[test]
     fn test_pawn_count() {
@@ -36,7 +36,6 @@ mod tests {
         assert_eq!(0, w);
     }
 }
-
 
 #[derive(Debug)]
 struct PawnCountByFile {
@@ -311,9 +310,9 @@ pub fn evaluate(board: &Board) -> Evaluation {
     let black_moves = move_generator::gen_legal_moves(board, Color::Black);
 
     // checkmate
-    let mated_player = if board.player_to_move == Color::White && white_moves.len() == 0 {
+    let mated_player = if board.player_to_move() == Color::White && white_moves.len() == 0 {
         Some(Color::White)
-    } else if board.player_to_move == Color::Black && black_moves.len() == 0 {
+    } else if board.player_to_move() == Color::Black && black_moves.len() == 0 {
         Some(Color::Black)
     } else {
         None

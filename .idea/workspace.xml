@@ -6,14 +6,20 @@
   <component name="ChangeListManager">
     <list default="true" id="49ae807d-88c8-4d8d-a8ce-b8e901995cf7" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Cargo.lock" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/GameLogs/output.txt" beforeDir="false" afterPath="$PROJECT_DIR$/GameLogs/output.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Ai.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/Ai.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Ai/evaluator.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/Ai/evaluator.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Board/board_stuff.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/Board/board_stuff.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/board.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/board.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/chess_notation.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/chess_notation.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/fen_reader.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/fen_reader.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/game.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/game.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/move_generator.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/move_generator.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/move_generator/path.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/move_generator/path.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/move_generator/pseudo_legal_move_generator.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/move_generator/pseudo_legal_move_generator.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -57,6 +63,7 @@
     <property name="node.js.selected.package.eslint" value="(autodetect)" />
     <property name="node.js.selected.package.tslint" value="(autodetect)" />
     <property name="org.rust.cargo.project.model.PROJECT_DISCOVERY" value="true" />
+    <property name="settings.editor.selected.configurable" value="preferences.keymap" />
     <property name="vue.rearranger.settings.migration" value="true" />
   </component>
   <component name="RecentsManager">
@@ -99,7 +106,7 @@
       <workItem from="1616721253364" duration="9840000" />
       <workItem from="1616813393318" duration="135859000" />
       <workItem from="1617469148596" duration="5321000" />
-      <workItem from="1617486126215" duration="101983000" />
+      <workItem from="1617486126215" duration="121513000" />
     </task>
     <servers />
   </component>

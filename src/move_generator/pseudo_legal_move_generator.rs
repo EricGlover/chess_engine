@@ -14,6 +14,27 @@ mod tests {
     use crate::move_generator::Move;
 
     #[test]
+    fn test_king_moves() {
+        // King moving from (5, 1) to (7, 1)
+        // thread 'main' panicked at 'trying to remove a piece that isn't there.', src\board.rs:255:13
+        // stack backtrace:
+        // note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+        let board = fen_reader::make_board("rnb1kbnr/pppp1p1p/4pp2/8/8/3BP3/PPPP1PPP/RNB1K1NR b KQkq - 3 4");
+        let king = board.get_pieces(Color::White, PieceType::King).remove(0);
+        assert_eq!(king.piece_type, PieceType::King);
+        let king_moves = gen_king_moves(&board, &king);
+        let has_castling_moves = king_moves.iter().any(|m| {
+            m.is_castling
+        });
+        king_moves.iter().for_each(|m| {
+            println!("{:?}", m.to);
+        });
+        assert!(!has_castling_moves, "there is no valid castling move for white");
+        println!("{:?}", king_moves);
+        assert!(false);
+    }
+
+    #[test]
     fn test_gen_queen_moves() {
         let board =
             fen_reader::make_board("rnb3nr/pp1kpp1p/6pb/1Qpp4/qPPP4/N7/P3PPPP/R1B1KBNR b KQ - 2 7");
@@ -71,7 +92,6 @@ mod tests {
         }
         return true;
     }
-
 }
 
 pub fn gen_moves_for(board: &Board, piece: &Piece) -> Vec<Move> {
@@ -373,14 +393,14 @@ fn gen_pawn_moves(board: &Board, piece: &Piece) -> Vec<Move> {
     // pawn captures , including en passant
     let front_left = from.add(-1, 1 * direction);
     if has_enemy_piece(board, &front_left, piece.color)
-        || board.en_passant_target.is_some() && board.en_passant_target.unwrap() == front_left
+        || board.en_passant_target().is_some() && board.en_passant_target().unwrap() == front_left
     {
         moves.push(Move::new(from, front_left, piece.clone(), true));
     }
 
     let front_right = from.add(1, 1 * direction);
     if has_enemy_piece(board, &front_right, piece.color)
-        || board.en_passant_target.is_some() && board.en_passant_target.unwrap() == front_right
+        || board.en_passant_target().is_some() && board.en_passant_target().unwrap() == front_right
     {
         moves.push(Move::new(from, front_right, piece.clone(), true));
     }

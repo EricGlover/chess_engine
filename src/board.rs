@@ -17,7 +17,7 @@ mod test {
         let rank = board.get_rank(1);
         let square = rank.get(0);
         assert!(square.is_some(), "there is a square at 1 1 ");
-        let at = Coordinate::new(1,1);
+        let at = Coordinate::new(1, 1);
         assert_eq!(square.unwrap().coordinate, at, "at 1 1");
     }
 
@@ -102,14 +102,14 @@ pub struct Square {
 
 #[derive(Debug)]
 pub struct Board {
-    pub player_to_move: Color,
+    player_to_move: Color,
     white_can_castle_king_side: bool,
     white_can_castle_queen_side: bool,
     black_can_castle_king_side: bool,
     black_can_castle_queen_side: bool,
-    pub en_passant_target: Option<Coordinate>,
-    pub half_move_clock: u8,
-    pub full_move_number: u8,
+    en_passant_target: Option<Coordinate>,
+    half_move_clock: u8,
+    full_move_number: u8,
     squares: Vec<Vec<Square>>,
 }
 
@@ -148,6 +148,19 @@ impl Board {
             full_move_number: 0,
             squares: Board::make_squares(),
         }
+    }
+
+    pub fn player_to_move(&self) -> Color {
+        self.player_to_move
+    }
+    pub fn en_passant_target(&self) -> Option<Coordinate> {
+        self.en_passant_target.clone()
+    }
+    pub fn half_move_clock(&self) -> u8 {
+        self.half_move_clock
+    }
+    pub fn full_move_number(&self) -> u8 {
+        self.full_move_number
     }
 
     pub fn can_castle_queen_side(&self, color: Color) -> bool {
@@ -238,7 +251,7 @@ impl Board {
         // get piece to move
         let removed = self.remove_piece(&m.from);
         if removed.is_none() {
-            println!("{}", m);
+            println!("{:?}", m);
             panic!("trying to remove a piece that isn't there.");
         }
         let mut moving_piece = removed.unwrap();
