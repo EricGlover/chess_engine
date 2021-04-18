@@ -1,3 +1,4 @@
+use crate::board::new_board::*;
 use crate::board::*;
 use crate::board_console_printer;
 use crate::board_console_printer::print_board;
@@ -55,7 +56,7 @@ fn piece_to_fen(piece: &Piece) -> String {
 // @todo : print timestamp+output.txt for games
 // @todo : run ai v ai
 // @todo : use fen to debug the board.make_move for the king castling bug
-fn make_fen_pieces(board: &Board) -> String {
+fn make_fen_pieces(board: &dyn BoardTrait) -> String {
     (1u8..9)
         .into_iter()
         .map(|i| {
@@ -85,9 +86,9 @@ fn make_fen_pieces(board: &Board) -> String {
         .join("/")
 }
 
-pub fn make_fen(board: &Board) -> String {
+pub fn make_fen(board: &dyn BoardTrait) -> String {
     // piece location string
-    let piece_string = make_fen_pieces(&board);
+    let piece_string = make_fen_pieces(board);
     // player to move
     let to_move = board.player_to_move().to_char();
     // castling rights
@@ -133,7 +134,7 @@ fn read_piece(char: &str) -> Piece {
     Piece::new(color, piece_type, None)
 }
 
-fn read_pieces(piece_string: &str, board: &mut Board) {
+fn read_pieces(piece_string: &str, board: &mut dyn BoardTrait) {
     // tokenize by row
     let piece_chars = "PNBRQKpnbrqk";
     let numbers = "123456789";
@@ -148,7 +149,7 @@ fn read_pieces(piece_string: &str, board: &mut Board) {
                 x += char.to_string().parse::<u8>().unwrap();
             } else if piece_chars.contains(char) {
                 let piece = read_piece(char.to_string().as_str());
-                board.place_piece(piece, coordinate);
+                board.place_piece(piece, &coordinate);
                 x += 1;
             } else {
                 panic!("{} char not recognized", char);
@@ -157,11 +158,11 @@ fn read_pieces(piece_string: &str, board: &mut Board) {
     }
 }
 
-pub fn make_initial_board() -> Board {
+pub fn make_initial_board() -> BoardRef {
     make_board(INITIAL_BOARD)
 }
 
-pub fn make_board(fen_string: &str) -> Board {
+pub fn make_board(fen_string: &str) -> BoardRef {
     let parts = fen_string.split(" ").collect::<Vec<&str>>();
     let player_to_move = if parts[1] == "w" {
         Color::White
@@ -180,7 +181,7 @@ pub fn make_board(fen_string: &str) -> Board {
     let half_move_clock = parts[4].parse::<u8>().unwrap();
     let full_move_number = parts[5].parse::<u8>().unwrap();
 
-    let mut board = Board::make_board(
+    let mut board = BoardRef::make_board(
         player_to_move,
         white_can_castle_king_side,
         white_can_castle_queen_side,
@@ -217,7 +218,6 @@ mod tests {
         println!("{}", fen_result.as_str());
     }
 
-
     #[test]
     fn test_initial_board() {
         let board = make_board(INITIAL_BOARD);
@@ -245,7 +245,7 @@ mod tests {
     #[test]
     fn test_board_2() {
         let board = make_board(TEST_BOARD_2);
-        fn has_piece(board: &Board, at: &Coordinate) -> bool {
+        fn has_piece(board: &BoardTrait, at: &Coordinate) -> bool {
             board.has_piece(at)
         }
         // board_console_printer::print_board(&board);

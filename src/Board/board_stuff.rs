@@ -1,5 +1,5 @@
 use std::fmt;
-use std::fmt::{Formatter, Error};
+use std::fmt::{Error, Formatter};
 
 #[cfg(test)]
 mod tests {

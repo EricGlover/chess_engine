@@ -1,10 +1,57 @@
 mod board_stuff;
+pub mod new_board;
+
 use crate::board_console_printer::print_board;
 use crate::fen_reader;
 use crate::move_generator::{gen_pseudo_legal_moves, Move};
 pub use board_stuff::*;
 use std::fmt;
 use std::fmt::Formatter;
+
+// getting pieces && squares return references
+pub trait BoardTrait {
+    // constructors
+    // fn make_board(
+    //     player_to_move: Color,
+    //     white_can_castle_king_side: bool,
+    //     white_can_castle_queen_side: bool,
+    //     black_can_castle_king_side: bool,
+    //     black_can_castle_queen_side: bool,
+    //     en_passant_target: Option<Coordinate>,
+    //     half_move_clock: u8,
+    //     full_move_number: u8,
+    // ) -> Board;
+    // fn new() -> Board;
+
+    // info about game going on
+    fn player_to_move(&self) -> Color;
+    fn en_passant_target(&self) -> Option<Coordinate>;
+    fn half_move_clock(&self) -> u8;
+    fn full_move_number(&self) -> u8;
+    fn can_castle_queen_side(&self, color: Color) -> bool;
+    fn can_castle_king_side(&self, color: Color) -> bool;
+
+    // getting squares
+    fn squares_list(&self) -> Vec<&Square>;
+    fn get_rank(&self, y: u8) -> Vec<&Square>;
+    fn get_files(&self) -> Vec<Vec<&Square>>;
+    fn get_squares(&self) -> &Vec<Vec<Square>>;
+
+    // moves
+    // fn make_move(&self, m: &Move) -> Self where Self: Sized ;
+    fn make_move_mut(&mut self, m: Move);
+    // fn unmake_move(&self, m: &Move) -> Self where Self: Sized ;
+    fn unmake_move_mut(&self, m: Move);
+
+    // getting and setting pieces
+    fn place_piece(&mut self, piece: Piece, at: &Coordinate);
+    fn has_piece(&self, at: &Coordinate) -> bool;
+    // fn get_pieces_in(&self, area: Vec<Coordinate>) -> Vec<(Coordinate, Option<&Piece>)>;
+    fn get_piece_at(&self, at: &Coordinate) -> Option<&Piece>;
+    fn get_kings(&self) -> Vec<&Piece>;
+    fn get_pieces(&self, color: Color, piece_type: PieceType) -> Vec<&Piece>;
+    fn get_all_pieces(&self, color: Color) -> Vec<&Piece>;
+}
 
 #[cfg(test)]
 mod test {
@@ -28,24 +75,14 @@ mod test {
         assert_eq!(pieces.len(), 1, "there is one black king");
         let found_black_king = pieces.get(0).unwrap();
         let black_king = Piece::new(Color::Black, PieceType::King, Some(Coordinate::new(5, 8)));
-        assert_eq!(&black_king, found_black_king);
+        assert_eq!(&&black_king, found_black_king);
     }
 
     #[test]
     fn test_clone() {
         let board = fen_reader::make_board(fen_reader::BLACK_IN_CHECK);
-        let cloned = board.clone();
+        let cloned = new_board::clone(&board);
         // assert_eq!(board, cloned);
-    }
-
-    #[test]
-    fn test_in_check() {
-        let board = fen_reader::make_board(fen_reader::BLACK_IN_CHECK);
-        assert!(board.is_in_check(Color::Black));
-        assert!(!board.is_in_check(Color::White));
-        let board = fen_reader::make_board(fen_reader::WHITE_IN_CHECK);
-        assert!(!board.is_in_check(Color::Black));
-        assert!(board.is_in_check(Color::White));
     }
 
     #[test]
@@ -217,17 +254,17 @@ impl Board {
     }
 
     // change return to piece list or something ?
-    pub fn is_in_check(&self, color: Color) -> bool {
-        let moves = gen_pseudo_legal_moves(self, color.opposite());
-        let king = self.get_king(color).unwrap();
-        let at = king.at().unwrap();
-        for m in moves {
-            if m.to == at {
-                return true;
-            }
-        }
-        false
-    }
+    // pub fn is_in_check(&self, color: Color) -> bool {
+    //     let moves = gen_pseudo_legal_moves(self, color.opposite());
+    //     let king = self.get_king(color).unwrap();
+    //     let at = king.at().unwrap();
+    //     for m in moves {
+    //         if m.to == at {
+    //             return true;
+    //         }
+    //     }
+    //     false
+    // }
 
     // doesn't check legality of moves
     pub fn make_move_mut(&mut self, m: &Move) {
@@ -359,21 +396,6 @@ impl Board {
             })
             .map(|square| square.piece.unwrap().clone())
             .collect()
-
-        // let mut pieces: Vec<Piece> = vec![];
-        // // @todo : try filtering
-        // for row in self.squares.iter() {
-        //     for square in row.iter() {
-        //         if square.piece.is_none() {
-        //             continue;
-        //         }
-        //         let piece = square.piece.unwrap();
-        //         if piece.piece_type == piece_type && piece.color == color {
-        //             pieces.push(piece.clone());
-        //         }
-        //     }
-        // }
-        // pieces
     }
 
     pub fn get_all_pieces(&self, color: Color) -> Vec<Piece> {

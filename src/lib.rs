@@ -1,8 +1,8 @@
 #![feature(test)]
 // #![allow(warnings)]
 // #[allow(unreachable_code)]
-extern crate test;
 extern crate chrono;
+extern crate test;
 pub mod ai;
 pub mod board;
 pub mod board_console_printer;

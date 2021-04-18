@@ -1,8 +1,8 @@
-use crate::board::{Board, Color, PieceType};
+use crate::board::{Board, BoardTrait, Color, PieceType};
 use matrix_display::Format;
 use matrix_display::*;
 
-pub fn print_board(board: &Board) {
+pub fn print_board(board: &dyn BoardTrait) {
     let mut board_cells = vec![];
     board.get_squares().iter().rev().for_each(|row| {
         row.iter().for_each(|square| {

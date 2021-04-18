@@ -3,7 +3,7 @@ use crate::fen_reader;
 use crate::move_generator::*;
 
 pub mod pgn {
-    use crate::board::{Board, Coordinate, PieceType};
+    use crate::board::{Board, BoardTrait, Coordinate, PieceType};
     use crate::fen_reader::make_board;
     use crate::game::Game as chess_game;
     use crate::move_generator::{gen_legal_moves, Move};
@@ -69,80 +69,81 @@ Nf2 42. g4 Bd3 43. Re6 1/2-1/2"#;
     }
 
     /**
-                                                                                    <piece_specifier><piece_file | piece_rank | piece_file && piece_rank><captures><file><rank>
-                                                                                    piece_specifier = ['R', 'B', 'N', 'Q', 'K']
-                                                                                    piece_file = [a-h][1-8]
-                                                                                    captures = 'x'
-                                                                                    file = [a-h]
-                                                                                    rank = [1-8]
-                                                                                    **/
+                                                                                                                                                <piece_specifier><piece_file | piece_rank | piece_file && piece_rank><captures><file><rank>
+                                                                                                                                                piece_specifier = ['R', 'B', 'N', 'Q', 'K']
+                                                                                                                                                piece_file = [a-h][1-8]
+                                                                                                                                                captures = 'x'
+                                                                                                                                                file = [a-h]
+                                                                                                                                                rank = [1-8]
+                                                                                                                                                **/
     /**
-                                                                                    When two (or more) identical pieces can move to the same square, the moving piece is uniquely
-                                                                                    identified by specifying the piece's letter, followed by (in descending order of preference):
+                                                                                                                                                When two (or more) identical pieces can move to the same square, the moving piece is uniquely
+                                                                                                                                                identified by specifying the piece's letter, followed by (in descending order of preference):
 
-                                                                                    1. the file of departure (if they differ); or
-                                                                                    2. the rank of departure (if the files are the same but the ranks differ); or
-                                                                                    3. both the file and rank of departure (if neither alone is sufficient to
-                                                                                    identify the piece—which occurs only in rare cases where a player has three or more identical
-                                                                                    pieces able to reach the same square, as a result of one or more pawns having promoted).
-                                                                                    **/
+                                                                                                                                                1. the file of departure (if they differ); or
+                                                                                                                                                2. the rank of departure (if the files are the same but the ranks differ); or
+                                                                                                                                                3. both the file and rank of departure (if neither alone is sufficient to
+                                                                                                                                                identify the piece—which occurs only in rare cases where a player has three or more identical
+                                                                                                                                                pieces able to reach the same square, as a result of one or more pawns having promoted).
+                                                                                                                                                **/
 
-    pub fn make_move_log(m: &Move, board: &Board) -> String {
-        if m.is_king_side_castle() {
-            return String::from("O-O"); // O not 0
-        }
-        if m.is_queen_side_castle() {
-            return String::from("O-O-O"); // O not 0
-        }
-        fn get_piece_specifier(m: &Move, board: &Board) -> String {
-            // search for other moves , if similar moves we have to get specific about what piece is moving
-            let mover_color = m.piece.color;
-            let mut moves = gen_legal_moves(board, mover_color);
-            let similar_moves: Vec<Move> = moves
-                .drain(..)
-                .filter(|m2| m2.piece.piece_type == m.piece.piece_type && m2.to == m.to)
-                .into_iter()
-                .collect::<Vec<Move>>();
+    fn get_piece_specifier(m: &Move, board: &dyn BoardTrait) -> String {
+        // search for other moves , if similar moves we have to get specific about what piece is moving
+        let mover_color = m.piece.color;
+        let mut moves = gen_legal_moves(board, mover_color);
+        let similar_moves: Vec<Move> = moves
+            .drain(..)
+            .filter(|m2| m2.piece.piece_type == m.piece.piece_type && m2.to == m.to)
+            .into_iter()
+            .collect::<Vec<Move>>();
 
-            let mut has_similar_moves = false;
-            let mut piece_specifier = String::new();
-            if similar_moves.len() > 1 {
-                let mut has_same_file = false;
-                let mut has_same_rank = false;
-                has_similar_moves = true;
+        let mut has_similar_moves = false;
+        let mut piece_specifier = String::new();
+        if similar_moves.len() > 1 {
+            let mut has_same_file = false;
+            let mut has_same_rank = false;
+            has_similar_moves = true;
 
-                // check file
-                let mut same_file_moves: Vec<&Move> = vec![];
-                for m2 in similar_moves.iter() {
-                    if m2.from.x() == m.from.x() {
-                        same_file_moves.push(&m2);
-                    }
-                }
-                if same_file_moves.len() > 1 {
-                    has_same_file = true;
-                }
-
-                // check rank
-                let mut same_rank_moves: Vec<&Move> = vec![];
-                for m2 in similar_moves.iter() {
-                    if m2.from.y() == m.from.y() {
-                        same_rank_moves.push(&m2);
-                    }
-                }
-
-                if same_rank_moves.len() > 1 {
-                    has_same_rank = true;
-                }
-                if !has_same_file {
-                    piece_specifier = String::from(m.from.x_to());
-                } else if !has_same_rank {
-                    piece_specifier = String::from(m.from.y_to());
-                } else {
-                    piece_specifier = format!("{}{}", m.from.x_to(), m.from.y_to().as_str());
+            // check file
+            let mut same_file_moves: Vec<&Move> = vec![];
+            for m2 in similar_moves.iter() {
+                if m2.from.x() == m.from.x() {
+                    same_file_moves.push(&m2);
                 }
             }
-            piece_specifier
+            if same_file_moves.len() > 1 {
+                has_same_file = true;
+            }
+
+            // check rank
+            let mut same_rank_moves: Vec<&Move> = vec![];
+            for m2 in similar_moves.iter() {
+                if m2.from.y() == m.from.y() {
+                    same_rank_moves.push(&m2);
+                }
+            }
+
+            if same_rank_moves.len() > 1 {
+                has_same_rank = true;
+            }
+            if !has_same_file {
+                piece_specifier = String::from(m.from.x_to());
+            } else if !has_same_rank {
+                piece_specifier = String::from(m.from.y_to());
+            } else {
+                piece_specifier = format!("{}{}", m.from.x_to(), m.from.y_to().as_str());
+            }
         }
+        piece_specifier
+    }
+
+    pub fn make_move_log(m: &Move, board: &dyn BoardTrait) -> String {
+        // if m.is_king_side_castle() {
+        //     return String::from("O-O"); // O not 0
+        // }
+        // if m.is_queen_side_castle() {
+        //     return String::from("O-O-O"); // O not 0
+        // }
 
         let piece_specifier = get_piece_specifier(m, board);
 
@@ -314,7 +315,7 @@ pub fn parse_move(str: &str) -> (PieceType, Coordinate) {
 
 // change this to result error ?
 // doesn't return illegal moves, return None if not possible
-pub fn read_move(str: &str, board: &Board, color: Color) -> Option<Move> {
+pub fn read_move<'a>(str: &str, board: &'a dyn BoardTrait, color: Color) -> Option<Move<'a>> {
     // figure out what they're trying to move and where
     let (piece_type, to) = parse_move(str);
 
@@ -342,6 +343,6 @@ mod tests {
         let rook = Piece::new(Color::White, PieceType::Rook, Some(a1.clone()));
         let pawn = Piece::new(Color::White, PieceType::Pawn, Some(a2.clone()));
         assert!(m.is_none());
-        assert_eq!(m2, Move::new(a2.clone(), a4.clone(), pawn.clone(), false));
+        assert_eq!(m2, Move::new(a2.clone(), a4.clone(), &pawn, false));
     }
 }

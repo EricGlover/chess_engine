@@ -59,7 +59,7 @@ struct PieceCount {
 }
 
 impl PieceCount {
-    pub fn new(board: &Board) -> PieceCount {
+    pub fn new(board: &dyn BoardTrait) -> PieceCount {
         let mut piece_count = PieceCount {
             white_king: 0,
             white_queen: 0,
@@ -137,7 +137,7 @@ fn count_doubled_pawns(white: &PawnCountByFile, black: &PawnCountByFile) -> (u8,
     (white_doubled, black_doubled)
 }
 
-fn count_blocked_pawns(board: &Board) -> (u8, u8) {
+fn count_blocked_pawns(board: &dyn BoardTrait) -> (u8, u8) {
     let files = board.get_files();
     let mut white_blocked: u8 = 0;
     let mut black_blocked: u8 = 0;
@@ -166,7 +166,7 @@ fn count_blocked_pawns(board: &Board) -> (u8, u8) {
     (white_blocked, black_blocked)
 }
 
-fn make_pawn_count_by_file(board: &Board) -> (PawnCountByFile, PawnCountByFile) {
+fn make_pawn_count_by_file(board: &dyn BoardTrait) -> (PawnCountByFile, PawnCountByFile) {
     let files = board.get_files();
     let mut white_p = PawnCountByFile { files: [0; 8] };
     let mut black_p = PawnCountByFile { files: [0; 8] };
@@ -283,7 +283,7 @@ impl Evaluation {
 //     }
 // }
 
-pub fn evaluate(board: &Board) -> Evaluation {
+pub fn evaluate(board: &dyn BoardTrait) -> Evaluation {
     let c = PieceCount::new(board);
     let k: i32 = 200 * (c.white_king as i32 - c.black_king as i32);
     let q: i32 = 9 * (c.white_queen as i32 - c.black_queen as i32);
