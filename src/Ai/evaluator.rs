@@ -75,8 +75,8 @@ impl PieceCount {
             black_pawn: 0,
         };
         for square in board.squares_list() {
-            if square.piece.is_some() {
-                let piece = &square.piece.unwrap();
+            if square.piece().is_some() {
+                let piece = square.piece().unwrap();
                 match piece.piece_type {
                     PieceType::King => match piece.color {
                         Color::White => piece_count.white_king = piece_count.white_king + 1,
@@ -143,10 +143,11 @@ fn count_blocked_pawns(board: &dyn BoardTrait) -> (u8, u8) {
     let mut black_blocked: u8 = 0;
     files.iter().for_each(|file| {
         file.iter().for_each(|square| {
-            if square.piece.is_none() {
+            let piece = square.piece();
+            if piece.is_none() {
                 return;
             }
-            let piece = square.piece.unwrap();
+            let piece = piece.unwrap();
             if piece.piece_type != PieceType::Pawn {
                 return;
             }
@@ -154,7 +155,7 @@ fn count_blocked_pawns(board: &dyn BoardTrait) -> (u8, u8) {
                 Color::White => 1,
                 Color::Black => -1,
             };
-            let next_square = square.coordinate.add(0, direction);
+            let next_square = square.coordinate().add(0, direction);
             if board.has_piece(&next_square) {
                 match piece.color {
                     Color::White => white_blocked = white_blocked + 1,
@@ -172,8 +173,8 @@ fn make_pawn_count_by_file(board: &dyn BoardTrait) -> (PawnCountByFile, PawnCoun
     let mut black_p = PawnCountByFile { files: [0; 8] };
     files.iter().enumerate().for_each(|(x, file)| {
         file.iter().for_each(|square| {
-            if square.piece.is_some() {
-                let piece = square.piece.unwrap();
+            if square.piece().is_some() {
+                let piece = square.piece().unwrap();
                 if piece.piece_type == PieceType::Pawn {
                     match piece.color {
                         Color::White => white_p.files[x] = white_p.files[x] + 1,

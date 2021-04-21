@@ -1,5 +1,6 @@
 use crate::ai;
 use crate::ai::evaluator::evaluate;
+use crate::board::new_board::BoardRef;
 use crate::board::*;
 use crate::board::{Board, Coordinate};
 use crate::board_console_printer::print_board;
@@ -13,8 +14,14 @@ use std::io;
 use std::io::prelude::*;
 use std::path::Path;
 
+pub struct Player {
+    time_used: u16,      // milliseconds
+    time_remaining: u16, // milliseconds
+    name: String,
+}
+
 pub struct Game {
-    board: Box<BoardTrait>,
+    board: BoardRef,
     moves: Vec<String>,
     ai: ai::ai,
     ai2: ai::ai,
@@ -24,7 +31,7 @@ pub struct Game {
 impl Game {
     pub fn new() -> Game {
         Game {
-            board: Box::new(fen_reader::make_board(fen_reader::INITIAL_BOARD)),
+            board: fen_reader::make_board(fen_reader::INITIAL_BOARD),
             ai: ai::ai::new(Color::Black),
             ai2: ai::ai::new(Color::White),
             moves: vec![],
@@ -48,7 +55,7 @@ impl Game {
         };
 
         let moves = self.moves.join("\n");
-        let fen = fen_reader::make_fen(&*self.board);
+        let fen = fen_reader::make_fen(&self.board);
         let log = format!("{}\n{}", moves, fen);
 
         // Write the `LOREM_IPSUM` string to `file`, returns `io::Result<()>`
@@ -59,28 +66,33 @@ impl Game {
     }
 
     fn ai1_make_move(&mut self) {
-        println!("{} to move", self.ai.color());
-        print_board(&*self.board);
-
-        let m = self.ai.make_move(&*self.board, None).unwrap();
-        let log = make_move_log(&m, &*self.board);
-        println!("{} moves \n{}", self.ai.color(), log);
-        self.moves.push(log);
-        self.board.make_move_mut(&m);
+        {
+            println!("{} to move", self.ai.color());
+            print_board(&self.board);
+        }
+        {
+            let m = self.ai.make_move(&self.board, None).unwrap();
+            // let log = make_move_log(&m, &self.board);
+            // println!("{} moves \n{}", self.ai.color(), log);
+            // self.moves.push(log);
+            {
+                self.board.make_move_mut(&m);
+            }
+        }
     }
     fn ai2_make_move(&mut self) {
         println!("{} to move", self.ai2.color());
-        print_board(&*self.board);
+        print_board(&self.board);
 
-        let m = self.ai2.make_move(&*self.board, None).unwrap();
-        let log = make_move_log(&m, &*self.board);
+        let m = self.ai2.make_move(&self.board, None).unwrap();
+        let log = make_move_log(&m, &self.board);
         println!("{} moves \n{}", self.ai2.color(), log);
         self.moves.push(log);
         self.board.make_move_mut(&m);
     }
 
     fn end_game(&self, winner: Color) {
-        print_board(&*self.board);
+        print_board(&self.board);
         self.write_log();
         println!("{} wins", winner);
     }
@@ -88,13 +100,13 @@ impl Game {
     pub fn run_ai_versus_ai(mut self) {
         loop {
             self.ai2_make_move();
-            let evaluation = evaluate(&*self.board);
+            let evaluation = evaluate(&self.board);
             if evaluation.is_checkmate() {
                 self.end_game(evaluation.mated_player.unwrap().opposite());
             }
             self.write_log();
             self.ai1_make_move();
-            let evaluation = evaluate(&*self.board);
+            let evaluation = evaluate(&self.board);
             if evaluation.is_checkmate() {
                 self.end_game(evaluation.mated_player.unwrap().opposite());
             }
@@ -105,18 +117,18 @@ impl Game {
     pub fn run_human_versus_ai(mut self) {
         let stdin = io::stdin();
         println!("You're playing white.");
-        print_board(&*self.board);
+        print_board(&self.board);
         println!("What's your move?");
         for line in stdin.lock().lines() {
             // white move
             let command = line.unwrap().clone();
-            let m = chess_notation::read_move(command.as_str(), &*self.board, Color::White);
+            let m = chess_notation::read_move(command.as_str(), &self.board, Color::White);
             if m.is_none() {
                 println!("That move is illegal!");
                 continue;
             }
             let m = m.unwrap();
-            let log = make_move_log(&m, &*self.board);
+            let log = make_move_log(&m, &self.board);
             println!("move = \n{}", log);
             self.moves.push(log);
             self.board.make_move_mut(&m);
@@ -124,23 +136,23 @@ impl Game {
             self.write_log();
 
             // print eval
-            let eval = ai::evaluator::evaluate(&*self.board);
+            let eval = ai::evaluator::evaluate(&self.board);
             println!("eval {}", eval.score);
             if eval.is_checkmate() {
                 self.end_game(eval.mated_player.unwrap().opposite());
                 break;
             }
 
-            print_board(&*self.board);
+            print_board(&self.board);
             // black moves now
-            let m = self.ai.make_move(&*self.board, None).unwrap();
-            let log = make_move_log(&m, &*self.board);
+            let m = self.ai.make_move(&mut self.board, None).unwrap();
+            let log = make_move_log(&m, &self.board);
             println!("move = \n{}", log);
             self.moves.push(log);
             self.board.make_move_mut(&m);
             // self.moves.push(m);
             println!("Black moves... {}", m);
-            let eval = ai::evaluator::evaluate(&*self.board);
+            let eval = ai::evaluator::evaluate(&self.board);
             println!("eval {}", eval.score);
             println!(
                 "moves evaluated {}, time elapsed {:?}",
@@ -151,7 +163,7 @@ impl Game {
                 self.end_game(eval.mated_player.unwrap().opposite());
                 break;
             }
-            print_board(&*self.board);
+            print_board(&self.board);
             self.write_log();
         }
     }

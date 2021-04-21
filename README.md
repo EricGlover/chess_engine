@@ -34,3 +34,12 @@ I do have a FEN reader that works that you can probably use btw, that thing is a
 - Print pgn files of the engine playing itself for the lolz
 - Bit boards
 - do more /#[bench] benchmarking 
+
+
+## changes
+Piece Refs
+Pins ^
+Moves ^
+Square returns Piece with remove
+Square no longer uses public fields 
+Move needs fields for unmake

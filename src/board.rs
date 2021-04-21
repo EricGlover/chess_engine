@@ -30,6 +30,8 @@ pub trait BoardTrait {
     fn full_move_number(&self) -> u8;
     fn can_castle_queen_side(&self, color: Color) -> bool;
     fn can_castle_king_side(&self, color: Color) -> bool;
+    fn white_castling_rights(&self) -> CastlingRights;
+    fn black_castling_rights(&self) -> CastlingRights;
 
     // getting squares
     fn squares_list(&self) -> Vec<&Square>;
@@ -39,12 +41,13 @@ pub trait BoardTrait {
 
     // moves
     // fn make_move(&self, m: &Move) -> Self where Self: Sized ;
-    fn make_move_mut(&mut self, m: Move);
+    fn make_move_mut(&mut self, m: &Move);
     // fn unmake_move(&self, m: &Move) -> Self where Self: Sized ;
-    fn unmake_move_mut(&self, m: Move);
+    fn unmake_move_mut(&mut self, m: &Move);
 
     // getting and setting pieces
     fn place_piece(&mut self, piece: Piece, at: &Coordinate);
+    fn remove_piece(&mut self, piece: &Piece) -> Piece;
     fn has_piece(&self, at: &Coordinate) -> bool;
     // fn get_pieces_in(&self, area: Vec<Coordinate>) -> Vec<(Coordinate, Option<&Piece>)>;
     fn get_piece_at(&self, at: &Coordinate) -> Option<&Piece>;
@@ -119,31 +122,68 @@ impl Piece {
             at,
         }
     }
-    pub fn at(&self) -> Option<Coordinate> {
-        self.at
+    pub fn at(&self) -> Option<&Coordinate> {
+        self.at.as_ref()
     }
 }
 
-pub struct Player {
-    time_used: u16,      // milliseconds
-    time_remaining: u16, // milliseconds
-    name: String,
+#[derive(Debug, Copy, Clone)]
+pub struct CastlingRights {
+    king_side: bool,
+    queen_side: bool,
+}
+impl CastlingRights {
+    pub fn new(king_side: bool, queen_side: bool) -> CastlingRights {
+        CastlingRights {
+            king_side,
+            queen_side,
+        }
+    }
+    pub fn king_side(&self) -> bool {
+        self.king_side
+    }
+    pub fn queen_side(&self) -> bool {
+        self.queen_side
+    }
 }
 
 #[derive(Debug)]
 pub struct Square {
-    pub coordinate: Coordinate,
-    pub piece: Option<Piece>,
-    pub color: Color,
+    coordinate: Coordinate,
+    piece: Option<Piece>,
+    color: Color,
+}
+
+impl Square {
+    pub fn new(coordinate: Coordinate, piece: Option<Piece>, color: Color) -> Square {
+        Square {
+            coordinate,
+            piece,
+            color,
+        }
+    }
+    pub fn coordinate(&self) -> &Coordinate {
+        &self.coordinate
+    }
+    pub fn piece(&self) -> Option<&Piece> {
+        self.piece.as_ref()
+    }
+    pub fn color(&self) -> &Color {
+        &self.color
+    }
+    pub fn place_piece(&mut self, piece: Piece) {
+        self.piece = Some(piece)
+    }
+    pub fn remove_piece(&mut self) -> Option<Piece> {
+        self.piece.take()
+    }
 }
 
 #[derive(Debug)]
 pub struct Board {
     player_to_move: Color,
-    white_can_castle_king_side: bool,
-    white_can_castle_queen_side: bool,
-    black_can_castle_king_side: bool,
-    black_can_castle_queen_side: bool,
+    white_castling_rights: CastlingRights,
+    black_castling_rights: CastlingRights,
     en_passant_target: Option<Coordinate>,
     half_move_clock: u8,
     full_move_number: u8,
@@ -163,10 +203,14 @@ impl Board {
     ) -> Board {
         Board {
             player_to_move,
-            white_can_castle_king_side,
-            white_can_castle_queen_side,
-            black_can_castle_king_side,
-            black_can_castle_queen_side,
+            white_castling_rights: CastlingRights::new(
+                white_can_castle_king_side,
+                white_can_castle_queen_side,
+            ),
+            black_castling_rights: CastlingRights::new(
+                black_can_castle_king_side,
+                black_can_castle_queen_side,
+            ),
             en_passant_target,
             half_move_clock,
             full_move_number,
@@ -176,10 +220,8 @@ impl Board {
     pub fn new() -> Board {
         Board {
             player_to_move: Color::White,
-            white_can_castle_king_side: true,
-            white_can_castle_queen_side: true,
-            black_can_castle_king_side: true,
-            black_can_castle_queen_side: true,
+            white_castling_rights: CastlingRights::new(true, true),
+            black_castling_rights: CastlingRights::new(true, true),
             en_passant_target: None,
             half_move_clock: 0,
             full_move_number: 0,
@@ -202,15 +244,15 @@ impl Board {
 
     pub fn can_castle_queen_side(&self, color: Color) -> bool {
         match color {
-            Color::White => self.white_can_castle_queen_side,
-            Color::Black => self.black_can_castle_queen_side,
+            Color::White => self.white_castling_rights.queen_side(),
+            Color::Black => self.black_castling_rights.queen_side(),
         }
     }
 
     pub fn can_castle_king_side(&self, color: Color) -> bool {
         match color {
-            Color::White => self.white_can_castle_king_side,
-            Color::Black => self.black_can_castle_king_side,
+            Color::White => self.white_castling_rights.king_side(),
+            Color::Black => self.black_castling_rights.king_side(),
         }
     }
 
@@ -253,19 +295,6 @@ impl Board {
         &self.squares
     }
 
-    // change return to piece list or something ?
-    // pub fn is_in_check(&self, color: Color) -> bool {
-    //     let moves = gen_pseudo_legal_moves(self, color.opposite());
-    //     let king = self.get_king(color).unwrap();
-    //     let at = king.at().unwrap();
-    //     for m in moves {
-    //         if m.to == at {
-    //             return true;
-    //         }
-    //     }
-    //     false
-    // }
-
     // doesn't check legality of moves
     pub fn make_move_mut(&mut self, m: &Move) {
         // update white to move flag
@@ -305,19 +334,17 @@ impl Board {
         if m.is_castling && m.rook_from.is_some() && m.rook_to.is_some() {
             match moving_piece.color {
                 Color::White => {
-                    self.white_can_castle_king_side = false;
-                    self.white_can_castle_queen_side = false;
+                    self.white_castling_rights = CastlingRights::new(false, false);
                 }
                 Color::Black => {
-                    self.black_can_castle_king_side = false;
-                    self.black_can_castle_queen_side = false;
+                    self.black_castling_rights = CastlingRights::new(false, false);
                 }
             }
             self.make_move_mut(&Move::new(
                 m.rook_from.unwrap(),
                 m.rook_to.unwrap(),
                 m.rook.unwrap(),
-                false,
+                None,
             ))
         }
 
@@ -337,8 +364,8 @@ impl Board {
 
     pub fn place_piece(&mut self, mut piece: Piece, at: Coordinate) {
         if at.is_valid_coordinate() {
-            piece.at = Some(at);
-            self.get_square_mut(&at).piece = Some(piece);
+            piece.at = Some(at.clone());
+            self.get_square_mut(&at).place_piece(piece)
         }
     }
 
@@ -423,20 +450,18 @@ impl Board {
         for row in self.squares.iter() {
             let mut new_row: Vec<Square> = vec![];
             for square in row.iter() {
-                new_row.push(Square {
-                    coordinate: square.coordinate.clone(),
-                    piece: square.piece.clone(),
-                    color: square.color.clone(),
-                });
+                new_row.push(Square::new(
+                    square.coordinate.clone(),
+                    square.piece.clone(),
+                    square.color.clone(),
+                ));
             }
             squares.push(new_row);
         }
         Board {
             player_to_move: self.player_to_move,
-            white_can_castle_king_side: self.white_can_castle_king_side,
-            white_can_castle_queen_side: self.white_can_castle_queen_side,
-            black_can_castle_king_side: self.black_can_castle_king_side,
-            black_can_castle_queen_side: self.black_can_castle_queen_side,
+            white_castling_rights: self.white_castling_rights.clone(),
+            black_castling_rights: self.black_castling_rights.clone(),
             en_passant_target: self.en_passant_target.clone(),
             half_move_clock: self.half_move_clock,
             full_move_number: self.full_move_number,
@@ -497,11 +522,7 @@ impl Board {
                         Color::White
                     }
                 }
-                row.push(Square {
-                    coordinate: Coordinate::new(x, y),
-                    piece: None,
-                    color,
-                });
+                row.push(Square::new(Coordinate::new(x, y), None, color));
             }
             vec.push(row);
         }

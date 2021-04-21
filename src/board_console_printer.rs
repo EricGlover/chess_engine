@@ -11,8 +11,8 @@ pub fn print_board(board: &dyn BoardTrait) {
             let mut value = ' ';
 
             // if there's a piece
-            if square.piece.is_some() {
-                let piece = square.piece.unwrap();
+            if square.piece().is_some() {
+                let piece = square.piece().unwrap();
                 foreground = match piece.color {
                     Color::Black => 1, // red
                     Color::White => 5, // purple
@@ -26,7 +26,7 @@ pub fn print_board(board: &dyn BoardTrait) {
                     PieceType::Pawn => 'P',
                 }
             }
-            let ansi_bg = match square.color {
+            let ansi_bg = match square.color() {
                 Color::White => 0,
                 Color::Black => 7,
             };

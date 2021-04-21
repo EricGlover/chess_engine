@@ -64,12 +64,12 @@ fn make_fen_pieces(board: &dyn BoardTrait) -> String {
             let mut empty = 0;
             board.get_rank(i).iter().for_each(|&square| {
                 // insert empty
-                if empty > 0 && square.piece.is_some() {
+                if empty > 0 && square.piece().is_some() {
                     pieces.push(empty.to_string());
                     empty = 0;
                 }
-                if square.piece.is_some() {
-                    pieces.push(piece_to_fen(&square.piece.unwrap()));
+                if square.piece().is_some() {
+                    pieces.push(piece_to_fen(square.piece().unwrap()));
                 } else {
                     empty = empty + 1;
                 }

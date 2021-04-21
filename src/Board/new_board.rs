@@ -3,15 +3,16 @@ use crate::board::*;
 
 //@todo
 pub fn clone(board: &dyn BoardTrait) -> Box<dyn BoardTrait> {
+    unimplemented!();
     Box::new(BoardRef::new())
 }
 
 pub struct BoardRef {
     player_to_move: Color,
-    white_can_castle_king_side: bool,
-    white_can_castle_queen_side: bool,
-    black_can_castle_king_side: bool,
-    black_can_castle_queen_side: bool,
+    white_castling_rights: CastlingRights,
+    black_castling_rights: CastlingRights,
+    previous_white_castling_rights: CastlingRights, // used in unmake move
+    previous_black_castling_rights: CastlingRights, // used in unmake move
     en_passant_target: Option<Coordinate>,
     half_move_clock: u8,
     full_move_number: u8,
@@ -34,15 +35,22 @@ impl BoardTrait for BoardRef {
     }
     fn can_castle_queen_side(&self, color: Color) -> bool {
         match color {
-            Color::White => self.white_can_castle_queen_side,
-            Color::Black => self.black_can_castle_queen_side,
+            Color::White => self.white_castling_rights.queen_side(),
+            Color::Black => self.black_castling_rights.queen_side(),
         }
     }
+
     fn can_castle_king_side(&self, color: Color) -> bool {
         match color {
-            Color::White => self.white_can_castle_king_side,
-            Color::Black => self.black_can_castle_king_side,
+            Color::White => self.white_castling_rights.king_side(),
+            Color::Black => self.black_castling_rights.king_side(),
         }
+    }
+    fn white_castling_rights(&self) -> CastlingRights {
+        self.white_castling_rights.clone()
+    }
+    fn black_castling_rights(&self) -> CastlingRights {
+        self.black_castling_rights.clone()
     }
 
     fn squares_list(&self) -> Vec<&Square> {
@@ -84,75 +92,129 @@ impl BoardTrait for BoardRef {
         &self.squares
     }
 
+    fn remove_piece(&mut self, piece: &Piece) -> Piece {
+        self.get_square_mut(&piece.at().unwrap())
+            .remove_piece()
+            .unwrap()
+    }
+
     // doesn't check legality of moves
     // fn make_move_mut(&mut self, m: &Move) {
-    fn make_move_mut(&mut self, m: Move) {
+    fn make_move_mut(&mut self, mov: &Move) {
         // update white to move flag
-        self.player_to_move = m.piece.color.opposite();
+        self.player_to_move = mov.piece.color.opposite();
 
-        let enemy_piece = self.remove_piece(&m.to);
-        // is this a capture
-        if enemy_piece.is_none() && m.piece.piece_type != PieceType::Pawn {
-            // update 50 move rule draw counter
+        let enemy_piece = self.remove_piece_at(&mov.to);
+
+        // update 50 move rule draw counter
+        if mov.captured.is_none() || mov.piece.piece_type != PieceType::Pawn {
             self.half_move_clock = self.half_move_clock + 1;
-        } else if enemy_piece.is_some() {
+        } else {
+            self.half_move_clock = 0;
+        }
+
+        // is this a capture
+        if enemy_piece.is_some() {
             let enemy_piece = enemy_piece.unwrap();
-            if enemy_piece.color == m.piece.color {
+            if enemy_piece.color == mov.piece.color {
                 // put it back
-                self.place_piece(enemy_piece, &m.to);
+                self.place_piece(enemy_piece, &mov.to);
                 panic!("invalid move");
             }
         }
 
         // get piece to move
-        let removed = self.remove_piece(&m.from);
+        let removed = self.remove_piece_at(&mov.from);
         if removed.is_none() {
-            println!("{:?}", m);
+            println!("{:?}", mov);
             panic!("trying to remove a piece that isn't there.");
         }
         let mut moving_piece = removed.unwrap();
 
         // if it gets promoted, then switch it's type
-        if m.promoted_to.is_some() && m.piece.piece_type == PieceType::Pawn {
-            moving_piece.piece_type = m.promoted_to.unwrap();
+        if mov.promoted_to.is_some() && mov.piece.piece_type == PieceType::Pawn {
+            moving_piece.piece_type = mov.promoted_to.unwrap();
         }
 
         // move the piece ( update the piece and square )
-        self.place_piece(moving_piece, &m.to);
+        self.place_piece(moving_piece, &mov.to);
 
         // castling
-        if m.is_castling && m.rook_from.is_some() && m.rook_to.is_some() {
+        if mov.is_castling && mov.rook_from.is_some() && mov.rook_to.is_some() {
+            // @todo : this doesn't really work , you want to be able to roll back multiple moves if needed,
+            // because if this is used for searching then it'll be doing that
             match moving_piece.color {
                 Color::White => {
-                    self.white_can_castle_king_side = false;
-                    self.white_can_castle_queen_side = false;
+                    self.white_castling_rights = CastlingRights::new(false, false);
                 }
                 Color::Black => {
-                    self.black_can_castle_king_side = false;
-                    self.black_can_castle_queen_side = false;
+                    self.black_castling_rights = CastlingRights::new(false, false);
                 }
             }
-            self.make_move_mut(&Move::new(
-                m.rook_from.unwrap(),
-                m.rook_to.unwrap(),
-                m.rook.unwrap(),
-                false,
-            ))
+            self.move_piece(mov.rook.unwrap(), &mov.rook_to.unwrap());
         }
 
+        //@todo check castling rights
+
         // update move counter
-        if m.piece.color == Color::Black {
+        if mov.piece.color == Color::Black {
             self.full_move_number = self.full_move_number + 1;
         }
     }
 
-    fn unmake_move_mut(&self, m: &Move) {
-        unimplemented!()
+    fn unmake_move_mut(&mut self, mov: &Move) {
+        self.move_piece(mov.piece, &mov.from);
+
+        // replace captured piece
+        // update 50 move rule draw counter @todo:::
+        // if m.captured.is_none() || m.piece.piece_type != PieceType::Pawn {
+        //     self.half_move_clock = self.half_move_clock + 1;
+        // } else {
+        //     self.half_move_clock = 0;
+        // }
+
+        if mov.captured.is_some() {
+            // replace piece
+            let square = self.get_square_mut(&mov.to);
+            square.place_piece(Piece::new(
+                mov.piece.color,
+                mov.captured.unwrap(),
+                Some(mov.to.clone()),
+            ));
+        }
+
+        // if it was promoted, then switch it's type
+        if mov.promoted_to.is_some() {
+            let mut piece = self.remove_piece(mov.piece);
+            piece.piece_type = mov.promoted_to.unwrap().clone();
+        }
+
+        // castling
+        if mov.is_castling && mov.rook_from.is_some() && mov.rook_to.is_some() {
+            match mov.piece.color {
+                Color::White => {
+                    self.white_castling_rights = self.previous_white_castling_rights.clone();
+                }
+                Color::Black => {
+                    self.black_castling_rights = self.previous_black_castling_rights.clone();
+                }
+            }
+            // move the rook back
+            self.move_piece(mov.rook.unwrap(), &mov.rook_from.unwrap());
+        }
+
+        // update white to move flag
+        self.player_to_move = self.player_to_move.opposite();
+
+        // rollback the move counter
+        if mov.piece.color == Color::Black {
+            self.full_move_number = self.full_move_number - 1;
+        }
     }
     fn place_piece(&mut self, mut piece: Piece, at: &Coordinate) {
         if at.is_valid_coordinate() {
             piece.at = Some(at.clone());
-            self.get_square_mut(&at).piece = Some(piece);
+            self.get_square_mut(&at).place_piece(piece)
         }
     }
     fn has_piece(&self, at: &Coordinate) -> bool {
@@ -201,10 +263,22 @@ impl BoardRef {
     ) -> BoardRef {
         BoardRef {
             player_to_move,
-            white_can_castle_king_side,
-            white_can_castle_queen_side,
-            black_can_castle_king_side,
-            black_can_castle_queen_side,
+            white_castling_rights: CastlingRights::new(
+                white_can_castle_king_side,
+                white_can_castle_queen_side,
+            ),
+            black_castling_rights: CastlingRights::new(
+                black_can_castle_king_side,
+                black_can_castle_queen_side,
+            ),
+            previous_white_castling_rights: CastlingRights::new(
+                white_can_castle_king_side,
+                white_can_castle_queen_side,
+            ),
+            previous_black_castling_rights: CastlingRights::new(
+                black_can_castle_king_side,
+                black_can_castle_queen_side,
+            ),
             en_passant_target,
             half_move_clock,
             full_move_number,
@@ -214,10 +288,10 @@ impl BoardRef {
     pub fn new() -> BoardRef {
         BoardRef {
             player_to_move: Color::White,
-            white_can_castle_king_side: true,
-            white_can_castle_queen_side: true,
-            black_can_castle_king_side: true,
-            black_can_castle_queen_side: true,
+            white_castling_rights: CastlingRights::new(true, true),
+            black_castling_rights: CastlingRights::new(true, true),
+            previous_white_castling_rights: CastlingRights::new(true, true),
+            previous_black_castling_rights: CastlingRights::new(true, true),
             en_passant_target: None,
             half_move_clock: 0,
             full_move_number: 0,
@@ -229,20 +303,20 @@ impl BoardRef {
         for row in board.get_squares() {
             let mut new_row: Vec<Square> = vec![];
             for square in row.iter() {
-                new_row.push(Square {
-                    coordinate: square.coordinate.clone(),
-                    piece: square.piece.clone(),
-                    color: square.color.clone(),
-                });
+                new_row.push(Square::new(
+                    square.coordinate.clone(),
+                    square.piece.clone(),
+                    square.color.clone(),
+                ));
             }
             squares.push(new_row);
         }
         BoardRef {
             player_to_move: board.player_to_move().clone(),
-            white_can_castle_king_side: board.can_castle_king_side(Color::White),
-            white_can_castle_queen_side: board.can_castle_queen_side(Color::White),
-            black_can_castle_king_side: board.can_castle_king_side(Color::Black),
-            black_can_castle_queen_side: board.can_castle_queen_side(Color::Black),
+            white_castling_rights: board.white_castling_rights(),
+            black_castling_rights: board.black_castling_rights(),
+            previous_white_castling_rights: board.white_castling_rights(),
+            previous_black_castling_rights: board.black_castling_rights(),
             en_passant_target: board.en_passant_target().clone(),
             half_move_clock: board.half_move_clock(),
             full_move_number: board.full_move_number(),
@@ -254,20 +328,20 @@ impl BoardRef {
         for row in self.squares.iter() {
             let mut new_row: Vec<Square> = vec![];
             for square in row.iter() {
-                new_row.push(Square {
-                    coordinate: square.coordinate.clone(),
-                    piece: square.piece.clone(),
-                    color: square.color.clone(),
-                });
+                new_row.push(Square::new(
+                    square.coordinate.clone(),
+                    square.piece.clone(),
+                    square.color.clone(),
+                ));
             }
             squares.push(new_row);
         }
         BoardRef {
             player_to_move: self.player_to_move,
-            white_can_castle_king_side: self.white_can_castle_king_side,
-            white_can_castle_queen_side: self.white_can_castle_queen_side,
-            black_can_castle_king_side: self.black_can_castle_king_side,
-            black_can_castle_queen_side: self.black_can_castle_queen_side,
+            white_castling_rights: self.white_castling_rights.clone(),
+            black_castling_rights: self.black_castling_rights.clone(),
+            previous_white_castling_rights: self.white_castling_rights.clone(),
+            previous_black_castling_rights: self.black_castling_rights.clone(),
             en_passant_target: self.en_passant_target.clone(),
             half_move_clock: self.half_move_clock,
             full_move_number: self.full_move_number,
@@ -279,11 +353,29 @@ impl BoardRef {
         self.clone()
     }
 
-    fn remove_piece(&mut self, at: &Coordinate) -> Option<Piece> {
+    fn move_piece(&mut self, piece: &Piece, to: &Coordinate) {
+        // get the square for the piece moved
+        let square = self
+            .find_square_mut(|square| square.piece.map_or(false, |p| p == *piece))
+            .unwrap();
+        let moved_piece = square.remove_piece().unwrap();
+        // move it back to where it was
+        let square = self.get_square_mut(to);
+        square.place_piece(moved_piece);
+    }
+
+    fn remove_piece_at(&mut self, at: &Coordinate) -> Option<Piece> {
         let square = self.get_square_mut(at);
         let piece = square.piece;
         square.piece = None;
         piece
+    }
+
+    fn find_square_mut<F>(&mut self, filter: F) -> Option<&mut Square>
+    where
+        F: Fn(&&mut Square) -> bool,
+    {
+        self.squares.iter_mut().flatten().find(filter)
     }
 
     fn find_pieces<F>(&self, filter: F) -> Vec<&Piece>
@@ -334,11 +426,7 @@ impl BoardRef {
                         Color::White
                     }
                 }
-                row.push(Square {
-                    coordinate: Coordinate::new(x, y),
-                    piece: None,
-                    color,
-                });
+                row.push(Square::new(Coordinate::new(x, y), None, color));
             }
             vec.push(row);
         }

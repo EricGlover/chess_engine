@@ -33,8 +33,7 @@ mod tests {
             let mut ai = ai::new(Color::White);
             let board = make_initial_board();
             let (eval, best_move) = ai.alpha_beta(&board, Color::White, depth, None, None);
-            let (expected_eval, expected_best_move) =
-                ai.minimax(&board, Color::White, depth);
+            let (expected_eval, expected_best_move) = ai.minimax(&board, Color::White, depth);
 
             assert!(best_move.is_some(), "there is a best move");
             assert_eq!(
@@ -263,7 +262,7 @@ impl ai {
             }
 
             // choose the best move for this player, white wants high eval scores , black wants low eval scores
-            let (best_eval_so_far, best_move_so_far) =  acc.as_ref().unwrap();
+            let (best_eval_so_far, best_move_so_far) = acc.as_ref().unwrap();
             if (Color::White == color && eval.score > best_eval_so_far.score)
                 || (Color::Black == color && eval.score < best_eval_so_far.score)
             {
@@ -284,7 +283,6 @@ impl ai {
             let (eval, m) = best.unwrap();
             return (eval, Some(m));
         }
-
     }
 
     // do an exhaustive search , depth-first search
@@ -326,7 +324,11 @@ impl ai {
         return Some((eval, best_move.unwrap()));
     }
 
-    pub fn make_move<'a>(&mut self, board: &'a dyn BoardTrait, depth: Option<u8>) -> Option<Move<'a>> {
+    pub fn make_move(
+        &mut self,
+        board: dyn BoardTrait,
+        depth: Option<u8>,
+    ) -> (dyn BoardTrait,  {
         let search_depth = if depth.is_some() {
             depth.unwrap()
         } else {

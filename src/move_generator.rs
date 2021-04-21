@@ -73,21 +73,26 @@ mod tests {
         // knight interpose
         let knight = board.get_piece_at(&Coordinate::new(2, 8)).unwrap();
         let knight_at = knight.at().unwrap();
-        moves.push(Move::new(knight_at, Coordinate::new(4, 7), knight, false));
-        moves.push(Move::new(knight_at, Coordinate::new(3, 6), knight, false));
+        moves.push(Move::new(knight_at, Coordinate::new(4, 7), knight, None));
+        moves.push(Move::new(knight_at, Coordinate::new(3, 6), knight, None));
         // bishop interpose
         let bishop = board.get_piece_at(&Coordinate::new(3, 8)).unwrap();
         let bishop_at = bishop.at().unwrap();
-        moves.push(Move::new(bishop_at, bishop_at.add(1, -1), bishop, false));
+        moves.push(Move::new(bishop_at, bishop_at.add(1, -1), bishop, None));
         // queen captures
         let queen = board.get_piece_at(&Coordinate::new(1, 4)).unwrap();
         let queen_at = queen.at().unwrap();
-        moves.push(Move::new(queen_at, queen_at.add(1, 1), queen, true));
+        moves.push(Move::new(
+            queen_at,
+            queen_at.add(1, 1),
+            queen,
+            Some(PieceType::Queen),
+        ));
         // king move left one, right one
         let king = board.get_piece_at(&Coordinate::new(5, 8)).unwrap();
         let king_at = king.at().unwrap();
-        moves.push(Move::new(king_at, king_at.add(-1, 0), king, false));
-        moves.push(Move::new(king_at, king_at.add(1, 0), king, false));
+        moves.push(Move::new(king_at, king_at.add(-1, 0), king, None));
+        moves.push(Move::new(king_at, king_at.add(1, 0), king, None));
 
         let checks = get_checks(&board, Color::Black);
         let possible_moves = gen_pseudo_legal_moves(&board, Color::Black);
@@ -265,13 +270,15 @@ impl MoveLog {
     }
 }
 
+// @todo : add old castling rights to moves ?
+
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub struct Move<'a> {
     pub piece: &'a Piece,
     pub from: Coordinate,
     pub to: Coordinate,
     pub promoted_to: Option<PieceType>, // pawn promotion
-    pub is_capture: bool,
+    pub captured: Option<PieceType>,
     pub is_castling: bool,
     pub is_check: bool,     // @todo : set these in game when eval happens ?
     pub is_checkmate: bool, // @todo : set these in game when eval happens ?
@@ -291,14 +298,19 @@ impl fmt::Display for Move<'_> {
 }
 
 impl Move<'_> {
-    pub fn new(from: Coordinate, to: Coordinate, piece: &Piece, is_capture: bool) -> Move {
+    pub fn new(
+        from: Coordinate,
+        to: Coordinate,
+        piece: &Piece,
+        captured: Option<PieceType>,
+    ) -> Move {
         Move {
             piece,
             from,
             to,
             promoted_to: None,
             is_castling: false,
-            is_capture,
+            captured,
             rook: None,
             rook_from: None,
             rook_to: None,
@@ -312,7 +324,7 @@ impl Move<'_> {
         to: Coordinate,
         piece: &Piece,
         promoted_type: PieceType,
-        is_capture: bool,
+        captured: Option<PieceType>,
     ) -> Move {
         Move {
             piece,
@@ -320,7 +332,7 @@ impl Move<'_> {
             to,
             promoted_to: Some(promoted_type),
             is_castling: false,
-            is_capture,
+            captured,
             rook: None,
             rook_from: None,
             rook_to: None,
@@ -337,7 +349,7 @@ impl Move<'_> {
         })
     }
 
-    pub fn castle_king_side<'a>(king: &'a Piece, rook : &'a Piece) -> Move<'a> {
+    pub fn castle_king_side<'a>(king: &'a Piece, rook: &'a Piece) -> Move<'a> {
         let (from, to) = Move::king_side_castle_coordinates(king.color, PieceType::King);
         let (rook_from, rook_to) = Move::king_side_castle_coordinates(king.color, PieceType::Rook);
         Move {
@@ -346,7 +358,7 @@ impl Move<'_> {
             to,
             promoted_to: None,
             is_castling: true,
-            is_capture: false,
+            captured: None,
             rook: Some(rook),
             rook_from: Some(rook_from),
             rook_to: Some(rook_to),
@@ -354,7 +366,7 @@ impl Move<'_> {
             is_checkmate: false,
         }
     }
-    pub fn castle_queen_side<'a>(king: &'a Piece, rook : &'a Piece) -> Move<'a> {
+    pub fn castle_queen_side<'a>(king: &'a Piece, rook: &'a Piece) -> Move<'a> {
         let (from, to) = Move::queen_side_castle_coordinates(king.color, PieceType::King);
         let (rook_from, rook_to) = Move::queen_side_castle_coordinates(king.color, PieceType::Rook);
         Move {
@@ -363,7 +375,7 @@ impl Move<'_> {
             to,
             promoted_to: None,
             is_castling: true,
-            is_capture: false,
+            captured: None,
             rook: Some(rook),
             rook_from: Some(rook_from),
             rook_to: Some(rook_to),
@@ -444,12 +456,12 @@ struct Pin<'a> {
 
 // ignores blocking pieces
 // don't ignore same color pieces that are in the way
-fn find_attacking_pieces(
-    board: &dyn BoardTrait,
+fn find_attacking_pieces<'a>(
+    board: &'a dyn BoardTrait,
     attackers_color: Color,
     attack_coordinate: &Coordinate,
-) -> Vec<Piece> {
-    let mut attacking_pieces: Vec<Piece> = vec![];
+) -> Vec<&'a Piece> {
+    let mut attacking_pieces: Vec<&Piece> = vec![];
     // how to make sure the pieces returned are unique ?
     // pieces can't attack the same square twice , so we're good
 
@@ -457,7 +469,7 @@ fn find_attacking_pieces(
     let moves = gen_attack_vectors(board, attackers_color);
     for m in moves {
         if &m.to == attack_coordinate {
-            attacking_pieces.push(m.piece.clone());
+            attacking_pieces.push(m.piece);
         }
     }
     attacking_pieces
@@ -485,8 +497,8 @@ fn find_pinned_pieces(board: &dyn BoardTrait, defender_color: Color) -> Vec<Pin>
         // assume King and Pawn can't attack the enemy king / from more than a square away
         let t = attacking_piece.piece_type;
         if t == PieceType::Queen || t == PieceType::Bishop || t == PieceType::Rook {
-            let from = attacking_piece.at().as_ref().unwrap();
-            let to = king.at().as_ref().unwrap();
+            let from = attacking_piece.at().unwrap();
+            let to = king.at().unwrap();
             // if piece is Queen, Bishop, or Rook then
             // walk through the squares, from attacking piece to the king
             // if only one defender is in those squares then it's a pin
@@ -543,7 +555,7 @@ pub fn get_checks(board: &dyn BoardTrait, color_being_checked: Color) -> Vec<Mov
     }
     let king = king_pieces.get(0).unwrap();
     let at = king.at().unwrap();
-    moves.into_iter().filter(|m| m.to == at).collect()
+    moves.into_iter().filter(|m| &m.to == at).collect()
 }
 
 // fn find_moves_to_resolve_check<'a>(board: &dyn BoardTrait, checks: &Vec<Move>, possible_moves: &'a Vec<Move>) -> Vec<&'a Move> {
@@ -608,7 +620,7 @@ pub fn gen_legal_moves<'a>(board: &'a dyn BoardTrait, color: Color) -> Vec<Move<
     } else {
         let pinned_pieces = find_pinned_pieces(board, color);
         fn is_pinned(piece: &Piece, pinned_pieces: &Vec<Pin>) -> bool {
-            pinned_pieces.iter().any(|&p| p.pinned_piece == piece)
+            pinned_pieces.iter().any(|p| p.pinned_piece == piece)
         }
         fn get_pin<'a, 'b>(piece: &'b Piece, pinned_pieces: &'a Vec<Pin>) -> Option<&'a Pin<'a>> {
             pinned_pieces.iter().find(|p| p.pinned_piece == piece)
