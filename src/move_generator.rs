@@ -297,7 +297,7 @@ impl MoveLog {
 }
 
 // @todo : add old castling rights to moves ?
-
+// @todo : add all the info needed for the unmake function , consider this a two-way change object
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub struct Move {
     pub piece: PieceType,
@@ -575,7 +575,8 @@ fn find_pinned_pieces(board: &dyn BoardTrait, defender_color: Color) -> Vec<Pin>
 
 #[test]
 fn test_get_checks() {
-    let board = fen_reader::make_board("rnb1kbnr/pppp1p1p/4pp2/8/8/3BP3/PPPP1PPP/RNB1K1NR b KQkq - 1 4");
+    let board =
+        fen_reader::make_board("rnb1kbnr/pppp1p1p/4pp2/8/8/3BP3/PPPP1PPP/RNB1K1NR b KQkq - 1 4");
 }
 
 // get checks against color
@@ -658,14 +659,12 @@ pub fn gen_legal_moves(board: &dyn BoardTrait, color: Color) -> Vec<Move> {
     } else {
         let pinned_pieces = find_pinned_pieces(board, color);
 
-
         fn is_pinned(piece: &Piece, pinned_pieces: &Vec<Pin>) -> bool {
             pinned_pieces.iter().any(|p| p.pinned_piece == piece)
         }
         fn get_pin<'a, 'b>(piece: &'b Piece, pinned_pieces: &'a Vec<Pin>) -> Option<&'a Pin<'a>> {
             pinned_pieces.iter().find(|p| p.pinned_piece == piece)
         }
-
 
         // if not in check, will this move expose my king ?
         moves

@@ -61,6 +61,80 @@ pub trait BoardTrait {
 mod test {
     use crate::board::*;
     use crate::fen_reader;
+    use crate::move_generator::gen_legal_moves;
+
+    fn assert_board_is_same(board: &Board, board_2: &Board) {
+        assert_eq!(
+            board.player_to_move(),
+            board_2.player_to_move(),
+            "same player_to_move"
+        );
+        assert_eq!(
+            board.white_castling_rights(),
+            board_2.white_castling_rights(),
+            "same white_castling_rights"
+        );
+        assert_eq!(
+            board.black_castling_rights(),
+            board_2.black_castling_rights(),
+            "same black_castling_rights"
+        );
+        assert_eq!(
+            board.previous_white_castling_rights, board_2.previous_white_castling_rights,
+            "same previous_white_castling_rights"
+        );
+        assert_eq!(
+            board.previous_black_castling_rights, board_2.previous_black_castling_rights,
+            "same previous_black_castling_rights"
+        );
+        assert_eq!(
+            board.en_passant_target(),
+            board_2.en_passant_target(),
+            "same en_passant_target"
+        );
+        // assert_eq!(board.half_move_clock(), board_2.half_move_clock(), "same half_move_clock");
+        assert_eq!(
+            board.full_move_number(),
+            board_2.full_move_number(),
+            "same full_move_number"
+        );
+
+        board
+            .squares
+            .iter()
+            .zip(board_2.squares.iter())
+            .for_each(|(row, row_2)| {
+                row.iter().zip(row_2.iter()).for_each(|(square, square_2)| {
+                    assert_eq!(square, square_2, "squares are the same");
+                })
+            });
+    }
+
+    #[test]
+    fn test_make_unmake() {
+        fn test_board_moves(board: Board) {
+            let mut board_2 = board._clone();
+            let moves = gen_legal_moves(&board_2, board.player_to_move);
+            moves.iter().for_each(|m| {
+                println!("making move {}", m);
+                println!("making move {:?}", m);
+                board_2.make_move_mut(m);
+                board_2.unmake_move_mut(m);
+                assert_board_is_same(&board, &board_2);
+                // assert_eq!(board, board_2, "board is back to what it was");
+            });
+        }
+        println!("testing initial board");
+        test_board_moves(fen_reader::make_initial_board());
+        println!("testing WHITE_IN_CHECK");
+        test_board_moves(fen_reader::make_board(fen_reader::WHITE_IN_CHECK));
+        println!("testing TEST_BOARD_1");
+        test_board_moves(fen_reader::make_board(fen_reader::TEST_BOARD_1));
+        println!("testing TEST_BOARD_2");
+        test_board_moves(fen_reader::make_board(fen_reader::TEST_BOARD_2));
+        println!("testing BLACK_IN_CHECK");
+        test_board_moves(fen_reader::make_board(fen_reader::BLACK_IN_CHECK));
+    }
 
     #[test]
     fn test_get_rank() {
@@ -128,7 +202,7 @@ impl Piece {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct CastlingRights {
     king_side: bool,
     queen_side: bool,
@@ -148,7 +222,7 @@ impl CastlingRights {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct Square {
     coordinate: Coordinate,
     piece: Option<Piece>,
@@ -172,7 +246,8 @@ impl Square {
     pub fn color(&self) -> &Color {
         &self.color
     }
-    pub fn place_piece(&mut self, piece: Piece) {
+    pub fn place_piece(&mut self, mut piece: Piece) {
+        piece.at = Some(self.coordinate.clone());
         self.piece = Some(piece)
     }
     pub fn remove_piece(&mut self) -> Option<Piece> {
@@ -180,6 +255,7 @@ impl Square {
     }
 }
 
+#[derive(Debug, Eq, PartialEq)]
 pub struct Board {
     player_to_move: Color,
     white_castling_rights: CastlingRights,
@@ -381,7 +457,7 @@ impl BoardTrait for Board {
             // replace piece
             let square = self.get_square_mut(&mov.to);
             square.place_piece(Piece::new(
-                moving_piece.color,
+                moving_piece.color.opposite(),
                 mov.captured.unwrap(),
                 Some(mov.to.clone()),
             ));
@@ -543,15 +619,15 @@ impl Board {
     }
 
     fn find_square_mut<F>(&mut self, filter: F) -> Option<&mut Square>
-        where
-            F: Fn(&&mut Square) -> bool,
+    where
+        F: Fn(&&mut Square) -> bool,
     {
         self.squares.iter_mut().flatten().find(filter)
     }
 
     fn find_pieces<F>(&self, filter: F) -> Vec<&Piece>
-        where
-            F: Fn(&&Square) -> bool,
+    where
+        F: Fn(&&Square) -> bool,
     {
         self.squares
             .iter()
@@ -602,5 +678,30 @@ impl Board {
             vec.push(row);
         }
         return vec;
+    }
+    fn _clone(&self) -> Board {
+        let mut squares: Vec<Vec<Square>> = vec![];
+        for row in self.squares.iter() {
+            let mut new_row: Vec<Square> = vec![];
+            for square in row.iter() {
+                new_row.push(Square::new(
+                    square.coordinate.clone(),
+                    square.piece.clone(),
+                    square.color.clone(),
+                ));
+            }
+            squares.push(new_row);
+        }
+        Board {
+            player_to_move: self.player_to_move,
+            white_castling_rights: self.white_castling_rights.clone(),
+            black_castling_rights: self.black_castling_rights.clone(),
+            previous_white_castling_rights: self.white_castling_rights.clone(),
+            previous_black_castling_rights: self.black_castling_rights.clone(),
+            en_passant_target: self.en_passant_target.clone(),
+            half_move_clock: self.half_move_clock,
+            full_move_number: self.full_move_number,
+            squares,
+        }
     }
 }
