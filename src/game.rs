@@ -1,8 +1,8 @@
 use crate::ai;
 use crate::ai::evaluator::evaluate;
-use crate::board::new_board::BoardRef;
+use crate::board::new_board::Board;
+use crate::board::Coordinate;
 use crate::board::*;
-use crate::board::{Board, Coordinate};
 use crate::board_console_printer::print_board;
 use crate::chess_notation;
 use crate::chess_notation::pgn::make_move_log;
@@ -21,7 +21,7 @@ pub struct Player {
 }
 
 pub struct Game {
-    board: BoardRef,
+    board: Board,
     moves: Vec<String>,
     ai: ai::ai,
     ai2: ai::ai,

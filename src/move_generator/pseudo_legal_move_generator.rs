@@ -46,7 +46,7 @@ mod tests {
         let test_move = Move::new(
             Coordinate::new(2, 5),
             Coordinate::new(4, 7),
-            white_queen,
+            white_queen.piece_type,
             Some(PieceType::King),
         );
         let moves = gen_queen_moves(&board, &white_queen);
@@ -61,8 +61,18 @@ mod tests {
         let pawn = board.get_piece_at(&Coordinate::new(1, 2)).unwrap();
         let moves = gen_pawn_moves(&board, &pawn);
         let correct_moves: Vec<Move> = vec![
-            Move::new(Coordinate::new(1, 2), Coordinate::new(1, 3), pawn, None),
-            Move::new(Coordinate::new(1, 2), Coordinate::new(1, 4), pawn, None),
+            Move::new(
+                Coordinate::new(1, 2),
+                Coordinate::new(1, 3),
+                pawn.piece_type,
+                None,
+            ),
+            Move::new(
+                Coordinate::new(1, 2),
+                Coordinate::new(1, 4),
+                pawn.piece_type,
+                None,
+            ),
         ];
         assert!(move_list_eq(&moves, &correct_moves));
     }
@@ -87,7 +97,7 @@ mod tests {
     }
 }
 
-pub fn gen_moves_for<'a>(board: &'a dyn BoardTrait, piece: &'a Piece) -> Vec<Move<'a>> {
+pub fn gen_moves_for<'a>(board: &'a dyn BoardTrait, piece: &'a Piece) -> Vec<Move> {
     let moves = match piece.piece_type {
         PieceType::King => gen_king_moves(board, piece),
         PieceType::Queen => gen_queen_moves(board, piece),
@@ -99,7 +109,7 @@ pub fn gen_moves_for<'a>(board: &'a dyn BoardTrait, piece: &'a Piece) -> Vec<Mov
     return moves;
 }
 
-pub fn gen_vectors_for<'a>(board: &'a dyn BoardTrait, piece: &'a Piece) -> Vec<Move<'a>> {
+pub fn gen_vectors_for<'a>(board: &'a dyn BoardTrait, piece: &'a Piece) -> Vec<Move> {
     let moves = match piece.piece_type {
         PieceType::King => gen_king_moves(board, piece),
         PieceType::Queen => gen_queen_vector(board, piece),
@@ -112,17 +122,13 @@ pub fn gen_vectors_for<'a>(board: &'a dyn BoardTrait, piece: &'a Piece) -> Vec<M
 }
 
 // @todo : test
-fn make_moves<'a>(
-    path: Vec<Coordinate>,
-    board: &dyn BoardTrait,
-    piece: &'a Piece,
-) -> Vec<Move<'a>> {
+fn make_moves<'a>(path: Vec<Coordinate>, board: &dyn BoardTrait, piece: &'a Piece) -> Vec<Move> {
     let from = piece.at().unwrap();
     let make_move = |to: Coordinate| {
         Move::new(
             from.clone(),
             to.clone(),
-            piece,
+            piece.piece_type,
             board.get_piece_at(&to).map(|p| p.piece_type.clone()),
         )
     };
@@ -147,17 +153,13 @@ fn make_moves<'a>(
     moves
 }
 
-fn make_vector_moves<'a>(
-    path: Vec<Coordinate>,
-    board: &dyn BoardTrait,
-    piece: &'a Piece,
-) -> Vec<Move<'a>> {
+fn make_vector_moves(path: Vec<Coordinate>, board: &dyn BoardTrait, piece: &Piece) -> Vec<Move> {
     let from = piece.at().unwrap();
     let make_move = |to: &Coordinate| {
         Move::new(
             from.clone(),
             to.clone(),
-            piece,
+            piece.piece_type,
             board.get_piece_at(&to).map(|p| p.piece_type.clone()),
         )
     };
@@ -179,14 +181,14 @@ fn make_vector_moves<'a>(
 
 // one square any direction
 // castling
-fn gen_king_moves<'a>(board: &'a dyn BoardTrait, piece: &'a Piece) -> Vec<Move<'a>> {
+fn gen_king_moves(board: &dyn BoardTrait, piece: &Piece) -> Vec<Move> {
     let from = piece.at().unwrap();
     let make_move = |x, y| {
         let to = from.add(x, y);
         Move::new(
             from.clone(),
             to,
-            piece,
+            piece.piece_type,
             board.get_piece_at(&to).map(|p| p.piece_type.clone()),
         )
     };
@@ -261,13 +263,13 @@ fn gen_king_moves<'a>(board: &'a dyn BoardTrait, piece: &'a Piece) -> Vec<Move<'
     moves
 }
 
-fn gen_queen_moves<'a>(board: &dyn BoardTrait, piece: &'a Piece) -> Vec<Move<'a>> {
+fn gen_queen_moves<'a>(board: &dyn BoardTrait, piece: &'a Piece) -> Vec<Move> {
     let mut moves = gen_rook_moves(board, piece);
     moves.extend(gen_bishop_moves(board, piece).into_iter());
     moves
 }
 
-fn gen_queen_vector<'a>(board: &dyn BoardTrait, piece: &'a Piece) -> Vec<Move<'a>> {
+fn gen_queen_vector<'a>(board: &dyn BoardTrait, piece: &'a Piece) -> Vec<Move> {
     vec![
         gen_bishop_vector(board, piece),
         gen_rook_vector(board, piece),
@@ -277,7 +279,7 @@ fn gen_queen_vector<'a>(board: &dyn BoardTrait, piece: &'a Piece) -> Vec<Move<'a
     .collect()
 }
 
-fn gen_bishop_moves<'a>(board: &dyn BoardTrait, piece: &'a Piece) -> Vec<Move<'a>> {
+fn gen_bishop_moves<'a>(board: &dyn BoardTrait, piece: &'a Piece) -> Vec<Move> {
     let from = piece.at().unwrap();
     let up_left = get_path_from(&from, Direction::UpLeft);
     let up_right = get_path_from(&from, Direction::UpRight);
@@ -294,7 +296,7 @@ fn gen_bishop_moves<'a>(board: &dyn BoardTrait, piece: &'a Piece) -> Vec<Move<'a
     .collect()
 }
 
-fn gen_bishop_vector<'a>(board: &dyn BoardTrait, piece: &'a Piece) -> Vec<Move<'a>> {
+fn gen_bishop_vector<'a>(board: &dyn BoardTrait, piece: &'a Piece) -> Vec<Move> {
     let from = piece.at().unwrap();
     let up_left = get_path_from(&from, Direction::UpLeft);
     let up_right = get_path_from(&from, Direction::UpRight);
@@ -311,14 +313,14 @@ fn gen_bishop_vector<'a>(board: &dyn BoardTrait, piece: &'a Piece) -> Vec<Move<'
     .collect()
 }
 
-fn gen_knight_moves<'a>(board: &dyn BoardTrait, piece: &'a Piece) -> Vec<Move<'a>> {
+fn gen_knight_moves<'a>(board: &dyn BoardTrait, piece: &'a Piece) -> Vec<Move> {
     let from = piece.at().unwrap();
     let make_move = |x, y| {
         let to = from.add(x, y);
         Move::new(
             from.clone(),
             to,
-            piece,
+            piece.piece_type,
             board.get_piece_at(&to).map(|p| p.piece_type.clone()),
         )
     };
@@ -338,7 +340,7 @@ fn gen_knight_moves<'a>(board: &dyn BoardTrait, piece: &'a Piece) -> Vec<Move<'a
         .collect()
 }
 
-fn gen_rook_moves<'a>(board: &dyn BoardTrait, piece: &'a Piece) -> Vec<Move<'a>> {
+fn gen_rook_moves<'a>(board: &dyn BoardTrait, piece: &'a Piece) -> Vec<Move> {
     let from = piece.at().unwrap();
     let left = get_path_from(from, Direction::Left);
     let right = get_path_from(from, Direction::Right);
@@ -355,7 +357,7 @@ fn gen_rook_moves<'a>(board: &dyn BoardTrait, piece: &'a Piece) -> Vec<Move<'a>>
     .collect()
 }
 
-fn gen_rook_vector<'a>(board: &dyn BoardTrait, piece: &'a Piece) -> Vec<Move<'a>> {
+fn gen_rook_vector<'a>(board: &dyn BoardTrait, piece: &'a Piece) -> Vec<Move> {
     let from = piece.at().unwrap();
     let left = get_path_from(from, Direction::Left);
     let right = get_path_from(from, Direction::Right);
@@ -375,7 +377,7 @@ fn gen_rook_vector<'a>(board: &dyn BoardTrait, piece: &'a Piece) -> Vec<Move<'a>
 /**
 one square move, two square move, capturing diagonally forward, pawn promotion, en passant
 **/
-fn gen_pawn_moves<'a>(board: &dyn BoardTrait, piece: &'a Piece) -> Vec<Move<'a>> {
+fn gen_pawn_moves<'a>(board: &dyn BoardTrait, piece: &'a Piece) -> Vec<Move> {
     let from = piece.at().unwrap();
     let direction: i8 = if piece.color == Color::White { 1 } else { -1 };
     let make_move = |x, y| {
@@ -383,7 +385,7 @@ fn gen_pawn_moves<'a>(board: &dyn BoardTrait, piece: &'a Piece) -> Vec<Move<'a>>
         Move::new(
             from.clone(),
             to,
-            piece,
+            piece.piece_type,
             board.get_piece_at(&to).map(|p| p.piece_type.clone()),
         )
     };
@@ -407,7 +409,7 @@ fn gen_pawn_moves<'a>(board: &dyn BoardTrait, piece: &'a Piece) -> Vec<Move<'a>>
                 let m = Move::pawn_promotion(
                     from.clone(),
                     to,
-                    piece,
+                    piece.piece_type,
                     promotion_type.clone(),
                     board.get_piece_at(&to).map(|p| p.piece_type.clone()),
                 );
@@ -419,7 +421,7 @@ fn gen_pawn_moves<'a>(board: &dyn BoardTrait, piece: &'a Piece) -> Vec<Move<'a>>
         moves.push(Move::new(
             from.clone(),
             to,
-            piece,
+            piece.piece_type,
             board.get_piece_at(&to).map(|p| p.piece_type.clone()),
         ));
     }
@@ -447,7 +449,7 @@ fn gen_pawn_moves<'a>(board: &dyn BoardTrait, piece: &'a Piece) -> Vec<Move<'a>>
         moves.push(Move::new(
             from.clone(),
             front_left,
-            piece,
+            piece.piece_type,
             Some(PieceType::Pawn),
         ));
     }
@@ -459,7 +461,7 @@ fn gen_pawn_moves<'a>(board: &dyn BoardTrait, piece: &'a Piece) -> Vec<Move<'a>>
         moves.push(Move::new(
             from.clone(),
             front_right,
-            piece,
+            piece.piece_type,
             Some(PieceType::Pawn),
         ));
     }

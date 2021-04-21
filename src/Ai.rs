@@ -1,5 +1,6 @@
 pub mod evaluator;
 use crate::ai::evaluator::Evaluation;
+use crate::board::new_board::Board;
 use crate::board::*;
 use crate::move_generator::*;
 use rand::prelude::ThreadRng;
@@ -107,7 +108,7 @@ impl ai {
         depth_to_go: u8,
         mut lower_bound: Option<evaluator::Evaluation>,
         mut upper_bound: Option<evaluator::Evaluation>,
-    ) -> (evaluator::Evaluation, Option<Move<'a>>) {
+    ) -> (evaluator::Evaluation, Option<Move>) {
         // end of recursion, depth_to_go = 0 so eval the board
         if depth_to_go == 0 {
             self.minimax_calls = self.minimax_calls + 1;
@@ -209,7 +210,7 @@ impl ai {
     fn choose_random_move<'a>(
         &mut self,
         board: &'a dyn BoardTrait,
-    ) -> (evaluator::Evaluation, Option<Move<'a>>) {
+    ) -> (evaluator::Evaluation, Option<Move>) {
         let mut moves = gen_legal_moves(board, self.color);
         if moves.len() == 0 {
             return (evaluator::evaluate(board), None);
@@ -225,7 +226,7 @@ impl ai {
         board: &'a dyn BoardTrait,
         color: Color,
         depth: u8,
-    ) -> (evaluator::Evaluation, Option<Move<'a>>) {
+    ) -> (evaluator::Evaluation, Option<Move>) {
         // end of recursion
         if depth == 0 {
             self.minimax_calls = self.minimax_calls + 1;
@@ -292,7 +293,7 @@ impl ai {
         board: &'a dyn BoardTrait,
         depth: u8,
         color: Color,
-    ) -> Option<(evaluator::Evaluation, Move<'a>)> {
+    ) -> Option<(evaluator::Evaluation, Move)> {
         self.minimax_calls = 0;
         self.started_at = Instant::now();
         let (eval, best_move): (Evaluation, Option<Move>) = match self.ai_search_function {
@@ -324,11 +325,7 @@ impl ai {
         return Some((eval, best_move.unwrap()));
     }
 
-    pub fn make_move(
-        &mut self,
-        board: dyn BoardTrait,
-        depth: Option<u8>,
-    ) -> (dyn BoardTrait,  {
+    pub fn make_move<'a>(&mut self, board: &'a Board, depth: Option<u8>) -> Option<Move> {
         let search_depth = if depth.is_some() {
             depth.unwrap()
         } else {

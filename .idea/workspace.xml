@@ -5,9 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="49ae807d-88c8-4d8d-a8ce-b8e901995cf7" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/GameLogs/2021-04-20_215028-output.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Ai/evaluator.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/Ai/evaluator.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Ai.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/Ai.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Board/new_board.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/Board/new_board.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/board.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/board.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/board_console_printer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/board_console_printer.rs" afterDir="false" />

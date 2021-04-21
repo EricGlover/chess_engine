@@ -11,6 +11,7 @@ use crate::fen_reader::make_board;
 use crate::fen_reader::make_initial_board;
 use crate::move_generator::path::*;
 use crate::move_generator::pseudo_legal_move_generator::*;
+use std::borrow::Borrow;
 use std::fmt;
 use std::fmt::Formatter;
 
@@ -73,26 +74,51 @@ mod tests {
         // knight interpose
         let knight = board.get_piece_at(&Coordinate::new(2, 8)).unwrap();
         let knight_at = knight.at().unwrap();
-        moves.push(Move::new(knight_at, Coordinate::new(4, 7), knight, None));
-        moves.push(Move::new(knight_at, Coordinate::new(3, 6), knight, None));
+        moves.push(Move::new(
+            knight_at.clone(),
+            Coordinate::new(4, 7),
+            knight.piece_type,
+            None,
+        ));
+        moves.push(Move::new(
+            knight_at.clone(),
+            Coordinate::new(3, 6),
+            knight.piece_type,
+            None,
+        ));
         // bishop interpose
         let bishop = board.get_piece_at(&Coordinate::new(3, 8)).unwrap();
         let bishop_at = bishop.at().unwrap();
-        moves.push(Move::new(bishop_at, bishop_at.add(1, -1), bishop, None));
+        moves.push(Move::new(
+            bishop_at.clone(),
+            bishop_at.add(1, -1),
+            bishop.piece_type,
+            None,
+        ));
         // queen captures
         let queen = board.get_piece_at(&Coordinate::new(1, 4)).unwrap();
         let queen_at = queen.at().unwrap();
         moves.push(Move::new(
-            queen_at,
+            queen_at.clone(),
             queen_at.add(1, 1),
-            queen,
+            queen.piece_type,
             Some(PieceType::Queen),
         ));
         // king move left one, right one
         let king = board.get_piece_at(&Coordinate::new(5, 8)).unwrap();
         let king_at = king.at().unwrap();
-        moves.push(Move::new(king_at, king_at.add(-1, 0), king, None));
-        moves.push(Move::new(king_at, king_at.add(1, 0), king, None));
+        moves.push(Move::new(
+            king_at.clone(),
+            king_at.add(-1, 0),
+            king.piece_type,
+            None,
+        ));
+        moves.push(Move::new(
+            king_at.clone(),
+            king_at.add(1, 0),
+            king.piece_type,
+            None,
+        ));
 
         let checks = get_checks(&board, Color::Black);
         let possible_moves = gen_pseudo_legal_moves(&board, Color::Black);
@@ -142,7 +168,7 @@ mod tests {
         assert_eq!(piece.color, Color::Black, "piece is black");
         assert_eq!(
             piece.at().unwrap(),
-            Coordinate::new(2, 4),
+            &Coordinate::new(2, 4),
             " piece is at 2, 4"
         );
         assert_eq!(piece.piece_type, PieceType::Bishop, "piece is a bishop");
@@ -262,7 +288,7 @@ pub struct MoveLog {
 impl MoveLog {
     pub fn new(m: &Move) -> MoveLog {
         MoveLog {
-            piece_type: m.piece.piece_type,
+            piece_type: m.piece,
             from: m.from.clone(),
             to: m.to.clone(),
             promoted_to: m.promoted_to.clone(),
@@ -273,8 +299,8 @@ impl MoveLog {
 // @todo : add old castling rights to moves ?
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
-pub struct Move<'a> {
-    pub piece: &'a Piece,
+pub struct Move {
+    pub piece: PieceType,
     pub from: Coordinate,
     pub to: Coordinate,
     pub promoted_to: Option<PieceType>, // pawn promotion
@@ -282,26 +308,26 @@ pub struct Move<'a> {
     pub is_castling: bool,
     pub is_check: bool,     // @todo : set these in game when eval happens ?
     pub is_checkmate: bool, // @todo : set these in game when eval happens ?
-    pub rook: Option<&'a Piece>,
+    pub rook: Option<PieceType>,
     pub rook_from: Option<Coordinate>,
     pub rook_to: Option<Coordinate>,
 }
 
-impl fmt::Display for Move<'_> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+impl fmt::Display for Move {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(
             f,
             "{} moving from {} to {} ",
-            self.piece.piece_type, self.from, self.to
+            self.piece, self.from, self.to
         )
     }
 }
 
-impl Move<'_> {
+impl Move {
     pub fn new(
         from: Coordinate,
         to: Coordinate,
-        piece: &Piece,
+        piece: PieceType,
         captured: Option<PieceType>,
     ) -> Move {
         Move {
@@ -322,7 +348,7 @@ impl Move<'_> {
     pub fn pawn_promotion(
         from: Coordinate,
         to: Coordinate,
-        piece: &Piece,
+        piece: PieceType,
         promoted_type: PieceType,
         captured: Option<PieceType>,
     ) -> Move {
@@ -342,41 +368,41 @@ impl Move<'_> {
     }
 
     // @todo: static lifetime is suss
-    pub fn print_moves(moves: &Vec<Move<'static>>) {
+    pub fn print_moves(moves: &Vec<Move>) {
         moves.iter().for_each(|m| {
             let str = m.to_string();
             println!("{}", str.as_str());
         })
     }
 
-    pub fn castle_king_side<'a>(king: &'a Piece, rook: &'a Piece) -> Move<'a> {
+    pub fn castle_king_side<'a>(king: &'a Piece, rook: &'a Piece) -> Move {
         let (from, to) = Move::king_side_castle_coordinates(king.color, PieceType::King);
         let (rook_from, rook_to) = Move::king_side_castle_coordinates(king.color, PieceType::Rook);
         Move {
-            piece: king,
+            piece: PieceType::King,
             from,
             to,
             promoted_to: None,
             is_castling: true,
             captured: None,
-            rook: Some(rook),
+            rook: Some(PieceType::Rook),
             rook_from: Some(rook_from),
             rook_to: Some(rook_to),
             is_check: false,
             is_checkmate: false,
         }
     }
-    pub fn castle_queen_side<'a>(king: &'a Piece, rook: &'a Piece) -> Move<'a> {
+    pub fn castle_queen_side<'a>(king: &'a Piece, rook: &'a Piece) -> Move {
         let (from, to) = Move::queen_side_castle_coordinates(king.color, PieceType::King);
         let (rook_from, rook_to) = Move::queen_side_castle_coordinates(king.color, PieceType::Rook);
         Move {
-            piece: king,
+            piece: PieceType::King,
             from,
             to,
             promoted_to: None,
             is_castling: true,
             captured: None,
-            rook: Some(rook),
+            rook: Some(PieceType::Rook),
             rook_from: Some(rook_from),
             rook_to: Some(rook_to),
             is_check: false,
@@ -432,7 +458,7 @@ impl Move<'_> {
 pub fn print_move(m: &Move) {
     println!(
         "{:?} moving from ({}, {}) to ({},{}) ",
-        m.piece.piece_type,
+        m.piece,
         m.from.x(),
         m.from.y(),
         m.to.x(),
@@ -469,7 +495,8 @@ fn find_attacking_pieces<'a>(
     let moves = gen_attack_vectors(board, attackers_color);
     for m in moves {
         if &m.to == attack_coordinate {
-            attacking_pieces.push(m.piece);
+            let piece = board.get_piece_at(&m.from).unwrap();
+            attacking_pieces.push(piece);
         }
     }
     attacking_pieces
@@ -560,11 +587,11 @@ pub fn get_checks(board: &dyn BoardTrait, color_being_checked: Color) -> Vec<Mov
 
 // fn find_moves_to_resolve_check<'a>(board: &dyn BoardTrait, checks: &Vec<Move>, possible_moves: &'a Vec<Move>) -> Vec<&'a Move> {
 // @todo: this doesn't work in so many ways.... :/
-fn find_moves_to_resolve_check<'a>(
+fn find_moves_to_resolve_check(
     board: &dyn BoardTrait,
     checks: &Vec<Move>,
-    possible_moves: &Vec<Move<'a>>,
-) -> Vec<Move<'a>> {
+    possible_moves: &Vec<Move>,
+) -> Vec<Move> {
     let moves: Vec<Move> = possible_moves.iter().map(|&m| m.clone()).collect();
 
     // if no checks , BOOM problem is solved
@@ -575,17 +602,19 @@ fn find_moves_to_resolve_check<'a>(
     // worry about the king fleeing into an attack from another piece later
     // @todo
     fn king_safely_flees(board: &dyn BoardTrait, m: &Move) -> bool {
-        if m.piece.piece_type != PieceType::King {
+        let piece = board.get_piece_at(&m.from).unwrap();
+        if piece.piece_type != PieceType::King {
             return false;
         }
-        let mut new_board = new_board::clone(board);
-        new_board.make_move_mut(m);
-        get_checks(&*new_board, m.piece.color).len() == 0
+        let mut fresh_board = new_board::clone(board);
+        fresh_board.make_move_mut(m);
+        get_checks(&*fresh_board, piece.color).len() == 0
     }
     moves
         .into_iter()
         .filter(|m| {
             checks.iter().all(|check| {
+                let piece = board.get_piece_at(&m.from).unwrap();
                 let path = path::get_path_to(&check.from, &check.to)
                     .unwrap_or_else(|| panic!("illegal move"));
                 let interpose_path = &path[1..(path.len() - 1)];
@@ -593,7 +622,7 @@ fn find_moves_to_resolve_check<'a>(
                     interpose_path.iter().any(|coordinate| coordinate == &m.to);
                 let is_capture = check.from == m.to;
                 king_safely_flees(board, &m)
-                    || (is_interposing_move && m.piece.piece_type != PieceType::King)
+                    || (is_interposing_move && piece.piece_type != PieceType::King)
                     || is_capture
             })
         })
@@ -601,7 +630,7 @@ fn find_moves_to_resolve_check<'a>(
 }
 
 // @todo pass attacker moves so you only calculate it once
-pub fn gen_legal_moves<'a>(board: &'a dyn BoardTrait, color: Color) -> Vec<Move<'a>> {
+pub fn gen_legal_moves(board: &dyn BoardTrait, color: Color) -> Vec<Move> {
     let moves = gen_pseudo_legal_moves(board, color);
 
     // if in check do any of these moves resolve it ?
@@ -613,7 +642,8 @@ pub fn gen_legal_moves<'a>(board: &'a dyn BoardTrait, color: Color) -> Vec<Move<
             .filter(|m| {
                 let mut new_board = new_board::clone(board);
                 new_board.make_move_mut(m);
-                get_checks(&*new_board, m.piece.color).len() == 0
+                let color = new_board.get_piece_at(&m.from).unwrap().color;
+                get_checks(&*new_board, color).len() == 0
             })
             .collect();
         // return find_moves_to_resolve_check(board, &checks, &moves);
@@ -630,8 +660,9 @@ pub fn gen_legal_moves<'a>(board: &'a dyn BoardTrait, color: Color) -> Vec<Move<
             .into_iter()
             .filter(|m| {
                 // is this piece pinned ?
-                if is_pinned(&m.piece, &pinned_pieces) {
-                    let pin = get_pin(&m.piece, &pinned_pieces).unwrap();
+                let piece = board.get_piece_at(&m.from).unwrap();
+                if is_pinned(&piece, &pinned_pieces) {
+                    let pin = get_pin(&piece, &pinned_pieces).unwrap();
                     // check if the pinned piece can move here
                     return pin.can_move_to.iter().any(|c| c == &m.to);
                 }
@@ -643,7 +674,7 @@ pub fn gen_legal_moves<'a>(board: &'a dyn BoardTrait, color: Color) -> Vec<Move<
 }
 
 // ignores enemy captures
-pub fn gen_attack_vectors<'a>(board: &'a dyn BoardTrait, color: Color) -> Vec<Move<'a>> {
+pub fn gen_attack_vectors(board: &dyn BoardTrait, color: Color) -> Vec<Move> {
     let mut moves: Vec<Move> = Vec::new();
     let pieces = board.get_all_pieces(color);
     for piece in pieces.iter() {
@@ -656,7 +687,7 @@ pub fn gen_attack_vectors<'a>(board: &'a dyn BoardTrait, color: Color) -> Vec<Mo
 // change this to -> Vec<Coordinate>?
 //@todo: test
 // PSEUDO LEGAL MOVE GENERATION
-pub fn gen_pseudo_legal_moves<'a>(board: &'a dyn BoardTrait, color: Color) -> Vec<Move<'a>> {
+pub fn gen_pseudo_legal_moves(board: &dyn BoardTrait, color: Color) -> Vec<Move> {
     board
         .get_all_pieces(color)
         .into_iter()

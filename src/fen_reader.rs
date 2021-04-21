@@ -158,11 +158,11 @@ fn read_pieces(piece_string: &str, board: &mut dyn BoardTrait) {
     }
 }
 
-pub fn make_initial_board() -> BoardRef {
+pub fn make_initial_board() -> Board {
     make_board(INITIAL_BOARD)
 }
 
-pub fn make_board(fen_string: &str) -> BoardRef {
+pub fn make_board(fen_string: &str) -> Board {
     let parts = fen_string.split(" ").collect::<Vec<&str>>();
     let player_to_move = if parts[1] == "w" {
         Color::White
@@ -181,7 +181,7 @@ pub fn make_board(fen_string: &str) -> BoardRef {
     let half_move_clock = parts[4].parse::<u8>().unwrap();
     let full_move_number = parts[5].parse::<u8>().unwrap();
 
-    let mut board = BoardRef::make_board(
+    let mut board = Board::make_board(
         player_to_move,
         white_can_castle_king_side,
         white_can_castle_queen_side,
@@ -231,7 +231,7 @@ mod tests {
         for piece in white_pieces.iter() {
             match piece.piece_type {
                 PieceType::King => {
-                    assert_eq!(piece.at().unwrap(), Coordinate::new(5, 1));
+                    assert_eq!(piece.at().unwrap(), &Coordinate::new(5, 1));
                 }
                 PieceType::Queen => {}
                 PieceType::Bishop => {}
