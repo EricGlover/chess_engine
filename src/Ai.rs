@@ -1,6 +1,5 @@
 pub mod evaluator;
 use crate::ai::evaluator::Evaluation;
-use crate::board::new_board::Board;
 use crate::board::*;
 use crate::move_generator::*;
 use rand::prelude::ThreadRng;
@@ -101,9 +100,9 @@ impl ai {
     // returns  evaluation, final board, lower_bound, upper_bound
     // white sets lower bound , and will accept no branch evaluated lower than that
     // black sets upper bound , and will accept no branch evaluated higher than that
-    fn alpha_beta<'a>(
+    fn alpha_beta(
         &mut self,
-        board: &'a dyn BoardTrait,
+        board: &dyn BoardTrait,
         player_moving: Color,
         depth_to_go: u8,
         mut lower_bound: Option<evaluator::Evaluation>,
@@ -139,7 +138,7 @@ impl ai {
             // @todo : make / unmake moves
             // @todo: how to make a move that gives you a new board ?
 
-            let mut new_board = new_board::clone(board);
+            let mut new_board = board.clone();
             new_board.make_move_mut(&a_move);
             let (eval, m) = self.alpha_beta(
                 &*new_board,
@@ -255,7 +254,7 @@ impl ai {
             // player takes move , examine this board
             // assuming this player and the opponent make optimal moves
             // what's the evaluation of the best board state starting from here ?
-            let mut new_board = new_board::clone(board);
+            let mut new_board = board.clone();
             new_board.make_move_mut(&move_to_try);
             let (eval, _) = self.minimax(&*new_board, color.opposite(), depth - 1);
             if acc.is_none() {
@@ -293,7 +292,7 @@ impl ai {
         board: &'a dyn BoardTrait,
         depth: u8,
         color: Color,
-    ) -> Option<(evaluator::Evaluation, Move)> {
+    ) -> Option<(evaluator::Evaluation, Option<Move>)> {
         self.minimax_calls = 0;
         self.started_at = Instant::now();
         let (eval, best_move): (Evaluation, Option<Move>) = match self.ai_search_function {
@@ -322,7 +321,7 @@ impl ai {
 
         // print stuff here
         self.time_elapsed_during_search = Some(self.started_at.elapsed());
-        return Some((eval, best_move.unwrap()));
+        return Some((eval, best_move));
     }
 
     pub fn make_move<'a>(&mut self, board: &'a Board, depth: Option<u8>) -> Option<Move> {
@@ -334,7 +333,7 @@ impl ai {
         let m = self.search(board, search_depth, self.color);
         match m {
             None => None,
-            Some((_eval, m)) => Some(m),
+            Some((_eval, m)) => m,
         }
     }
 }

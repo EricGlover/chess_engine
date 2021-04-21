@@ -1,4 +1,3 @@
-use crate::board::new_board::*;
 use crate::board::*;
 use crate::board_console_printer;
 use crate::board_console_printer::print_board;

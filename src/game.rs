@@ -1,7 +1,5 @@
 use crate::ai;
 use crate::ai::evaluator::evaluate;
-use crate::board::new_board::Board;
-use crate::board::Coordinate;
 use crate::board::*;
 use crate::board_console_printer::print_board;
 use crate::chess_notation;

@@ -573,6 +573,11 @@ fn find_pinned_pieces(board: &dyn BoardTrait, defender_color: Color) -> Vec<Pin>
 // @todo : sort this nonsense out
 // @todo: consider using a board_get_all_pieces_ref instead of cloning the pieces
 
+#[test]
+fn test_get_checks() {
+    let board = fen_reader::make_board("rnb1kbnr/pppp1p1p/4pp2/8/8/3BP3/PPPP1PPP/RNB1K1NR b KQkq - 1 4");
+}
+
 // get checks against color
 pub fn get_checks(board: &dyn BoardTrait, color_being_checked: Color) -> Vec<Move> {
     let moves = gen_pseudo_legal_moves(board, color_being_checked.opposite());
@@ -606,7 +611,7 @@ fn find_moves_to_resolve_check(
         if piece.piece_type != PieceType::King {
             return false;
         }
-        let mut fresh_board = new_board::clone(board);
+        let mut fresh_board = board.clone();
         fresh_board.make_move_mut(m);
         get_checks(&*fresh_board, piece.color).len() == 0
     }
@@ -634,31 +639,43 @@ pub fn gen_legal_moves(board: &dyn BoardTrait, color: Color) -> Vec<Move> {
     let moves = gen_pseudo_legal_moves(board, color);
 
     // if in check do any of these moves resolve it ?
-    // let enemy_moves = gen_attack_moves(board, color.opposite());
     let checks = get_checks(board, color);
     if checks.len() > 0 {
         return moves
             .into_iter()
             .filter(|m| {
-                let mut new_board = new_board::clone(board);
+                if board.get_piece_at(&m.from).is_none() {
+                    print_board(board);
+                    println!("{:?}", m);
+                    panic!("attempting to move a piece that's not there");
+                }
+                let color = board.get_piece_at(&m.from).unwrap().color;
+                let mut new_board = board.clone();
                 new_board.make_move_mut(m);
-                let color = new_board.get_piece_at(&m.from).unwrap().color;
                 get_checks(&*new_board, color).len() == 0
             })
             .collect();
-        // return find_moves_to_resolve_check(board, &checks, &moves);
     } else {
         let pinned_pieces = find_pinned_pieces(board, color);
+
+
         fn is_pinned(piece: &Piece, pinned_pieces: &Vec<Pin>) -> bool {
             pinned_pieces.iter().any(|p| p.pinned_piece == piece)
         }
         fn get_pin<'a, 'b>(piece: &'b Piece, pinned_pieces: &'a Vec<Pin>) -> Option<&'a Pin<'a>> {
             pinned_pieces.iter().find(|p| p.pinned_piece == piece)
         }
+
+
         // if not in check, will this move expose my king ?
-        let filtered_moves: Vec<Move> = moves
+        moves
             .into_iter()
             .filter(|m| {
+                if board.get_piece_at(&m.from).is_none() {
+                    print_board(board);
+                    println!("{:?}", m);
+                    panic!("attempting to move a piece that's not there");
+                }
                 // is this piece pinned ?
                 let piece = board.get_piece_at(&m.from).unwrap();
                 if is_pinned(&piece, &pinned_pieces) {
@@ -668,8 +685,7 @@ pub fn gen_legal_moves(board: &dyn BoardTrait, color: Color) -> Vec<Move> {
                 }
                 true
             })
-            .collect();
-        return filtered_moves;
+            .collect()
     }
 }
 

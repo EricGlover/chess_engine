@@ -34,7 +34,7 @@ mod tests {
             "there is no valid castling move for white"
         );
         println!("{:?}", king_moves);
-        assert!(false);
+        assert_eq!(king_moves.len(), 3, "only three legal moves");
     }
 
     #[test]
@@ -208,7 +208,7 @@ fn gen_king_moves(board: &dyn BoardTrait, piece: &Piece) -> Vec<Move> {
 
     // castling
     // @todo : clean up
-    if piece.color == Color::White && board.can_castle_queen_side(piece.color) {
+    if piece.color == Color::White && board.can_castle_queen_side(piece.color) && piece.at().unwrap() == &Coordinate::new(5, 1) {
         let rook = board.get_piece_at(&Coordinate::new(1, 1));
         if rook.map_or(false, |p| p.piece_type == PieceType::Rook) {
             let rook = rook.unwrap();
@@ -223,7 +223,7 @@ fn gen_king_moves(board: &dyn BoardTrait, piece: &Piece) -> Vec<Move> {
             }
         }
     }
-    if piece.color == Color::White && board.can_castle_king_side(piece.color) {
+    if piece.color == Color::White && board.can_castle_king_side(piece.color) && piece.at().unwrap() == &Coordinate::new(5, 1) {
         let rook = board.get_piece_at(&Coordinate::new(8, 1));
         if rook.map_or(false, |p| p.piece_type == PieceType::Rook) {
             let rook = rook.unwrap();
@@ -234,7 +234,7 @@ fn gen_king_moves(board: &dyn BoardTrait, piece: &Piece) -> Vec<Move> {
             }
         }
     }
-    if piece.color == Color::Black && board.can_castle_queen_side(piece.color) {
+    if piece.color == Color::Black && board.can_castle_queen_side(piece.color) && piece.at().unwrap() == &Coordinate::new(5, 8) {
         let rook = board.get_piece_at(&Coordinate::new(1, 8));
         if rook.map_or(false, |p| p.piece_type == PieceType::Rook) {
             let rook = rook.unwrap();
@@ -249,7 +249,7 @@ fn gen_king_moves(board: &dyn BoardTrait, piece: &Piece) -> Vec<Move> {
             }
         }
     }
-    if piece.color == Color::Black && board.can_castle_king_side(piece.color) {
+    if piece.color == Color::Black && board.can_castle_king_side(piece.color)&& piece.at().unwrap() == &Coordinate::new(5, 8) {
         let rook = board.get_piece_at(&Coordinate::new(8, 8));
         if rook.is_some() && rook.map_or(false, |p| p.piece_type == PieceType::Rook) {
             let rook = rook.unwrap();
