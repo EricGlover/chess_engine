@@ -22,13 +22,28 @@ use std::fmt::Formatter;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ai::ai;
+    use crate::ai::{ai, AiSearch};
     use test::Bencher;
+
+
+    #[bench]
+    fn bench_perft(b: &mut Bencher) {
+        let board = fen_reader::make_initial_board();
+        let mut ai = ai::new_with_search(Color::White, AiSearch::Minimax);
+        b.iter(|| {
+            // ai.make_move(&board, Some(0));
+            // ai.make_move(&board, Some(1));
+            // ai.make_move(&board, Some(2));
+            ai.make_move(&board, Some(3));
+            // ai.make_move(&board, Some(4));
+            // ai.make_move(&board, Some(5));
+        })
+    }
 
     #[test]
     fn perft_initial_position() {
         let board = fen_reader::make_initial_board();
-        let mut ai = ai::new(Color::White);
+        let mut ai = ai::new_with_search(Color::White, AiSearch::Minimax);
         ai.make_move(&board, Some(0));
         assert_eq!(ai.minimax_calls(), 1, "1 node visited at depth 0");
         ai.make_move(&board, Some(1));
@@ -211,6 +226,12 @@ mod tests {
         // am I pinned if you're pinned ?
         let pinned_piece_attacks_kings =
             "rnb1k1nr/ppp2qpp/8/B1b1p2Q/3p4/1K2P2P/PPP2PP1/RN3B1R w kq - 0 17";
+    }
+
+    #[test]
+    fn test_get_checks() {
+        let board =
+            fen_reader::make_board("rnb1kbnr/pppp1p1p/4pp2/8/8/3BP3/PPPP1PPP/RNB1K1NR b KQkq - 1 4");
     }
 
     #[test]
@@ -573,12 +594,6 @@ fn find_pinned_pieces(board: &dyn BoardTrait, defender_color: Color) -> Vec<Pin>
 // @todo : sort this nonsense out
 // @todo: consider using a board_get_all_pieces_ref instead of cloning the pieces
 
-#[test]
-fn test_get_checks() {
-    let board =
-        fen_reader::make_board("rnb1kbnr/pppp1p1p/4pp2/8/8/3BP3/PPPP1PPP/RNB1K1NR b KQkq - 1 4");
-}
-
 // get checks against color
 pub fn get_checks(board: &dyn BoardTrait, color_being_checked: Color) -> Vec<Move> {
     let moves = gen_pseudo_legal_moves(board, color_being_checked.opposite());
@@ -642,6 +657,7 @@ pub fn gen_legal_moves(board: &dyn BoardTrait, color: Color) -> Vec<Move> {
     // if in check do any of these moves resolve it ?
     let checks = get_checks(board, color);
     if checks.len() > 0 {
+        let mut new_board = board.clone();
         return moves
             .into_iter()
             .filter(|m| {
@@ -650,10 +666,12 @@ pub fn gen_legal_moves(board: &dyn BoardTrait, color: Color) -> Vec<Move> {
                     println!("{:?}", m);
                     panic!("attempting to move a piece that's not there");
                 }
+
                 let color = board.get_piece_at(&m.from).unwrap().color;
-                let mut new_board = board.clone();
                 new_board.make_move_mut(m);
-                get_checks(&*new_board, color).len() == 0
+                let checks = get_checks(&*new_board, color).len() == 0;
+                new_board.unmake_move_mut(m);
+                checks
             })
             .collect();
     } else {

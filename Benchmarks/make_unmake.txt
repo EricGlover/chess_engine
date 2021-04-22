@@ -1,0 +1,85 @@
+// the code change
+
+
+// let mut new_board = board.clone();
+// new_board.make_move_mut(&move_to_try);
+
+board.make_move_mut(&move_to_try);
+
+
+let (eval, _) = self.minimax(board, color.opposite(), depth - 1);
+
+board.unmake_move_mut(&move_to_try);
+
+
+TEST
+ #[bench]
+    fn bench_perft(b: &mut Bencher) {
+        let board = fen_reader::make_initial_board();
+        let mut ai = ai::new_with_search(Color::White, AiSearch::Minimax);
+        b.iter(|| {
+            ai.make_move(&board, Some(3));
+        })
+    }
+
+
+Benchmarking the clone version
+$ cargo bench bench_perft
+   Compiling chess_engine v0.1.0 (C:\Programming\Rust\chess_engine)
+    Finished bench [optimized] target(s) in 2.83s
+     Running unittests (target\release\deps\chess_engine-0727de5a98e369e6.exe)
+
+running 1 test
+test move_generator::tests::bench_perft                  ... bench: 261,290,180 ns/iter (+/- 136,588,828)
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 1 measured; 34 filtered out; finished in 83.13s
+
+     Running unittests (target\release\deps\chess_engine-760ea83535b37962.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+Benchmarking the make/unmake version
+
+15732@DESKTOP-GGJLT66 /cygdrive/c/Programming/Rust/chess_engine
+$ cargo bench bench_perft
+   Compiling winapi v0.3.9
+   Compiling getrandom v0.2.2
+   Compiling libc v0.2.90
+   Compiling autocfg v1.0.1
+   Compiling memchr v2.3.4
+   Compiling cfg-if v1.0.0
+   Compiling unicode-width v0.1.8
+   Compiling regex-syntax v0.6.23
+   Compiling ppv-lite86 v0.2.10
+   Compiling encode_unicode v0.3.6
+   Compiling lazy_static v1.4.0
+   Compiling string_morph v0.1.0
+   Compiling number_prefix v0.3.0
+   Compiling zeroize v1.2.0
+   Compiling getopts v0.2.21
+   Compiling unicode_types v0.2.0
+   Compiling rand_core v0.6.2
+   Compiling num-traits v0.2.14
+   Compiling num-integer v0.1.44
+   Compiling aho-corasick v0.7.15
+   Compiling rand_chacha v0.3.0
+   Compiling rand v0.8.3
+   Compiling regex v1.4.5
+   Compiling terminal_size v0.1.16
+   Compiling remove_dir_all v0.5.3
+   Compiling time v0.1.44
+   Compiling ansi_term v0.11.0
+   Compiling console v0.14.1
+   Compiling tempfile v3.2.0
+   Compiling chrono v0.4.19
+   Compiling dialoguer v0.8.0
+   Compiling indicatif v0.15.0
+   Compiling matrix_display v1.0.0
+   Compiling chess_engine v0.1.0 (C:\Programming\Rust\chess_engine)
+    Finished bench [optimized] target(s) in 27.60s
+     Running unittests (target\release\deps\chess_engine-0727de5a98e369e6.exe)
+
+running 1 test
+test move_generator::tests::bench_perft                  ... bench: 312,235,080 ns/iter (+/- 11,087,836)
