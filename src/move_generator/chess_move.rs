@@ -1,15 +1,12 @@
 use crate::move_generator::*;
 
-//@todo : consider enum move types or moves with types
-// enum Move {
-//     Capture{piece: PieceType},
-//
-// }
-
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub enum MoveType {
     Move,
-    Castling{rook_from: Coordinate, rook_to: Coordinate},
+    Castling {
+        rook_from: Coordinate,
+        rook_to: Coordinate,
+    },
     EnPassant,
     Promotion(PieceType),
 }
@@ -24,6 +21,7 @@ pub struct Move {
     pub to: Coordinate,
     move_type: MoveType,
     pub captured: Option<PieceType>,
+    castling_rights_removed: CastlingRights,
     pub is_check: bool,     // @todo : set these in game when eval happens ?
     pub is_checkmate: bool, // @todo : set these in game when eval happens ?
 }
@@ -45,6 +43,7 @@ impl Move {
         piece: PieceType,
         move_type: MoveType,
         captured: Option<PieceType>,
+        castling_rights_removed: Option<CastlingRights>,
     ) -> Move {
         Move {
             piece,
@@ -52,9 +51,15 @@ impl Move {
             to,
             move_type,
             captured,
+            castling_rights_removed: castling_rights_removed
+                .map_or(CastlingRights::new(false, false), |r| r),
             is_check: false,
             is_checkmate: false,
         }
+    }
+
+    pub fn castling_rights_removed(&self) -> &CastlingRights {
+        &self.castling_rights_removed
     }
 
     pub fn move_type(&self) -> &MoveType {
@@ -76,10 +81,8 @@ impl Move {
             piece: PieceType::King,
             from,
             to,
-            move_type: MoveType::Castling {
-                rook_from,
-                rook_to,
-            },
+            move_type: MoveType::Castling { rook_from, rook_to },
+            castling_rights_removed: CastlingRights::new(true, true),
             captured: None,
             is_check: false,
             is_checkmate: false,
@@ -92,10 +95,8 @@ impl Move {
             piece: PieceType::King,
             from,
             to,
-            move_type: MoveType::Castling {
-                rook_from,
-                rook_to,
-            },
+            move_type: MoveType::Castling { rook_from, rook_to },
+            castling_rights_removed: CastlingRights::new(true, true),
             captured: None,
             is_check: false,
             is_checkmate: false,
@@ -103,18 +104,14 @@ impl Move {
     }
     pub fn is_king_side_castle(&self) -> bool {
         match self.move_type {
-            MoveType::Castling {rook_from, rook_to} => {
-                rook_from.x() == 8
-            },
-            _ => false
+            MoveType::Castling { rook_from, rook_to } => rook_from.x() == 8,
+            _ => false,
         }
     }
     pub fn is_queen_side_castle(&self) -> bool {
         match self.move_type {
-            MoveType::Castling {rook_from, rook_to} => {
-                rook_from.x() == 1
-            },
-            _ => false
+            MoveType::Castling { rook_from, rook_to } => rook_from.x() == 1,
+            _ => false,
         }
     }
     pub fn king_side_castle_coordinates(

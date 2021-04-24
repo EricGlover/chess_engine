@@ -1,6 +1,6 @@
 use crate::board::*;
-use std::fmt::{Error, Formatter};
 use std::fmt;
+use std::fmt::{Error, Formatter};
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub struct Piece {

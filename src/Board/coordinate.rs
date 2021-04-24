@@ -1,5 +1,5 @@
-use std::fmt::{Error, Formatter};
 use std::fmt;
+use std::fmt::{Error, Formatter};
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub struct Coordinate {
@@ -93,7 +93,6 @@ impl fmt::Display for Coordinate {
         write!(f, "({}, {})", self.x, self.y)
     }
 }
-
 
 #[cfg(test)]
 mod tests {

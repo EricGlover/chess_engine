@@ -345,6 +345,16 @@ mod tests {
         let rook = Piece::new(Color::White, PieceType::Rook, Some(a1.clone()));
         let pawn = Piece::new(Color::White, PieceType::Pawn, Some(a2.clone()));
         assert!(m.is_none());
-        assert_eq!(m2, Move::new(a2.clone(), a4.clone(), pawn.piece_type, MoveType::Move,None));
+        assert_eq!(
+            m2,
+            Move::new(
+                a2.clone(),
+                a4.clone(),
+                pawn.piece_type,
+                MoveType::Move,
+                None,
+                None
+            )
+        );
     }
 }

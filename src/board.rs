@@ -1,19 +1,19 @@
-mod piece;
-mod square;
 mod castling_rights;
 mod color;
-mod piece_type;
 mod coordinate;
+mod piece;
+mod piece_type;
+mod square;
 
 use crate::board_console_printer::print_board;
 use crate::fen_reader;
-use crate::move_generator::{gen_pseudo_legal_moves, MoveType, Move};
-pub use piece::Piece;
-pub use square::Square;
+use crate::move_generator::{gen_pseudo_legal_moves, Move, MoveType};
 pub use castling_rights::CastlingRights;
 pub use color::Color;
-pub use piece_type::PieceType;
 pub use coordinate::*;
+pub use piece::Piece;
+pub use piece_type::PieceType;
+pub use square::Square;
 use std::fmt;
 use std::fmt::Formatter;
 
@@ -52,127 +52,8 @@ pub trait BoardTrait {
     fn get_kings(&self) -> Vec<&Piece>;
     fn get_pieces(&self, color: Color, piece_type: PieceType) -> Vec<&Piece>;
     fn get_all_pieces(&self, color: Color) -> Vec<&Piece>;
+    fn get_castling_rights_changes_if_piece_moves(&self, piece: &Piece) -> Option<CastlingRights>;
 }
-
-#[cfg(test)]
-mod test {
-    use crate::board::*;
-    use crate::fen_reader;
-    use crate::move_generator::gen_legal_moves;
-
-    fn assert_board_is_same(board: &Board, board_2: &Board) {
-        assert_eq!(
-            board.player_to_move(),
-            board_2.player_to_move(),
-            "same player_to_move"
-        );
-        assert_eq!(
-            board.white_castling_rights(),
-            board_2.white_castling_rights(),
-            "same white_castling_rights"
-        );
-        assert_eq!(
-            board.black_castling_rights(),
-            board_2.black_castling_rights(),
-            "same black_castling_rights"
-        );
-        assert_eq!(
-            board.previous_white_castling_rights, board_2.previous_white_castling_rights,
-            "same previous_white_castling_rights"
-        );
-        assert_eq!(
-            board.previous_black_castling_rights, board_2.previous_black_castling_rights,
-            "same previous_black_castling_rights"
-        );
-        assert_eq!(
-            board.en_passant_target(),
-            board_2.en_passant_target(),
-            "same en_passant_target"
-        );
-        // assert_eq!(board.half_move_clock(), board_2.half_move_clock(), "same half_move_clock");
-        assert_eq!(
-            board.full_move_number(),
-            board_2.full_move_number(),
-            "same full_move_number"
-        );
-
-        board
-            .squares
-            .iter()
-            .zip(board_2.squares.iter())
-            .for_each(|(row, row_2)| {
-                row.iter().zip(row_2.iter()).for_each(|(square, square_2)| {
-                    assert_eq!(square, square_2, "squares are the same");
-                })
-            });
-    }
-
-    #[test]
-    fn test_make_unmake() {
-        fn test_board_moves(board: Board) {
-            let mut board_2 = board._clone();
-            let moves = gen_legal_moves(&board_2, board.player_to_move);
-            moves.iter().for_each(|m| {
-                println!("making move {}", m);
-                println!("making move {:?}", m);
-                board_2.make_move_mut(m);
-                board_2.unmake_move_mut(m);
-                assert_board_is_same(&board, &board_2);
-                // assert_eq!(board, board_2, "board is back to what it was");
-            });
-        }
-        println!("testing initial board");
-        test_board_moves(fen_reader::make_initial_board());
-        println!("testing WHITE_IN_CHECK");
-        test_board_moves(fen_reader::make_board(fen_reader::WHITE_IN_CHECK));
-        println!("testing TEST_BOARD_1");
-        test_board_moves(fen_reader::make_board(fen_reader::TEST_BOARD_1));
-        println!("testing TEST_BOARD_2");
-        test_board_moves(fen_reader::make_board(fen_reader::TEST_BOARD_2));
-        println!("testing BLACK_IN_CHECK");
-        test_board_moves(fen_reader::make_board(fen_reader::BLACK_IN_CHECK));
-    }
-
-    #[test]
-    fn test_get_rank() {
-        let board = fen_reader::make_initial_board();
-        let rank = board.get_rank(1);
-        let square = rank.get(0);
-        assert!(square.is_some(), "there is a square at 1 1 ");
-        let at = Coordinate::new(1, 1);
-        assert_eq!(square.unwrap().coordinate(), &at, "at 1 1");
-    }
-
-    #[test]
-    fn test_get_pieces() {
-        let board = fen_reader::make_board(fen_reader::BLACK_IN_CHECK);
-        let pieces = board.get_pieces(Color::Black, PieceType::King);
-        assert_eq!(pieces.len(), 1, "there is one black king");
-        let found_black_king = pieces.get(0).unwrap();
-        let black_king = Piece::new(Color::Black, PieceType::King, Some(Coordinate::new(5, 8)));
-        assert_eq!(&&black_king, found_black_king);
-    }
-
-    #[test]
-    fn test_clone() {
-        let board = fen_reader::make_board(fen_reader::BLACK_IN_CHECK);
-        let cloned = board.clone();
-        // assert_eq!(board, cloned);
-    }
-
-    #[test]
-    fn test_get_files() {
-        let board = fen_reader::make_board(fen_reader::INITIAL_BOARD);
-        let files = board.get_files();
-        for (j, row) in files.iter().enumerate() {
-            for (i, s) in row.iter().enumerate() {
-                assert_eq!((i + 1) as u8, s.coordinate().y());
-                assert_eq!((j + 1) as u8, s.coordinate().x());
-            }
-        }
-    }
-}
-
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Board {
@@ -202,7 +83,7 @@ impl BoardTrait for Board {
             en_passant_target: self.en_passant_target.clone(),
             half_move_clock: self.half_move_clock,
             full_move_number: self.full_move_number,
-            squares: self.clone_squares()
+            squares: self.clone_squares(),
         })
     }
     fn player_to_move(&self) -> Color {
@@ -317,55 +198,43 @@ impl BoardTrait for Board {
         let mut moving_piece = removed.unwrap();
 
         match mov.move_type() {
-            MoveType::Castling {rook_from, rook_to} => {
-                // @todo : this doesn't really work , you want to be able to roll back multiple moves if needed,
-                // because if this is used for searching then it'll be doing that
-                match moving_piece.color {
-                    Color::White => {
-                        self.white_castling_rights = CastlingRights::new(false, false);
-                    }
-                    Color::Black => {
-                        self.black_castling_rights = CastlingRights::new(false, false);
-                    }
-                }
+            MoveType::Castling { rook_from, rook_to } => {
                 self.move_piece(rook_from, rook_to);
-            },
+            }
             // if it gets promoted, then switch it's type
             MoveType::Promotion(promoted_to) => {
                 moving_piece.piece_type = promoted_to.clone();
-            },
-            MoveType::EnPassant => {
+            }
+            MoveType::EnPassant => {}
+            MoveType::Move => {}
+        }
 
-            },
-            MoveType::Move => {
-
+        if !mov.castling_rights_removed().none() {
+            let removed = mov.castling_rights_removed();
+            if removed.king_side() {
+                match moving_piece.color {
+                    Color::White => {
+                        *self.white_castling_rights.king_side_mut() = false;
+                    },
+                    Color::Black => {
+                        *self.black_castling_rights.king_side_mut() = false;
+                    },
+                }
+            }
+            if removed.queen_side() {
+                match moving_piece.color {
+                    Color::White => {
+                        *self.white_castling_rights.queen_side_mut() = false;
+                    },
+                    Color::Black => {
+                        *self.black_castling_rights.queen_side_mut() = false;
+                    },
+                }
             }
         }
 
-        // // if it gets promoted, then switch it's type
-        // if let MoveType::Promotion(promoted_to) = mov.move_type() {
-        //     moving_piece.piece_type = promoted_to.clone();
-        // }
-
         // move the piece ( update the piece and square )
         self.place_piece(moving_piece, &mov.to);
-
-        // // castling
-        // if let MoveType::Castling {rook_from, rook_to} = mov.move_type() {
-        //     // @todo : this doesn't really work , you want to be able to roll back multiple moves if needed,
-        //     // because if this is used for searching then it'll be doing that
-        //     match moving_piece.color {
-        //         Color::White => {
-        //             self.white_castling_rights = CastlingRights::new(false, false);
-        //         }
-        //         Color::Black => {
-        //             self.black_castling_rights = CastlingRights::new(false, false);
-        //         }
-        //     }
-        //     self.move_piece(rook_from, rook_to);
-        // }
-
-        //@todo check castling rights
 
         // update move counter
         if moving_piece.color == Color::Black {
@@ -386,7 +255,6 @@ impl BoardTrait for Board {
         //     self.half_move_clock = 0;
         // }
 
-
         if mov.captured.is_some() {
             // replace piece
             let square = self.get_square_mut(&mov.to);
@@ -398,7 +266,7 @@ impl BoardTrait for Board {
         }
 
         match mov.move_type() {
-            MoveType::Castling {rook_from, rook_to} => {
+            MoveType::Castling { rook_from, rook_to } => {
                 match moving_piece.color {
                     Color::White => {
                         self.white_castling_rights = self.previous_white_castling_rights.clone();
@@ -409,39 +277,39 @@ impl BoardTrait for Board {
                 }
                 // move the rook back
                 self.move_piece(rook_to, rook_from);
-            },
+            }
             // if it gets promoted, then switch it's type
             MoveType::Promotion(_) => {
                 let mut piece = self.remove_piece(&moving_piece);
                 piece.piece_type = PieceType::Pawn;
-            },
-            MoveType::EnPassant => {
-
-            },
-            MoveType::Move => {
-
             }
+            MoveType::EnPassant => {}
+            MoveType::Move => {}
         }
 
-        // if it was promoted, then switch it's type
-        // if mov.promoted_to.is_some() {
-        //     let mut piece = self.remove_piece(&moving_piece);
-        //     piece.piece_type = mov.promoted_to.unwrap().clone();
-        // }
-
-        // castling
-        // if mov.is_castling && mov.rook_from.is_some() && mov.rook_to.is_some() {
-        //     match moving_piece.color {
-        //         Color::White => {
-        //             self.white_castling_rights = self.previous_white_castling_rights.clone();
-        //         }
-        //         Color::Black => {
-        //             self.black_castling_rights = self.previous_black_castling_rights.clone();
-        //         }
-        //     }
-        //     // move the rook back
-        //     self.move_piece(mov.rook_to.as_ref().unwrap(), &mov.rook_from.unwrap());
-        // }
+        if !mov.castling_rights_removed().none() {
+            let removed = mov.castling_rights_removed();
+            if removed.king_side() {
+                match moving_piece.color {
+                    Color::White => {
+                        *self.white_castling_rights.king_side_mut() = true;
+                    },
+                    Color::Black => {
+                        *self.black_castling_rights.king_side_mut() = true;
+                    },
+                }
+            }
+            if removed.queen_side() {
+                match moving_piece.color {
+                    Color::White => {
+                        *self.white_castling_rights.queen_side_mut() = true;
+                    },
+                    Color::Black => {
+                        *self.black_castling_rights.queen_side_mut() = true;
+                    },
+                }
+            }
+        }
         // rollback the move counter
         if moving_piece.color == Color::Black {
             self.full_move_number = self.full_move_number - 1;
@@ -486,6 +354,32 @@ impl BoardTrait for Board {
 
     fn get_all_pieces(&self, color: Color) -> Vec<&Piece> {
         self.find_pieces(|&square| square.piece().map_or(false, |p| p.color == color))
+    }
+
+    fn get_castling_rights_changes_if_piece_moves(&self, piece: &Piece) -> Option<CastlingRights> {
+        let current = match piece.color {
+            Color::White => self.white_castling_rights,
+            Color::Black => self.black_castling_rights,
+        };
+        if current.none() {
+            None
+        } else if piece.piece_type == PieceType::King {
+            Some(CastlingRights::new(
+                current.king_side(),
+                current.queen_side(),
+            ))
+        } else if piece.piece_type == PieceType::Rook {
+            // which rook bro ?
+            if current.king_side() && piece.at().unwrap().x() == 8 {
+                Some(CastlingRights::new(true, false))
+            } else if current.queen_side() && piece.at().unwrap().x() == 1 {
+                Some(CastlingRights::new(false, true))
+            } else {
+                None
+            }
+        } else {
+            None
+        }
     }
 }
 
@@ -640,8 +534,7 @@ impl Board {
         return vec;
     }
     fn clone_squares(&self) -> Vec<Vec<Square>> {
-        self
-            .squares
+        self.squares
             .iter()
             .map(|row| {
                 row.iter()
@@ -666,7 +559,167 @@ impl Board {
             en_passant_target: self.en_passant_target.clone(),
             half_move_clock: self.half_move_clock,
             full_move_number: self.full_move_number,
-            squares: self.clone_squares()
+            squares: self.clone_squares(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::board::*;
+    use crate::fen_reader;
+    use crate::move_generator::gen_legal_moves;
+
+    fn assert_board_is_same(board: &Board, board_2: &Board) {
+        assert_eq!(
+            board.player_to_move(),
+            board_2.player_to_move(),
+            "same player_to_move"
+        );
+        assert_eq!(
+            board.white_castling_rights(),
+            board_2.white_castling_rights(),
+            "same white_castling_rights"
+        );
+        assert_eq!(
+            board.black_castling_rights(),
+            board_2.black_castling_rights(),
+            "same black_castling_rights"
+        );
+        assert_eq!(
+            board.previous_white_castling_rights, board_2.previous_white_castling_rights,
+            "same previous_white_castling_rights"
+        );
+        assert_eq!(
+            board.previous_black_castling_rights, board_2.previous_black_castling_rights,
+            "same previous_black_castling_rights"
+        );
+        assert_eq!(
+            board.en_passant_target(),
+            board_2.en_passant_target(),
+            "same en_passant_target"
+        );
+        // assert_eq!(board.half_move_clock(), board_2.half_move_clock(), "same half_move_clock");
+        assert_eq!(
+            board.full_move_number(),
+            board_2.full_move_number(),
+            "same full_move_number"
+        );
+
+        board
+            .squares
+            .iter()
+            .zip(board_2.squares.iter())
+            .for_each(|(row, row_2)| {
+                row.iter().zip(row_2.iter()).for_each(|(square, square_2)| {
+                    assert_eq!(square, square_2, "squares are the same");
+                })
+            });
+    }
+
+    #[test]
+    fn test_castling_rights() {
+        //@todo : use pgn for a comprehensive test
+        let mut board = fen_reader::make_board(
+            "r3kbnr/ppp2ppp/2n5/3ppb2/2BPP2q/2N5/PPP1NPPP/R1BQK2R w KQkq - 6 6",
+        );
+        let white_castles = Move::castle_king_side(Color::White);
+        let black_castles = Move::castle_queen_side(Color::Black);
+        let white_rook = board.get_piece_at(&Coordinate::new(8, 1)).unwrap();
+        let white_rook_move = Move::new(
+            white_rook.at().unwrap().clone(),
+            Coordinate::new(7, 1),
+            PieceType::Rook,
+            MoveType::Move,
+            None,
+            board.get_castling_rights_changes_if_piece_moves(white_rook),
+        );
+
+        // if we castle rights be gone
+        // white
+        let old_rights = board.white_castling_rights;
+        board.make_move_mut(&white_castles);
+        assert!(board.white_castling_rights.none());
+        board.unmake_move_mut(&white_castles);
+        assert!(board.white_castling_rights.both());
+
+        // black
+        let old_rights = board.black_castling_rights;
+        board.make_move_mut(&black_castles);
+        assert!(board.black_castling_rights.none());
+        board.unmake_move_mut(&black_castles);
+        assert!(board.black_castling_rights.both());
+
+        // if we move a rook we can't use it to castle
+        let old_rights = board.white_castling_rights;
+        board.make_move_mut(&white_rook_move);
+        assert_eq!(board.white_castling_rights, CastlingRights::new(false, true));
+        board.unmake_move_mut(&white_rook_move);
+        assert!(board.white_castling_rights.both());
+    }
+
+    #[test]
+    fn test_make_unmake() {
+        fn test_board_moves(board: Board) {
+            let mut board_2 = board._clone();
+            let moves = gen_legal_moves(&board_2, board.player_to_move);
+            moves.iter().for_each(|m| {
+                println!("making move {}", m);
+                println!("making move {:?}", m);
+                board_2.make_move_mut(m);
+                board_2.unmake_move_mut(m);
+                assert_board_is_same(&board, &board_2);
+                // assert_eq!(board, board_2, "board is back to what it was");
+            });
+        }
+        println!("testing initial board");
+        test_board_moves(fen_reader::make_initial_board());
+        println!("testing WHITE_IN_CHECK");
+        test_board_moves(fen_reader::make_board(fen_reader::WHITE_IN_CHECK));
+        println!("testing TEST_BOARD_1");
+        test_board_moves(fen_reader::make_board(fen_reader::TEST_BOARD_1));
+        println!("testing TEST_BOARD_2");
+        test_board_moves(fen_reader::make_board(fen_reader::TEST_BOARD_2));
+        println!("testing BLACK_IN_CHECK");
+        test_board_moves(fen_reader::make_board(fen_reader::BLACK_IN_CHECK));
+    }
+
+    #[test]
+    fn test_get_rank() {
+        let board = fen_reader::make_initial_board();
+        let rank = board.get_rank(1);
+        let square = rank.get(0);
+        assert!(square.is_some(), "there is a square at 1 1 ");
+        let at = Coordinate::new(1, 1);
+        assert_eq!(square.unwrap().coordinate(), &at, "at 1 1");
+    }
+
+    #[test]
+    fn test_get_pieces() {
+        let board = fen_reader::make_board(fen_reader::BLACK_IN_CHECK);
+        let pieces = board.get_pieces(Color::Black, PieceType::King);
+        assert_eq!(pieces.len(), 1, "there is one black king");
+        let found_black_king = pieces.get(0).unwrap();
+        let black_king = Piece::new(Color::Black, PieceType::King, Some(Coordinate::new(5, 8)));
+        assert_eq!(&&black_king, found_black_king);
+    }
+
+    #[test]
+    fn test_clone() {
+        let board = fen_reader::make_board(fen_reader::BLACK_IN_CHECK);
+        let cloned = board.clone();
+        // assert_eq!(board, cloned);
+    }
+
+    #[test]
+    fn test_get_files() {
+        let board = fen_reader::make_board(fen_reader::INITIAL_BOARD);
+        let files = board.get_files();
+        for (j, row) in files.iter().enumerate() {
+            for (i, s) in row.iter().enumerate() {
+                assert_eq!((i + 1) as u8, s.coordinate().y());
+                assert_eq!((j + 1) as u8, s.coordinate().x());
+            }
         }
     }
 }
