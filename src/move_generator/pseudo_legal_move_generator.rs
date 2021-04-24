@@ -19,17 +19,20 @@ mod tests {
         // thread 'main' panicked at 'trying to remove a piece that isn't there.', src\board.rs:255:13
         // stack backtrace:
         // note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
-        let board = fen_reader::make_board("rnb1kbnr/pppp1p1p/4pp2/8/8/3BP3/PPPP1PPP/RNB1K1NR b KQkq - 3 4");
+        let board = fen_reader::make_board(
+            "rnb1kbnr/pppp1p1p/4pp2/8/8/3BP3/PPPP1PPP/RNB1K1NR b KQkq - 3 4",
+        );
         let king = board.get_pieces(Color::White, PieceType::King).remove(0);
         assert_eq!(king.piece_type, PieceType::King);
         let king_moves = gen_king_moves(&board, &king);
-        let has_castling_moves = king_moves.iter().any(|m| {
-            m.is_castling
-        });
+        let has_castling_moves = king_moves.iter().any(|m| m.is_castling);
         king_moves.iter().for_each(|m| {
             println!("{:?}", m.to);
         });
-        assert!(!has_castling_moves, "there is no valid castling move for white");
+        assert!(
+            !has_castling_moves,
+            "there is no valid castling move for white"
+        );
         println!("{:?}", king_moves);
         assert!(false);
     }

@@ -9,10 +9,9 @@ use std::time::{Duration, Instant};
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::fen_reader::{make_initial_board, make_board};
-    use std::time::{Duration, Instant};
+    use crate::fen_reader::{make_board, make_initial_board};
     use ai;
-
+    use std::time::{Duration, Instant};
 
     #[test]
     fn bug_alpha_beta() {
@@ -300,12 +299,17 @@ impl ai {
         if best_move.is_some() {
             let best_move = best_move.unwrap();
             let all_moves = gen_legal_moves(&board, self.color);
-            let best_move_is_legal = all_moves.iter().any(|m| {
-                m == &best_move
-            });
+            let best_move_is_legal = all_moves.iter().any(|m| m == &best_move);
             if !best_move_is_legal {
                 println!("best move \n{}", best_move);
-                println!("all moves \n{}", all_moves.iter().map(|m| m.to_string()).collect::<Vec<String>>().join("\n"));
+                println!(
+                    "all moves \n{}",
+                    all_moves
+                        .iter()
+                        .map(|m| m.to_string())
+                        .collect::<Vec<String>>()
+                        .join("\n")
+                );
                 panic!("AI SEARCH TRYING ILLEGAL MOVE");
             }
         }

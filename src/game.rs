@@ -1,4 +1,3 @@
-use chrono::{Local, DateTime};
 use crate::ai;
 use crate::ai::evaluator::evaluate;
 use crate::board::*;
@@ -8,6 +7,7 @@ use crate::chess_notation;
 use crate::chess_notation::pgn::make_move_log;
 use crate::fen_reader;
 use crate::move_generator::Move;
+use chrono::{DateTime, Local};
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;

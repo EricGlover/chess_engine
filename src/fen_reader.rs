@@ -217,7 +217,6 @@ mod tests {
         println!("{}", fen_result.as_str());
     }
 
-
     #[test]
     fn test_initial_board() {
         let board = make_board(INITIAL_BOARD);
