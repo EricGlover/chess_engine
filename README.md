@@ -28,9 +28,19 @@ I do have a FEN reader that works that you can probably use btw, that thing is a
 - Test / benchmark
   https://crates.io/crates/chess
 - Try bit boards ?
+- Threads for searching 
 
 - DONE: Implement Alpha - Beta Searching
 - Fully Implement algebraic notation parsing 
 - Print pgn files of the engine playing itself for the lolz
 - Bit boards
 - do more /#[bench] benchmarking 
+
+
+## changes
+Piece Refs
+Pins ^
+Moves ^
+Square returns Piece with remove
+Square no longer uses public fields 
+Move needs fields for unmake

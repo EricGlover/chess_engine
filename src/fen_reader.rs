@@ -55,7 +55,7 @@ fn piece_to_fen(piece: &Piece) -> String {
 // @todo : print timestamp+output.txt for games
 // @todo : run ai v ai
 // @todo : use fen to debug the board.make_move for the king castling bug
-fn make_fen_pieces(board: &Board) -> String {
+fn make_fen_pieces(board: &dyn BoardTrait) -> String {
     (1u8..9)
         .into_iter()
         .map(|i| {
@@ -63,12 +63,12 @@ fn make_fen_pieces(board: &Board) -> String {
             let mut empty = 0;
             board.get_rank(i).iter().for_each(|&square| {
                 // insert empty
-                if empty > 0 && square.piece.is_some() {
+                if empty > 0 && square.piece().is_some() {
                     pieces.push(empty.to_string());
                     empty = 0;
                 }
-                if square.piece.is_some() {
-                    pieces.push(piece_to_fen(&square.piece.unwrap()));
+                if square.piece().is_some() {
+                    pieces.push(piece_to_fen(square.piece().unwrap()));
                 } else {
                     empty = empty + 1;
                 }
@@ -85,9 +85,9 @@ fn make_fen_pieces(board: &Board) -> String {
         .join("/")
 }
 
-pub fn make_fen(board: &Board) -> String {
+pub fn make_fen(board: &dyn BoardTrait) -> String {
     // piece location string
-    let piece_string = make_fen_pieces(&board);
+    let piece_string = make_fen_pieces(board);
     // player to move
     let to_move = board.player_to_move().to_char();
     // castling rights
@@ -133,7 +133,7 @@ fn read_piece(char: &str) -> Piece {
     Piece::new(color, piece_type, None)
 }
 
-fn read_pieces(piece_string: &str, board: &mut Board) {
+fn read_pieces(piece_string: &str, board: &mut dyn BoardTrait) {
     // tokenize by row
     let piece_chars = "PNBRQKpnbrqk";
     let numbers = "123456789";
@@ -148,7 +148,7 @@ fn read_pieces(piece_string: &str, board: &mut Board) {
                 x += char.to_string().parse::<u8>().unwrap();
             } else if piece_chars.contains(char) {
                 let piece = read_piece(char.to_string().as_str());
-                board.place_piece(piece, coordinate);
+                board.place_piece(piece, &coordinate);
                 x += 1;
             } else {
                 panic!("{} char not recognized", char);
@@ -177,8 +177,8 @@ pub fn make_board(fen_string: &str) -> Board {
     } else {
         Some(Coordinate::from(parts[3]))
     };
-    let half_move_clock = parts[4].parse::<u8>().unwrap();
-    let full_move_number = parts[5].parse::<u8>().unwrap();
+    let half_move_clock = parts[4].parse::<u32>().unwrap();
+    let full_move_number = parts[5].parse::<u32>().unwrap();
 
     let mut board = Board::make_board(
         player_to_move,
@@ -230,7 +230,7 @@ mod tests {
         for piece in white_pieces.iter() {
             match piece.piece_type {
                 PieceType::King => {
-                    assert_eq!(piece.at().unwrap(), Coordinate::new(5, 1));
+                    assert_eq!(piece.at().unwrap(), &Coordinate::new(5, 1));
                 }
                 PieceType::Queen => {}
                 PieceType::Bishop => {}
@@ -244,7 +244,7 @@ mod tests {
     #[test]
     fn test_board_2() {
         let board = make_board(TEST_BOARD_2);
-        fn has_piece(board: &Board, at: &Coordinate) -> bool {
+        fn has_piece(board: &BoardTrait, at: &Coordinate) -> bool {
             board.has_piece(at)
         }
         // board_console_printer::print_board(&board);

@@ -1,7 +1,6 @@
 use crate::ai;
 use crate::ai::evaluator::evaluate;
 use crate::board::*;
-use crate::board::{Board, Coordinate};
 use crate::board_console_printer::print_board;
 use crate::chess_notation;
 use crate::chess_notation::pgn::make_move_log;
@@ -12,6 +11,12 @@ use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::path::Path;
+
+pub struct Player {
+    time_used: u16,      // milliseconds
+    time_remaining: u16, // milliseconds
+    name: String,
+}
 
 pub struct Game {
     board: Board,
@@ -59,14 +64,19 @@ impl Game {
     }
 
     fn ai1_make_move(&mut self) {
-        println!("{} to move", self.ai.color());
-        print_board(&self.board);
-
-        let m = self.ai.make_move(&self.board, None).unwrap();
-        let log = make_move_log(&m, &self.board);
-        println!("{} moves \n{}", self.ai.color(), log);
-        self.moves.push(log);
-        self.board.make_move_mut(&m);
+        {
+            println!("{} to move", self.ai.color());
+            print_board(&self.board);
+        }
+        {
+            let m = self.ai.make_move(&self.board, None).unwrap();
+            // let log = make_move_log(&m, &self.board);
+            // println!("{} moves \n{}", self.ai.color(), log);
+            // self.moves.push(log);
+            {
+                self.board.make_move_mut(&m);
+            }
+        }
     }
     fn ai2_make_move(&mut self) {
         println!("{} to move", self.ai2.color());
@@ -133,7 +143,7 @@ impl Game {
 
             print_board(&self.board);
             // black moves now
-            let m = self.ai.make_move(&self.board, None).unwrap();
+            let m = self.ai.make_move(&mut self.board, None).unwrap();
             let log = make_move_log(&m, &self.board);
             println!("move = \n{}", log);
             self.moves.push(log);

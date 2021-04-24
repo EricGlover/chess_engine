@@ -5,12 +5,9 @@ mod pseudo_legal_move_generator;
 
 use crate::board::*;
 use crate::board_console_printer::print_board;
-use crate::fen_reader;
-use crate::fen_reader::make_board;
-#[cfg(test)]
-use crate::fen_reader::make_initial_board;
 use crate::move_generator::path::*;
 use crate::move_generator::pseudo_legal_move_generator::*;
+use std::borrow::Borrow;
 use std::fmt;
 use std::fmt::Formatter;
 
@@ -21,13 +18,35 @@ use std::fmt::Formatter;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ai::ai;
+    use crate::ai::{ai, AiSearch};
     use test::Bencher;
+    use crate::fen_reader;
+    use crate::fen_reader::make_board;
+    use crate::fen_reader::make_initial_board;
+
+    #[bench]
+    fn bench_perft(b: &mut Bencher) {
+        let board = fen_reader::make_initial_board();
+        let mut ai = ai::new_with_search(Color::White, AiSearch::Minimax);
+        b.iter(|| {
+            // ai.make_move(&board, Some(0));
+            // ai.make_move(&board, Some(1));
+            // ai.make_move(&board, Some(2));
+            ai.make_move(&board, Some(3));
+            // ai.make_move(&board, Some(4));
+            // ai.make_move(&board, Some(5));
+        })
+    }
+
+    #[test]
+    fn test_gen_pseudo_legal_moves() {
+
+    }
 
     #[test]
     fn perft_initial_position() {
         let board = fen_reader::make_initial_board();
-        let mut ai = ai::new(Color::White);
+        let mut ai = ai::new_with_search(Color::White, AiSearch::Minimax);
         ai.make_move(&board, Some(0));
         assert_eq!(ai.minimax_calls(), 1, "1 node visited at depth 0");
         ai.make_move(&board, Some(1));
@@ -36,18 +55,33 @@ mod tests {
         assert_eq!(ai.minimax_calls(), 400, "400 nodes visited at depth 2");
         ai.make_move(&board, Some(3));
         assert_eq!(ai.minimax_calls(), 8902, "8902 nodes visited at depth 3");
-        ai.make_move(&board, Some(4));
-        assert_eq!(
-            ai.minimax_calls(),
-            197281,
-            "197281 nodes visited at depth 4"
-        );
-        ai.make_move(&board, Some(5));
-        assert_eq!(
-            ai.minimax_calls(),
-            4865609,
-            "4865609 nodes visited at depth 5"
-        );
+        // ai.make_move(&board, Some(4));
+        // assert_eq!(
+        //     ai.minimax_calls(),
+        //     197281,
+        //     "197281 nodes visited at depth 4"
+        // );
+        // ai.make_move(&board, Some(5));
+        // assert_eq!(
+        //     ai.minimax_calls(),
+        //     4865609,
+        //     "4865609 nodes visited at depth 5"
+        // );
+    }
+
+    #[test]
+    fn test_in_check() {
+        let board = fen_reader::make_board(fen_reader::BLACK_IN_CHECK);
+        let checks = get_checks(&board, Color::Black);
+        assert!(checks.len() > 0, "black is in check");
+        let checks = get_checks(&board, Color::White);
+        assert!(checks.len() == 0, "white is not in check");
+
+        let board = fen_reader::make_board(fen_reader::WHITE_IN_CHECK);
+        let checks = get_checks(&board, Color::Black);
+        assert!(checks.len() == 0, "black is not in check");
+        let checks = get_checks(&board, Color::White);
+        assert!(checks.len() > 0, "white is in check");
     }
 
     #[test]
@@ -58,21 +92,51 @@ mod tests {
         // knight interpose
         let knight = board.get_piece_at(&Coordinate::new(2, 8)).unwrap();
         let knight_at = knight.at().unwrap();
-        moves.push(Move::new(knight_at, Coordinate::new(4, 7), knight, false));
-        moves.push(Move::new(knight_at, Coordinate::new(3, 6), knight, false));
+        moves.push(Move::new(
+            knight_at.clone(),
+            Coordinate::new(4, 7),
+            knight.piece_type,
+            None,
+        ));
+        moves.push(Move::new(
+            knight_at.clone(),
+            Coordinate::new(3, 6),
+            knight.piece_type,
+            None,
+        ));
         // bishop interpose
         let bishop = board.get_piece_at(&Coordinate::new(3, 8)).unwrap();
         let bishop_at = bishop.at().unwrap();
-        moves.push(Move::new(bishop_at, bishop_at.add(1, -1), bishop, false));
+        moves.push(Move::new(
+            bishop_at.clone(),
+            bishop_at.add(1, -1),
+            bishop.piece_type,
+            None,
+        ));
         // queen captures
         let queen = board.get_piece_at(&Coordinate::new(1, 4)).unwrap();
         let queen_at = queen.at().unwrap();
-        moves.push(Move::new(queen_at, queen_at.add(1, 1), queen, true));
+        moves.push(Move::new(
+            queen_at.clone(),
+            queen_at.add(1, 1),
+            queen.piece_type,
+            Some(PieceType::Queen),
+        ));
         // king move left one, right one
         let king = board.get_piece_at(&Coordinate::new(5, 8)).unwrap();
         let king_at = king.at().unwrap();
-        moves.push(Move::new(king_at, king_at.add(-1, 0), king, false));
-        moves.push(Move::new(king_at, king_at.add(1, 0), king, false));
+        moves.push(Move::new(
+            king_at.clone(),
+            king_at.add(-1, 0),
+            king.piece_type,
+            None,
+        ));
+        moves.push(Move::new(
+            king_at.clone(),
+            king_at.add(1, 0),
+            king.piece_type,
+            None,
+        ));
 
         let checks = get_checks(&board, Color::Black);
         let possible_moves = gen_pseudo_legal_moves(&board, Color::Black);
@@ -122,7 +186,7 @@ mod tests {
         assert_eq!(piece.color, Color::Black, "piece is black");
         assert_eq!(
             piece.at().unwrap(),
-            Coordinate::new(2, 4),
+            &Coordinate::new(2, 4),
             " piece is at 2, 4"
         );
         assert_eq!(piece.piece_type, PieceType::Bishop, "piece is a bishop");
@@ -165,6 +229,13 @@ mod tests {
         // am I pinned if you're pinned ?
         let pinned_piece_attacks_kings =
             "rnb1k1nr/ppp2qpp/8/B1b1p2Q/3p4/1K2P2P/PPP2PP1/RN3B1R w kq - 0 17";
+    }
+
+    #[test]
+    fn test_get_checks() {
+        let board = fen_reader::make_board(
+            "rnb1kbnr/pppp1p1p/4pp2/8/8/3BP3/PPPP1PPP/RNB1K1NR b KQkq - 1 4",
+        );
     }
 
     #[test]
@@ -227,39 +298,79 @@ mod tests {
 }
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
+pub struct MoveLog {
+    pub piece_type: PieceType,
+    pub from: Coordinate,
+    pub to: Coordinate,
+    pub promoted_to: Option<PieceType>,
+    // pub captured: PieceType,
+    // pub is_check : bool,
+    // pub is_checkmate: bool,
+    // pub is_king_side_castle: bool,
+    // pub is_queen_side_castle: bool,
+}
+
+impl MoveLog {
+    pub fn new(m: &Move) -> MoveLog {
+        MoveLog {
+            piece_type: m.piece,
+            from: m.from.clone(),
+            to: m.to.clone(),
+            promoted_to: m.promoted_to.clone(),
+        }
+    }
+}
+
+enum MoveType {
+    Move,
+    Capture,
+    Castling,
+    EnPassant,
+    Promotion,
+}
+
+// @todo: maybe consider adding the algebraic notation for this move (the pgn)
+// @todo : add old castling rights to moves ?
+// @todo : add all the info needed for the unmake function , consider this a two-way change object
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub struct Move {
-    pub piece: Piece,
+    pub piece: PieceType,
     pub from: Coordinate,
     pub to: Coordinate,
     pub promoted_to: Option<PieceType>, // pawn promotion
-    pub is_capture: bool,
+    pub captured: Option<PieceType>,
     pub is_castling: bool,
     pub is_check: bool,     // @todo : set these in game when eval happens ?
     pub is_checkmate: bool, // @todo : set these in game when eval happens ?
-    pub rook: Option<Piece>,
+    pub rook: Option<PieceType>,
     pub rook_from: Option<Coordinate>,
     pub rook_to: Option<Coordinate>,
 }
 
 impl fmt::Display for Move {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(
             f,
             "{} moving from {} to {} ",
-            self.piece.piece_type, self.from, self.to
+            self.piece, self.from, self.to
         )
     }
 }
 
 impl Move {
-    pub fn new(from: Coordinate, to: Coordinate, piece: Piece, is_capture: bool) -> Move {
+    pub fn new(
+        from: Coordinate,
+        to: Coordinate,
+        piece: PieceType,
+        captured: Option<PieceType>,
+    ) -> Move {
         Move {
             piece,
             from,
             to,
             promoted_to: None,
             is_castling: false,
-            is_capture,
+            captured,
             rook: None,
             rook_from: None,
             rook_to: None,
@@ -271,9 +382,9 @@ impl Move {
     pub fn pawn_promotion(
         from: Coordinate,
         to: Coordinate,
-        piece: Piece,
+        piece: PieceType,
         promoted_type: PieceType,
-        is_capture: bool,
+        captured: Option<PieceType>,
     ) -> Move {
         Move {
             piece,
@@ -281,7 +392,7 @@ impl Move {
             to,
             promoted_to: Some(promoted_type),
             is_castling: false,
-            is_capture,
+            captured,
             rook: None,
             rook_from: None,
             rook_to: None,
@@ -290,38 +401,42 @@ impl Move {
         }
     }
 
+    // @todo: static lifetime is suss
     pub fn print_moves(moves: &Vec<Move>) {
-        moves.iter().for_each(|m| println!("{}", m))
+        moves.iter().for_each(|m| {
+            let str = m.to_string();
+            println!("{}", str.as_str());
+        })
     }
 
-    pub fn castle_king_side(color: Color) -> Move {
-        let (from, to) = Move::king_side_castle_coordinates(color, PieceType::King);
-        let (rook_from, rook_to) = Move::king_side_castle_coordinates(color, PieceType::Rook);
+    pub fn castle_king_side<'a>(king: &'a Piece, rook: &'a Piece) -> Move {
+        let (from, to) = Move::king_side_castle_coordinates(king.color, PieceType::King);
+        let (rook_from, rook_to) = Move::king_side_castle_coordinates(king.color, PieceType::Rook);
         Move {
-            piece: Piece::new(color, PieceType::King, Some(from.clone())),
+            piece: PieceType::King,
             from,
             to,
             promoted_to: None,
             is_castling: true,
-            is_capture: false,
-            rook: Some(Piece::new(color, PieceType::Rook, Some(rook_from.clone()))),
+            captured: None,
+            rook: Some(PieceType::Rook),
             rook_from: Some(rook_from),
             rook_to: Some(rook_to),
             is_check: false,
             is_checkmate: false,
         }
     }
-    pub fn castle_queen_side(color: Color) -> Move {
-        let (from, to) = Move::queen_side_castle_coordinates(color, PieceType::King);
-        let (rook_from, rook_to) = Move::queen_side_castle_coordinates(color, PieceType::Rook);
+    pub fn castle_queen_side<'a>(king: &'a Piece, rook: &'a Piece) -> Move {
+        let (from, to) = Move::queen_side_castle_coordinates(king.color, PieceType::King);
+        let (rook_from, rook_to) = Move::queen_side_castle_coordinates(king.color, PieceType::Rook);
         Move {
-            piece: Piece::new(color, PieceType::King, Some(from.clone())),
+            piece: PieceType::King,
             from,
             to,
             promoted_to: None,
             is_castling: true,
-            is_capture: false,
-            rook: Some(Piece::new(color, PieceType::Rook, Some(rook_from.clone()))),
+            captured: None,
+            rook: Some(PieceType::Rook),
             rook_from: Some(rook_from),
             rook_to: Some(rook_to),
             is_check: false,
@@ -377,7 +492,7 @@ impl Move {
 pub fn print_move(m: &Move) {
     println!(
         "{:?} moving from ({}, {}) to ({},{}) ",
-        m.piece.piece_type,
+        m.piece,
         m.from.x(),
         m.from.y(),
         m.to.x(),
@@ -392,21 +507,21 @@ pub fn print_move_list(moves: &Vec<&Move>) {
 }
 
 #[derive(Eq, PartialEq, Debug)]
-struct Pin {
-    pub pinned_piece: Piece,
-    pub pinned_by: Piece,
-    pub pinned_to: Piece,
+struct Pin<'a> {
+    pub pinned_piece: &'a Piece,
+    pub pinned_by: &'a Piece,
+    pub pinned_to: &'a Piece,
     pub can_move_to: Vec<Coordinate>,
 }
 
 // ignores blocking pieces
 // don't ignore same color pieces that are in the way
-fn find_attacking_pieces(
-    board: &Board,
+fn find_attacking_pieces<'a>(
+    board: &'a dyn BoardTrait,
     attackers_color: Color,
     attack_coordinate: &Coordinate,
-) -> Vec<Piece> {
-    let mut attacking_pieces: Vec<Piece> = vec![];
+) -> Vec<&'a Piece> {
+    let mut attacking_pieces: Vec<&Piece> = vec![];
     // how to make sure the pieces returned are unique ?
     // pieces can't attack the same square twice , so we're good
 
@@ -414,13 +529,14 @@ fn find_attacking_pieces(
     let moves = gen_attack_vectors(board, attackers_color);
     for m in moves {
         if &m.to == attack_coordinate {
-            attacking_pieces.push(m.piece.clone());
+            let piece = board.get_piece_at(&m.from).unwrap();
+            attacking_pieces.push(piece);
         }
     }
     attacking_pieces
 }
 
-fn find_pinned_pieces(board: &Board, defender_color: Color) -> Vec<Pin> {
+fn find_pinned_pieces(board: &dyn BoardTrait, defender_color: Color) -> Vec<Pin> {
     let attacker_color = defender_color.opposite();
     //@todo generate legal? moves
 
@@ -455,7 +571,7 @@ fn find_pinned_pieces(board: &Board, defender_color: Color) -> Vec<Pin> {
             // remove the kings part of the path
             path.pop();
             // @todo: refactor this
-            let mut defenders: Vec<Piece> = vec![];
+            let mut defenders: Vec<&Piece> = vec![];
 
             for coordinate in path.iter() {
                 let piece = board.get_piece_at(coordinate);
@@ -466,7 +582,7 @@ fn find_pinned_pieces(board: &Board, defender_color: Color) -> Vec<Pin> {
                     if piece.color == attacker_color {
                         continue;
                     } else {
-                        defenders.push(piece.clone());
+                        defenders.push(piece);
                     }
                 }
             }
@@ -477,8 +593,8 @@ fn find_pinned_pieces(board: &Board, defender_color: Color) -> Vec<Pin> {
                 let pinned_piece = defenders.pop().unwrap();
                 let pin = Pin {
                     pinned_piece,
-                    pinned_by: attacking_piece.clone(),
-                    pinned_to: king.clone(),
+                    pinned_by: attacking_piece,
+                    pinned_to: king,
                     can_move_to,
                 };
                 pins.push(pin);
@@ -490,9 +606,11 @@ fn find_pinned_pieces(board: &Board, defender_color: Color) -> Vec<Pin> {
 
 // @todo : sort this nonsense out
 // @todo: consider using a board_get_all_pieces_ref instead of cloning the pieces
+//@todo : find_checks_from_moves()
+// @todo: piece lists for fast lookups
 
 // get checks against color
-pub fn get_checks(board: &Board, color_being_checked: Color) -> Vec<Move> {
+pub fn get_checks(board: &dyn BoardTrait, color_being_checked: Color) -> Vec<Move> {
     let moves = gen_pseudo_legal_moves(board, color_being_checked.opposite());
     let king_pieces = board.get_pieces(color_being_checked, PieceType::King);
     if king_pieces.len() == 0 {
@@ -500,17 +618,31 @@ pub fn get_checks(board: &Board, color_being_checked: Color) -> Vec<Move> {
     }
     let king = king_pieces.get(0).unwrap();
     let at = king.at().unwrap();
-    moves.into_iter().filter(|m| m.to == at).collect()
+    moves.into_iter().filter(|m| &m.to == at).collect()
 }
 
-// fn find_moves_to_resolve_check<'a>(board: &Board, checks: &Vec<Move>, possible_moves: &'a Vec<Move>) -> Vec<&'a Move> {
+fn find_checks_from_moves<'a>(
+    board: &dyn BoardTrait,
+    moves: &'a Vec<Move>,
+    color_being_checked: Color,
+) -> Vec<&'a Move> {
+    let king_pieces = board.get_pieces(color_being_checked, PieceType::King);
+    if king_pieces.len() == 0 {
+        return vec![];
+    }
+    let king = king_pieces.get(0).unwrap();
+    let at = king.at().unwrap();
+    moves.into_iter().filter(|&m| &m.to == at).collect()
+}
+
+// fn find_moves_to_resolve_check<'a>(board: &dyn BoardTrait, checks: &Vec<Move>, possible_moves: &'a Vec<Move>) -> Vec<&'a Move> {
 // @todo: this doesn't work in so many ways.... :/
 fn find_moves_to_resolve_check(
-    board: &Board,
+    board: &dyn BoardTrait,
     checks: &Vec<Move>,
     possible_moves: &Vec<Move>,
 ) -> Vec<Move> {
-    let moves: Vec<Move> = possible_moves.iter().map(|m| m.clone()).collect();
+    let moves: Vec<Move> = possible_moves.iter().map(|&m| m.clone()).collect();
 
     // if no checks , BOOM problem is solved
     if checks.len() == 0 {
@@ -519,17 +651,20 @@ fn find_moves_to_resolve_check(
 
     // worry about the king fleeing into an attack from another piece later
     // @todo
-    fn king_safely_flees(board: &Board, m: &Move) -> bool {
-        if m.piece.piece_type != PieceType::King {
+    fn king_safely_flees(board: &dyn BoardTrait, m: &Move) -> bool {
+        let piece = board.get_piece_at(&m.from).unwrap();
+        if piece.piece_type != PieceType::King {
             return false;
         }
-        let new_board = board.make_move(m);
-        get_checks(&new_board, m.piece.color).len() == 0
+        let mut fresh_board = board.clone();
+        fresh_board.make_move_mut(m);
+        get_checks(&*fresh_board, piece.color).len() == 0
     }
     moves
         .into_iter()
         .filter(|m| {
             checks.iter().all(|check| {
+                let piece = board.get_piece_at(&m.from).unwrap();
                 let path = path::get_path_to(&check.from, &check.to)
                     .unwrap_or_else(|| panic!("illegal move"));
                 let interpose_path = &path[1..(path.len() - 1)];
@@ -537,7 +672,7 @@ fn find_moves_to_resolve_check(
                     interpose_path.iter().any(|coordinate| coordinate == &m.to);
                 let is_capture = check.from == m.to;
                 king_safely_flees(board, &m)
-                    || (is_interposing_move && m.piece.piece_type != PieceType::King)
+                    || (is_interposing_move && piece.piece_type != PieceType::King)
                     || is_capture
             })
         })
@@ -545,61 +680,80 @@ fn find_moves_to_resolve_check(
 }
 
 // @todo pass attacker moves so you only calculate it once
-pub fn gen_legal_moves(board: &Board, color: Color) -> Vec<Move> {
+pub fn gen_legal_moves(board: &dyn BoardTrait, color: Color) -> Vec<Move> {
     let moves = gen_pseudo_legal_moves(board, color);
 
     // if in check do any of these moves resolve it ?
-    // let enemy_moves = gen_attack_moves(board, color.opposite());
+    // let checks = find_checks_from_moves(board, &moves, color.opposite());
     let checks = get_checks(board, color);
     if checks.len() > 0 {
+        let mut new_board = board.clone();
         return moves
             .into_iter()
             .filter(|m| {
-                let new_board = board.make_move(m);
-                get_checks(&new_board, m.piece.color).len() == 0
+                if board.get_piece_at(&m.from).is_none() {
+                    print_board(board);
+                    println!("{:?}", m);
+                    panic!("attempting to move a piece that's not there");
+                }
+
+                let color = board.get_piece_at(&m.from).unwrap().color;
+                new_board.make_move_mut(m);
+                let has_checks = get_checks(&*new_board, color).len() == 0;
+                new_board.unmake_move_mut(m);
+                has_checks
             })
             .collect();
-        // return find_moves_to_resolve_check(board, &checks, &moves);
     } else {
         let pinned_pieces = find_pinned_pieces(board, color);
+
         fn is_pinned(piece: &Piece, pinned_pieces: &Vec<Pin>) -> bool {
-            pinned_pieces.iter().any(|p| &p.pinned_piece == piece)
+            pinned_pieces.iter().any(|p| p.pinned_piece == piece)
         }
-        fn get_pin<'a>(piece: &Piece, pinned_pieces: &'a Vec<Pin>) -> Option<&'a Pin> {
-            pinned_pieces.iter().find(|p| &p.pinned_piece == piece)
+        fn get_pin<'a, 'b>(piece: &'b Piece, pinned_pieces: &'a Vec<Pin>) -> Option<&'a Pin<'a>> {
+            pinned_pieces.iter().find(|p| p.pinned_piece == piece)
         }
+
         // if not in check, will this move expose my king ?
-        let filtered_moves: Vec<Move> = moves
+        moves
             .into_iter()
             .filter(|m| {
+                if board.get_piece_at(&m.from).is_none() {
+                    print_board(board);
+                    println!("{:?}", m);
+                    panic!("attempting to move a piece that's not there");
+                }
                 // is this piece pinned ?
-                if is_pinned(&m.piece, &pinned_pieces) {
-                    let pin = get_pin(&m.piece, &pinned_pieces).unwrap();
+                let piece = board.get_piece_at(&m.from).unwrap();
+                if is_pinned(&piece, &pinned_pieces) {
+                    let pin = get_pin(&piece, &pinned_pieces).unwrap();
                     // check if the pinned piece can move here
                     return pin.can_move_to.iter().any(|c| c == &m.to);
                 }
                 true
             })
-            .collect();
-        return filtered_moves;
+            .collect()
     }
+    // add pgn notation
 }
 
 // ignores enemy captures
-pub fn gen_attack_vectors(board: &Board, color: Color) -> Vec<Move> {
-    let mut moves: Vec<Move> = Vec::new();
-    let pieces = board.get_all_pieces(color);
-    for piece in pieces.iter() {
-        let m = gen_vectors_for(board, piece);
-        moves.extend(m.into_iter());
-    }
-    return moves;
+pub fn gen_attack_vectors(board: &dyn BoardTrait, color: Color) -> Vec<Move> {
+    board
+        .get_all_pieces(color)
+        .into_iter()
+        .map(|piece| gen_vectors_for(board, piece))
+        .flatten()
+        .collect()
 }
 
-// change this to -> Vec<Coordinate>?
-//@todo: test
+
+
 // PSEUDO LEGAL MOVE GENERATION
-pub fn gen_pseudo_legal_moves(board: &Board, color: Color) -> Vec<Move> {
+// determines what moves the pieces can legally do
+// does not check whether the player can legally do that move
+// for instance : no checking pins or checks , etc...
+pub fn gen_pseudo_legal_moves(board: &dyn BoardTrait, color: Color) -> Vec<Move> {
     board
         .get_all_pieces(color)
         .into_iter()

@@ -1,4 +1,5 @@
 use crate::board::*;
+use crate::chess_notation::pgn::make_move_log;
 use crate::fen_reader::make_board;
 #[cfg(test)]
 use crate::fen_reader::make_initial_board;
@@ -7,6 +8,7 @@ use crate::move_generator::Move;
 
 #[cfg(test)]
 mod tests {
+    use super::move_generation::*;
     use crate::board::Coordinate;
     use crate::board::*;
     use crate::fen_reader;
@@ -34,7 +36,7 @@ mod tests {
             "there is no valid castling move for white"
         );
         println!("{:?}", king_moves);
-        assert!(false);
+        assert_eq!(king_moves.len(), 3, "only three legal moves");
     }
 
     #[test]
@@ -46,8 +48,8 @@ mod tests {
         let test_move = Move::new(
             Coordinate::new(2, 5),
             Coordinate::new(4, 7),
-            white_queen,
-            true,
+            white_queen.piece_type,
+            Some(PieceType::King),
         );
         let moves = gen_queen_moves(&board, &white_queen);
         moves.iter().for_each(|m| println!("{}", m));
@@ -64,14 +66,14 @@ mod tests {
             Move::new(
                 Coordinate::new(1, 2),
                 Coordinate::new(1, 3),
-                pawn.clone(),
-                false,
+                pawn.piece_type,
+                None,
             ),
             Move::new(
                 Coordinate::new(1, 2),
                 Coordinate::new(1, 4),
-                pawn.clone(),
-                false,
+                pawn.piece_type,
+                None,
             ),
         ];
         assert!(move_list_eq(&moves, &correct_moves));
@@ -97,358 +99,391 @@ mod tests {
     }
 }
 
-pub fn gen_moves_for(board: &Board, piece: &Piece) -> Vec<Move> {
+pub fn gen_moves_for(board: &dyn BoardTrait, piece: &Piece) -> Vec<Move> {
     let moves = match piece.piece_type {
-        PieceType::King => gen_king_moves(board, piece),
-        PieceType::Queen => gen_queen_moves(board, piece),
-        PieceType::Bishop => gen_bishop_moves(board, piece),
-        PieceType::Knight => gen_knight_moves(board, piece),
-        PieceType::Rook => gen_rook_moves(board, piece),
-        PieceType::Pawn => gen_pawn_moves(board, piece),
+        PieceType::King => move_generation::gen_king_moves(board, piece),
+        PieceType::Queen => move_generation::gen_queen_moves(board, piece),
+        PieceType::Bishop => move_generation::gen_bishop_moves(board, piece),
+        PieceType::Knight => move_generation::gen_knight_moves(board, piece),
+        PieceType::Rook => move_generation::gen_rook_moves(board, piece),
+        PieceType::Pawn => move_generation::gen_pawn_moves(board, piece),
     };
     return moves;
 }
 
-pub fn gen_vectors_for(board: &Board, piece: &Piece) -> Vec<Move> {
+pub fn gen_vectors_for(board: &dyn BoardTrait, piece: &Piece) -> Vec<Move> {
     let moves = match piece.piece_type {
-        PieceType::King => gen_king_moves(board, piece),
-        PieceType::Queen => gen_queen_vector(board, piece),
-        PieceType::Bishop => gen_bishop_vector(board, piece),
-        PieceType::Knight => gen_knight_moves(board, piece),
-        PieceType::Rook => gen_rook_vector(board, piece),
-        PieceType::Pawn => gen_pawn_moves(board, piece),
+        PieceType::King => move_generation::gen_king_moves(board, piece),
+        PieceType::Queen => vector_generation::gen_queen_vector(board, piece),
+        PieceType::Bishop => vector_generation::gen_bishop_vector(board, piece),
+        PieceType::Knight => move_generation::gen_knight_moves(board, piece),
+        PieceType::Rook => vector_generation::gen_rook_vector(board, piece),
+        PieceType::Pawn => move_generation::gen_pawn_moves(board, piece),
     };
     return moves;
 }
 
-// @todo : test
-fn make_moves(path: Vec<Coordinate>, board: &Board, piece: &Piece) -> Vec<Move> {
-    let from = piece.at().unwrap();
-    let make_move =
-        |to: Coordinate| Move::new(from, to.clone(), piece.clone(), board.has_piece(&to));
-
-    let mut moves: Vec<Move> = Vec::new();
-
-    // for each path , ignore the first square, walk, if blocked by friendly piece stop
-    for (i, coordinate) in path.into_iter().enumerate() {
-        if 0usize == i {
-            continue;
-        }
-        // if square is off board || square has friendly price then stop
-        if !square_occupiable_by(board, &coordinate, piece.color) {
-            break;
-        }
-        moves.push(make_move(coordinate));
-        // if it wasn't empty then it had an enemy piece so stop
-        if !square_is_empty(board, &coordinate) {
-            break;
-        }
-    }
-    moves
+fn make_move_to(from: &Coordinate, to: &Coordinate, piece: &Piece, board: &dyn BoardTrait) -> Move {
+    Move::new(
+        from.clone(),
+        to.clone(),
+        piece.piece_type,
+        board.get_piece_at(&to).map(|p| p.piece_type.clone()),
+    )
 }
 
-fn make_vector_moves(path: Vec<Coordinate>, board: &Board, piece: &Piece) -> Vec<Move> {
-    let from = piece.at().unwrap();
-    let make_move =
-        |to: Coordinate| Move::new(from, to.clone(), piece.clone(), board.has_piece(&to));
-
-    let mut moves: Vec<Move> = Vec::new();
-
-    // for each path , ignore the first square, walk, if blocked by friendly piece stop
-    for (i, coordinate) in path.into_iter().enumerate() {
-        if 0usize == i {
-            continue;
-        }
-        if !square_occupiable_by(board, &coordinate, piece.color) {
-            break;
-        }
-        moves.push(make_move(coordinate))
-    }
-    moves
+fn make_move(x: i8, y: i8, from: &Coordinate, piece: &Piece, board: &dyn BoardTrait) -> Move {
+    let to = from.add(x, y);
+    Move::new(
+        from.clone(),
+        to,
+        piece.piece_type,
+        board.get_piece_at(&to).map(|p| p.piece_type.clone()),
+    )
 }
 
-// one square any direction
-// castling
-fn gen_king_moves(board: &Board, piece: &Piece) -> Vec<Move> {
-    let from = piece.at().unwrap();
-    let make_move = |x, y| {
-        let to = from.add(x, y);
-        Move::new(from, to, piece.clone(), board.has_piece(&to))
-    };
-    let mut moves: Vec<Move> = vec![
-        make_move(-1, -1),
-        make_move(0, -1),
-        make_move(1, -1),
-        make_move(-1, 0),
-        make_move(1, 0),
-        make_move(-1, 1),
-        make_move(0, 1),
-        make_move(1, 1),
-    ]
-    .into_iter()
-    .filter(|m| is_on_board(&m.to) && square_occupiable_by(board, &m.to, piece.color))
-    .collect();
+mod move_generation {
+    use super::*;
+    // @todo : test
+    // make linear moves along some path
+    pub fn make_moves(path: Vec<Coordinate>, board: &dyn BoardTrait, piece: &Piece) -> Vec<Move> {
+        let from = piece.at().unwrap();
+        let mut moves: Vec<Move> = Vec::new();
 
-    // castling
-    // @todo : clean up
-    if piece.color == Color::White && board.can_castle_queen_side(piece.color) {
-        // 2,3,4
-        let pass_through_spots = [
-            Coordinate::new(2, 1),
-            Coordinate::new(3, 1),
-            Coordinate::new(4, 1),
-        ];
-        if pass_through_spots.iter().all(|c| !board.has_piece(&c)) {
-            moves.push(Move::castle_queen_side(Color::White));
-        }
-    }
-    if piece.color == Color::White && board.can_castle_king_side(piece.color) {
-        // 7, 6
-        let pass_through_spots = [Coordinate::new(6, 1), Coordinate::new(7, 1)];
-        if pass_through_spots.iter().all(|c| !board.has_piece(&c)) {
-            moves.push(Move::castle_king_side(Color::White));
-        }
-    }
-    if piece.color == Color::Black && board.can_castle_queen_side(piece.color) {
-        //2,3,4
-        let pass_through_spots = [
-            Coordinate::new(2, 8),
-            Coordinate::new(3, 8),
-            Coordinate::new(4, 8),
-        ];
-        if pass_through_spots.iter().all(|c| !board.has_piece(&c)) {
-            moves.push(Move::castle_queen_side(Color::Black));
-        }
-    }
-    if piece.color == Color::Black && board.can_castle_king_side(piece.color) {
-        // 7, 6
-        let pass_through_spots = [Coordinate::new(6, 8), Coordinate::new(7, 8)];
-        if pass_through_spots.iter().all(|c| !board.has_piece(&c)) {
-            moves.push(Move::castle_king_side(Color::Black));
-        }
-    }
-    moves
-}
-
-fn gen_queen_moves(board: &Board, piece: &Piece) -> Vec<Move> {
-    let mut moves = gen_rook_moves(board, piece);
-    moves.extend(gen_bishop_moves(board, piece).into_iter());
-    moves
-}
-
-fn gen_queen_vector(board: &Board, piece: &Piece) -> Vec<Move> {
-    vec![
-        gen_bishop_vector(board, piece),
-        gen_rook_vector(board, piece),
-    ]
-    .into_iter()
-    .flatten()
-    .collect()
-}
-
-fn gen_bishop_moves(board: &Board, piece: &Piece) -> Vec<Move> {
-    let from = piece.at().unwrap();
-    let up_left = get_path_from(&from, Direction::UpLeft);
-    let up_right = get_path_from(&from, Direction::UpRight);
-    let down_left = get_path_from(&from, Direction::DownLeft);
-    let down_right = get_path_from(&from, Direction::DownRight);
-    vec![
-        make_moves(up_left, board, piece),
-        make_moves(up_right, board, piece),
-        make_moves(down_left, board, piece),
-        make_moves(down_right, board, piece),
-    ]
-    .into_iter()
-    .flatten()
-    .collect()
-}
-
-fn gen_bishop_vector(board: &Board, piece: &Piece) -> Vec<Move> {
-    let from = piece.at().unwrap();
-    let up_left = get_path_from(&from, Direction::UpLeft);
-    let up_right = get_path_from(&from, Direction::UpRight);
-    let down_left = get_path_from(&from, Direction::DownLeft);
-    let down_right = get_path_from(&from, Direction::DownRight);
-    vec![
-        make_vector_moves(up_left, board, piece),
-        make_vector_moves(up_right, board, piece),
-        make_vector_moves(down_left, board, piece),
-        make_vector_moves(down_right, board, piece),
-    ]
-    .into_iter()
-    .flatten()
-    .collect()
-}
-
-fn gen_knight_moves(board: &Board, piece: &Piece) -> Vec<Move> {
-    let from = piece.at().unwrap();
-    let make_move = |x, y| {
-        let to = from.add(x, y);
-        Move::new(from, to, piece.clone(), board.has_piece(&to))
-    };
-    let moves = vec![
-        make_move(-2, 1),
-        make_move(-1, 2),
-        make_move(1, 2),
-        make_move(2, 1),
-        make_move(2, -1),
-        make_move(1, -2),
-        make_move(-1, -2),
-        make_move(-2, -1),
-    ];
-    moves
-        .into_iter()
-        .filter(|m| is_on_board(&m.to) && square_occupiable_by(board, &m.to, piece.color))
-        .collect()
-}
-
-fn gen_rook_moves(board: &Board, piece: &Piece) -> Vec<Move> {
-    let from = piece.at().unwrap();
-    let left = get_path_from(&from, Direction::Left);
-    let right = get_path_from(&from, Direction::Right);
-    let up = get_path_from(&from, Direction::Up);
-    let down = get_path_from(&from, Direction::Down);
-    vec![
-        make_moves(left, board, piece),
-        make_moves(right, board, piece),
-        make_moves(up, board, piece),
-        make_moves(down, board, piece),
-    ]
-    .into_iter()
-    .flatten()
-    .collect()
-}
-
-fn gen_rook_vector(board: &Board, piece: &Piece) -> Vec<Move> {
-    let from = piece.at().unwrap();
-    let left = get_path_from(&from, Direction::Left);
-    let right = get_path_from(&from, Direction::Right);
-    let up = get_path_from(&from, Direction::Up);
-    let down = get_path_from(&from, Direction::Down);
-    vec![
-        make_vector_moves(left, board, piece),
-        make_vector_moves(right, board, piece),
-        make_vector_moves(up, board, piece),
-        make_vector_moves(down, board, piece),
-    ]
-    .into_iter()
-    .flatten()
-    .collect()
-}
-
-/**
-one square move, two square move, capturing diagonally forward, pawn promotion, en passant
-**/
-fn gen_pawn_moves(board: &Board, piece: &Piece) -> Vec<Move> {
-    let from = piece.at().unwrap();
-    let direction: i8 = if piece.color == Color::White { 1 } else { -1 };
-    let make_move = |x, y| {
-        let to = from.add(x, y);
-        Move::new(from, to, piece.clone(), board.has_piece(&to))
-    };
-    let mut moves: Vec<Move> = vec![];
-
-    // pawn promotion, promotion is always a move by one square
-    // white pawn must be at top, black pawn must be at bottom && the square needs to open or available to capture
-    let to = from.add(0, 1 * direction);
-    if (piece.color == Color::White && to.y() == HIGH_Y)
-        || (piece.color == Color::Black && to.y() == LOW_Y)
-    {
-        if square_occupiable_by(board, &to, piece.color) {
-            // why you can't promote to a king , idk but it's lame
-            let promotion_pieces = [
-                PieceType::Rook,
-                PieceType::Queen,
-                PieceType::Bishop,
-                PieceType::Knight,
-            ];
-            for promotion_type in promotion_pieces.iter() {
-                let m = Move::pawn_promotion(
-                    from,
-                    to,
-                    piece.clone(),
-                    promotion_type.clone(),
-                    board.has_piece(&to),
-                );
-                moves.push(m);
+        // for each path , ignore the first square, walk, if blocked by friendly piece stop
+        for (i, coordinate) in path.into_iter().enumerate() {
+            if 0usize == i {
+                continue;
+            }
+            // if square is off board || square has friendly piece then stop
+            if !square_occupiable_by(board, &coordinate, piece.color) {
+                break;
+            }
+            moves.push(make_move_to(from, &coordinate, piece, board));
+            // if it wasn't empty then it had an enemy piece so stop
+            if !square_is_empty(board, &coordinate) {
+                break;
             }
         }
-    } else if is_on_board(&to) && square_is_empty(board, &to) {
-        // normal pawn move
-        moves.push(Move::new(from, to, piece.clone(), board.has_piece(&to)));
+        moves
     }
+    // one square any direction
+    // castling
+    pub fn gen_king_moves(board: &dyn BoardTrait, piece: &Piece) -> Vec<Move> {
+        let from = piece.at().unwrap();
+        let mut moves: Vec<Move> = vec![
+            make_move(-1, -1, from, piece, board),
+            make_move(0, -1, from, piece, board),
+            make_move(1, -1, from, piece, board),
+            make_move(-1, 0, from, piece, board),
+            make_move(1, 0, from, piece, board),
+            make_move(-1, 1, from, piece, board),
+            make_move(0, 1, from, piece, board),
+            make_move(1, 1, from, piece, board),
+        ]
+        .into_iter()
+        .filter(|m| square_occupiable_by(board, &m.to, piece.color))
+        .collect();
 
-    // pawn move two squares (both squares must be empty)
-    if (piece.color == Color::White && from.y() == 2)
-        || (piece.color == Color::Black && from.y() == 7)
-    {
-        let m1 = make_move(0, 1 * direction);
-        let m2 = make_move(0, 2 * direction);
-        if is_on_board(&m2.to)
-            && square_is_empty(board, &m2.to)
-            && is_on_board(&m1.to)
-            && square_is_empty(board, &m1.to)
+        // castling
+        // @todo : clean up
+        if piece.color == Color::White
+            && board.can_castle_queen_side(piece.color)
+            && piece.at().unwrap() == &Coordinate::new(5, 1)
         {
-            moves.push(m2);
+            let rook = board.get_piece_at(&Coordinate::new(1, 1));
+            if rook.map_or(false, |p| p.piece_type == PieceType::Rook) {
+                let rook = rook.unwrap();
+                // 2,3,4
+                let pass_through_spots = [
+                    Coordinate::new(2, 1),
+                    Coordinate::new(3, 1),
+                    Coordinate::new(4, 1),
+                ];
+                if pass_through_spots.iter().all(|c| !board.has_piece(&c)) {
+                    moves.push(Move::castle_queen_side(piece, rook));
+                }
+            }
         }
+        if piece.color == Color::White
+            && board.can_castle_king_side(piece.color)
+            && piece.at().unwrap() == &Coordinate::new(5, 1)
+        {
+            let rook = board.get_piece_at(&Coordinate::new(8, 1));
+            if rook.map_or(false, |p| p.piece_type == PieceType::Rook) {
+                let rook = rook.unwrap();
+                // 7, 6
+                let pass_through_spots = [Coordinate::new(6, 1), Coordinate::new(7, 1)];
+                if pass_through_spots.iter().all(|c| !board.has_piece(&c)) {
+                    moves.push(Move::castle_king_side(piece, rook));
+                }
+            }
+        }
+        if piece.color == Color::Black
+            && board.can_castle_queen_side(piece.color)
+            && piece.at().unwrap() == &Coordinate::new(5, 8)
+        {
+            let rook = board.get_piece_at(&Coordinate::new(1, 8));
+            if rook.map_or(false, |p| p.piece_type == PieceType::Rook) {
+                let rook = rook.unwrap();
+                //2,3,4
+                let pass_through_spots = [
+                    Coordinate::new(2, 8),
+                    Coordinate::new(3, 8),
+                    Coordinate::new(4, 8),
+                ];
+                if pass_through_spots.iter().all(|c| !board.has_piece(&c)) {
+                    moves.push(Move::castle_queen_side(piece, rook));
+                }
+            }
+        }
+        if piece.color == Color::Black
+            && board.can_castle_king_side(piece.color)
+            && piece.at().unwrap() == &Coordinate::new(5, 8)
+        {
+            let rook = board.get_piece_at(&Coordinate::new(8, 8));
+            if rook.is_some() && rook.map_or(false, |p| p.piece_type == PieceType::Rook) {
+                let rook = rook.unwrap();
+                // 7, 6
+                let pass_through_spots = [Coordinate::new(6, 8), Coordinate::new(7, 8)];
+                if pass_through_spots.iter().all(|c| !board.has_piece(&c)) {
+                    moves.push(Move::castle_king_side(piece, rook));
+                }
+            }
+        }
+        moves
     }
 
-    // pawn captures , including en passant
-    let front_left = from.add(-1, 1 * direction);
-    if has_enemy_piece(board, &front_left, piece.color)
-        || board.en_passant_target().is_some() && board.en_passant_target().unwrap() == front_left
-    {
-        moves.push(Move::new(from, front_left, piece.clone(), true));
+    pub fn gen_queen_moves(board: &dyn BoardTrait, piece: &Piece) -> Vec<Move> {
+        let mut moves = gen_rook_moves(board, piece);
+        moves.extend(gen_bishop_moves(board, piece).into_iter());
+        moves
     }
+    pub fn gen_bishop_moves(board: &dyn BoardTrait, piece: &Piece) -> Vec<Move> {
+        let from = piece.at().unwrap();
+        let up_left = get_path_from(&from, Direction::UpLeft);
+        let up_right = get_path_from(&from, Direction::UpRight);
+        let down_left = get_path_from(&from, Direction::DownLeft);
+        let down_right = get_path_from(&from, Direction::DownRight);
+        vec![
+            make_moves(up_left, board, piece),
+            make_moves(up_right, board, piece),
+            make_moves(down_left, board, piece),
+            make_moves(down_right, board, piece),
+        ]
+        .into_iter()
+        .flatten()
+        .collect()
+    }
+    pub fn gen_knight_moves(board: &dyn BoardTrait, piece: &Piece) -> Vec<Move> {
+        let from = piece.at().unwrap();
+        let moves = vec![
+            make_move(-2, 1, from, piece, board),
+            make_move(-1, 2, from, piece, board),
+            make_move(1, 2, from, piece, board),
+            make_move(2, 1, from, piece, board),
+            make_move(2, -1, from, piece, board),
+            make_move(1, -2, from, piece, board),
+            make_move(-1, -2, from, piece, board),
+            make_move(-2, -1, from, piece, board),
+        ];
+        moves
+            .into_iter()
+            .filter(|m| is_on_board(&m.to) && square_occupiable_by(board, &m.to, piece.color))
+            .collect()
+    }
+    pub fn gen_rook_moves(board: &dyn BoardTrait, piece: &Piece) -> Vec<Move> {
+        let from = piece.at().unwrap();
+        let left = get_path_from(from, Direction::Left);
+        let right = get_path_from(from, Direction::Right);
+        let up = get_path_from(from, Direction::Up);
+        let down = get_path_from(from, Direction::Down);
+        vec![
+            make_moves(left, board, piece),
+            make_moves(right, board, piece),
+            make_moves(up, board, piece),
+            make_moves(down, board, piece),
+        ]
+        .into_iter()
+        .flatten()
+        .collect()
+    }
+    /**
+    one square move, two square move, capturing diagonally forward, pawn promotion, en passant
+    **/
+    pub fn gen_pawn_moves(board: &dyn BoardTrait, piece: &Piece) -> Vec<Move> {
+        let from = piece.at().unwrap();
+        let direction: i8 = if piece.color == Color::White { 1 } else { -1 };
+        let mut moves: Vec<Move> = vec![];
 
-    let front_right = from.add(1, 1 * direction);
-    if has_enemy_piece(board, &front_right, piece.color)
-        || board.en_passant_target().is_some() && board.en_passant_target().unwrap() == front_right
-    {
-        moves.push(Move::new(from, front_right, piece.clone(), true));
+        // pawn promotion, promotion is always a move by one square
+        // white pawn must be at top, black pawn must be at bottom && the square needs to open or available to capture
+        let to = from.add(0, 1 * direction);
+        if (piece.color == Color::White && to.y() == HIGH_Y)
+            || (piece.color == Color::Black && to.y() == LOW_Y)
+        {
+            if square_occupiable_by(board, &to, piece.color) {
+                // why you can't promote to a king , idk but it's lame
+                let promotion_pieces = [
+                    PieceType::Rook,
+                    PieceType::Queen,
+                    PieceType::Bishop,
+                    PieceType::Knight,
+                ];
+                for promotion_type in promotion_pieces.iter() {
+                    let m = Move::pawn_promotion(
+                        from.clone(),
+                        to,
+                        piece.piece_type,
+                        promotion_type.clone(),
+                        board.get_piece_at(&to).map(|p| p.piece_type.clone()),
+                    );
+                    moves.push(m);
+                }
+            }
+        } else if is_on_board(&to) && square_is_empty(board, &to) {
+            // normal pawn move
+            moves.push(Move::new(
+                from.clone(),
+                to,
+                piece.piece_type,
+                board.get_piece_at(&to).map(|p| p.piece_type.clone()),
+            ));
+        }
+
+        // pawn move two squares (both squares must be empty)
+        if (piece.color == Color::White && from.y() == 2)
+            || (piece.color == Color::Black && from.y() == 7)
+        {
+            let m1 = make_move(0, 1 * direction, from, piece, board);
+            let m2 = make_move(0, 2 * direction, from, piece, board);
+            if is_on_board(&m2.to)
+                && square_is_empty(board, &m2.to)
+                && is_on_board(&m1.to)
+                && square_is_empty(board, &m1.to)
+            {
+                moves.push(m2);
+            }
+        }
+
+        // pawn captures , including en passant
+        let front_left = from.add(-1, 1 * direction);
+        let front_right = from.add(1, 1 * direction);
+        fn make_pawn_capture(
+            board: &dyn BoardTrait,
+            from: &Coordinate,
+            at: &Coordinate,
+            pawn_color: Color,
+            piece: &Piece,
+        ) -> Option<Move> {
+            if has_enemy_piece(board, at, pawn_color)
+                || board.en_passant_target().is_some() && board.en_passant_target().unwrap() == *at
+            {
+                return Some(Move::new(
+                    from.clone(),
+                    at.clone(),
+                    piece.piece_type,
+                    board.get_piece_at(at).map(|p| p.piece_type.clone()),
+                ));
+            }
+            None
+        }
+        let capture = make_pawn_capture(board, &from, &front_left, piece.color, piece);
+        if capture.is_some() {
+            moves.push(capture.unwrap());
+        }
+        let capture = make_pawn_capture(board, &from, &front_right, piece.color, piece);
+        if capture.is_some() {
+            moves.push(capture.unwrap());
+        }
+        moves
     }
-    moves
 }
 
-fn square_is_empty(board: &Board, at: &Coordinate) -> bool {
+mod vector_generation {
+    use super::*;
+    pub fn make_vector_moves(
+        path: Vec<Coordinate>,
+        board: &dyn BoardTrait,
+        piece: &Piece,
+    ) -> Vec<Move> {
+        let from = piece.at().unwrap();
+        let mut moves: Vec<Move> = Vec::new();
+
+        // for each path , ignore the first square, walk, if blocked by friendly piece stop
+        for (i, coordinate) in path.into_iter().enumerate() {
+            if 0usize == i {
+                continue;
+            }
+            if !square_occupiable_by(board, &coordinate, piece.color) {
+                break;
+            }
+            moves.push(make_move_to(from, &coordinate, piece, board))
+        }
+        moves
+    }
+    pub fn gen_queen_vector(board: &dyn BoardTrait, piece: &Piece) -> Vec<Move> {
+        vec![
+            gen_bishop_vector(board, piece),
+            gen_rook_vector(board, piece),
+        ]
+        .into_iter()
+        .flatten()
+        .collect()
+    }
+    pub fn gen_bishop_vector(board: &dyn BoardTrait, piece: &Piece) -> Vec<Move> {
+        let from = piece.at().unwrap();
+        let up_left = get_path_from(&from, Direction::UpLeft);
+        let up_right = get_path_from(&from, Direction::UpRight);
+        let down_left = get_path_from(&from, Direction::DownLeft);
+        let down_right = get_path_from(&from, Direction::DownRight);
+        vec![
+            make_vector_moves(up_left, board, piece),
+            make_vector_moves(up_right, board, piece),
+            make_vector_moves(down_left, board, piece),
+            make_vector_moves(down_right, board, piece),
+        ]
+        .into_iter()
+        .flatten()
+        .collect()
+    }
+    pub fn gen_rook_vector(board: &dyn BoardTrait, piece: &Piece) -> Vec<Move> {
+        let from = piece.at().unwrap();
+        let left = get_path_from(from, Direction::Left);
+        let right = get_path_from(from, Direction::Right);
+        let up = get_path_from(from, Direction::Up);
+        let down = get_path_from(from, Direction::Down);
+        vec![
+            make_vector_moves(left, board, piece),
+            make_vector_moves(right, board, piece),
+            make_vector_moves(up, board, piece),
+            make_vector_moves(down, board, piece),
+        ]
+        .into_iter()
+        .flatten()
+        .collect()
+    }
+}
+
+fn square_is_empty(board: &dyn BoardTrait, at: &Coordinate) -> bool {
     board.get_piece_at(at).is_none()
 }
 
 // if square is off board || square has friendly price => false
-fn square_occupiable_by(board: &Board, at: &Coordinate, color: Color) -> bool {
+fn square_occupiable_by(board: &dyn BoardTrait, at: &Coordinate, color: Color) -> bool {
     if !is_on_board(at) {
         return false;
     }
-    let piece = board.get_piece_at(at);
-    if piece.is_none() {
-        return true;
-    } else {
-        let piece = piece.unwrap();
-        if piece.color == color {
-            return false;
-        } else {
-            return true;
-        }
-    }
+    board.get_piece_at(at).map_or(true, |&p| p.color != color)
 }
 
-fn has_enemy_piece(board: &Board, at: &Coordinate, own_color: Color) -> bool {
-    let enemy_color = match own_color {
-        Color::White => Color::Black,
-        Color::Black => Color::White,
-    };
-
+fn has_enemy_piece(board: &dyn BoardTrait, at: &Coordinate, own_color: Color) -> bool {
     if !is_on_board(at) {
         return false;
     }
-    let piece = board.get_piece_at(at);
-    if piece.is_some() {
-        let piece = piece.unwrap();
-        if piece.color == enemy_color {
-            return true;
-        }
-    }
-    false
+    board
+        .get_piece_at(at)
+        .map_or(false, |piece| piece.color == own_color.opposite())
 }
 
 fn is_on_board(c: &Coordinate) -> bool {

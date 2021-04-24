@@ -31,15 +31,15 @@ mod tests {
         //@todo : test more boards.... use pgn ????
         fn test_initial_board_at_depth(depth: u8) {
             let mut ai = ai::new(Color::White);
-            let board = make_initial_board();
-            let (eval, best_move) = ai.alpha_beta(board._clone(), Color::White, depth, None, None);
-            let (expected_eval, final_board, expected_best_move) =
-                ai.minimax(board._clone(), Color::White, depth, vec![]);
+            let mut board = make_initial_board();
+            let (eval, best_move) =
+                ai.alpha_beta(&mut *board.clone(), Color::White, depth, None, None);
+            let (expected_eval, expected_best_move) = ai.minimax(&mut board, Color::White, depth);
 
             assert!(best_move.is_some(), "there is a best move");
             assert_eq!(
                 best_move.unwrap(),
-                expected_best_move[0],
+                expected_best_move.unwrap(),
                 "alpha beta and minimax find the same move"
             );
             assert_eq!(
@@ -55,7 +55,7 @@ mod tests {
     }
 }
 
-enum AiSearch {
+pub enum AiSearch {
     AlphaBeta,
     Minimax,
     Random,
@@ -86,6 +86,18 @@ impl ai {
         }
     }
 
+    pub fn new_with_search(color: Color, search_fn: AiSearch) -> ai {
+        ai {
+            rng: rand::thread_rng(),
+            color,
+            default_search_depth: 4,
+            started_at: Instant::now(),
+            time_elapsed_during_search: None,
+            minimax_calls: 0,
+            ai_search_function: search_fn,
+        }
+    }
+
     pub fn minimax_calls(&self) -> i64 {
         self.minimax_calls
     }
@@ -103,7 +115,7 @@ impl ai {
     // black sets upper bound , and will accept no branch evaluated higher than that
     fn alpha_beta(
         &mut self,
-        board: Board,
+        board: &mut dyn BoardTrait,
         player_moving: Color,
         depth_to_go: u8,
         mut lower_bound: Option<evaluator::Evaluation>,
@@ -112,19 +124,19 @@ impl ai {
         // end of recursion, depth_to_go = 0 so eval the board
         if depth_to_go == 0 {
             self.minimax_calls = self.minimax_calls + 1;
-            return (evaluator::evaluate(&board), None);
+            return (evaluator::evaluate(board), None);
         }
         // also end recursion if someone lost a king
         let kings = board.get_kings();
         if kings.len() < 2 {
-            return (evaluator::evaluate(&board), None);
+            return (evaluator::evaluate(board), None);
         }
         // search moves
-        let moves_to_try = gen_legal_moves(&board, player_moving);
+        let moves_to_try = gen_legal_moves(board, player_moving);
         // this should cover checkmates so we don't try to search further,
         // @todo: draws
         if moves_to_try.len() == 0 {
-            return (evaluator::evaluate(&board), None);
+            return (evaluator::evaluate(board), None);
         }
 
         // dfs with bounds
@@ -135,14 +147,15 @@ impl ai {
             // player takes move , examine this board
             // assuming this player and the opponent make optimal moves
             // what's the evaluation of the best board state starting from here ?
+            board.make_move_mut(&a_move);
             let (eval, m) = self.alpha_beta(
-                board.make_move(&a_move),
+                board,
                 player_moving.opposite(),
                 depth_to_go - 1,
                 lower_bound,
                 upper_bound,
             );
-            // println!("{:?}, depth = {} move = {:?} ", eval, depth_to_go, a_move);
+            board.unmake_move_mut(&a_move);
 
             // set best_move and best eval if they're not set
             if best_move.is_none() {
@@ -201,122 +214,118 @@ impl ai {
         return (best_eval.unwrap(), best_move);
     }
 
-    fn choose_random_move(&mut self, board: &Board) -> (evaluator::Evaluation, Option<Move>) {
-        let mut moves = gen_legal_moves(&board, self.color);
+    fn choose_random_move<'a>(
+        &mut self,
+        board: &'a dyn BoardTrait,
+    ) -> (evaluator::Evaluation, Option<Move>) {
+        let mut moves = gen_legal_moves(board, self.color);
         if moves.len() == 0 {
             return (evaluator::evaluate(board), None);
         }
         let move_count = moves.iter().len();
         let i = self.rng.gen_range(0..move_count);
         let chosen_move = moves.remove(i);
-        (
-            evaluator::evaluate(&board.make_move(&chosen_move)),
-            Some(chosen_move),
-        )
+        (evaluator::evaluate(board), Some(chosen_move))
     }
 
     fn minimax(
         &mut self,
-        board: Board,
+        board: &mut dyn BoardTrait,
         color: Color,
         depth: u8,
-        moves: Vec<Move>,
-    ) -> (evaluator::Evaluation, Board, Vec<Move>) {
+    ) -> (evaluator::Evaluation, Option<Move>) {
         // end of recursion
         if depth == 0 {
             self.minimax_calls = self.minimax_calls + 1;
-            return (evaluator::evaluate(&board), board, moves);
+            return (evaluator::evaluate(board), None);
         }
         // also end recursion if someone lost a king
         let kings = board.get_kings();
         if kings.len() < 2 {
-            return (evaluator::evaluate(&board), board, moves);
+            return (evaluator::evaluate(board), None);
         }
         // search moves
-        let mut moves_to_try = gen_legal_moves(&board, color);
+        let mut moves_to_try = gen_legal_moves(board, color);
         if moves_to_try.len() == 0 {
-            return (evaluator::evaluate(&board), board, moves);
+            return (evaluator::evaluate(board), None);
         }
 
         // dfs with recursion time
-        let best = moves_to_try.into_iter().fold(None, |acc, m| {
+        let best = moves_to_try.into_iter().fold(None, |acc, move_to_try| {
             // @todo : if this move takes the king return
-            let piece_captured = board.get_piece_at(&m.to);
+            let piece_captured = board.get_piece_at(&move_to_try.to);
             if piece_captured.is_some() && piece_captured.unwrap().piece_type == PieceType::King {
                 // hmmm....
                 panic!("king captured in search, we never should've gotten here.");
             }
 
-            // add this move to the move list
-            let mut move_list = moves.clone();
-            move_list.push(m);
-
             // player takes move , examine this board
             // assuming this player and the opponent make optimal moves
             // what's the evaluation of the best board state starting from here ?
-            let (eval, final_board, move_list) =
-                self.minimax(board.make_move(&m), color.opposite(), depth - 1, move_list);
+            board.make_move_mut(&move_to_try);
+            let (eval, _) = self.minimax(board, color.opposite(), depth - 1);
+            board.unmake_move_mut(&move_to_try);
+
             if acc.is_none() {
-                return Some((eval, final_board, move_list));
+                return Some((eval, move_to_try));
             }
 
             // choose the best move for this player, white wants high eval scores , black wants low eval scores
-            let (best_eval, best_board, best_moves) = acc.unwrap();
-            if (Color::White == color && eval.score > best_eval.score)
-                || (Color::Black == color && eval.score < best_eval.score)
+            let (best_eval_so_far, best_move_so_far) = acc.as_ref().unwrap();
+            if (Color::White == color && eval.score > best_eval_so_far.score)
+                || (Color::Black == color && eval.score < best_eval_so_far.score)
             {
-                return Some((eval, final_board, move_list));
+                return Some((eval, move_to_try));
             }
-            Some((best_eval, best_board, best_moves))
+            return acc;
         });
-        return best.unwrap();
+        if best.is_none() {
+            return (evaluator::evaluate(board), None);
+        } else {
+            let (eval, m) = best.unwrap();
+            return (eval, Some(m));
+        }
     }
 
     // do an exhaustive search , depth-first search
     // should return an eval, board, and move list to reach that board
     fn search(
         &mut self,
-        board: &Board,
+        board: &dyn BoardTrait,
         depth: u8,
         color: Color,
-    ) -> Option<(evaluator::Evaluation, Move)> {
+    ) -> Option<(evaluator::Evaluation, Option<Move>)> {
         self.minimax_calls = 0;
         self.started_at = Instant::now();
+
         let (eval, best_move): (Evaluation, Option<Move>) = match self.ai_search_function {
-            AiSearch::AlphaBeta => self.alpha_beta(board._clone(), color, depth, None, None),
-            AiSearch::Minimax => {
-                let (eval, best_board, mut moves) =
-                    self.minimax(board._clone(), color, depth, vec![]);
-                if moves.len() == 0 {
-                    (eval, None)
-                } else {
-                    (eval, Some(moves.remove(0)))
-                }
-            }
+            AiSearch::AlphaBeta => self.alpha_beta(&mut *board.clone(), color, depth, None, None),
+            AiSearch::Minimax => self.minimax(&mut *board.clone(), color, depth),
             AiSearch::Random => self.choose_random_move(board),
+            _ => panic!("testing"),
         };
         // check move
-        if best_move.is_some() {
-            let best_move = best_move.unwrap();
-            let all_moves = gen_legal_moves(&board, self.color);
-            let best_move_is_legal = all_moves.iter().any(|m| m == &best_move);
-            if !best_move_is_legal {
-                println!("best move \n{}", best_move);
-                println!(
-                    "all moves \n{}",
-                    all_moves
-                        .iter()
-                        .map(|m| m.to_string())
-                        .collect::<Vec<String>>()
-                        .join("\n")
-                );
-                panic!("AI SEARCH TRYING ILLEGAL MOVE");
-            }
-        }
+        // if best_move.is_some() {
+        //     let best_move = best_move.unwrap();
+        //     let all_moves = gen_legal_moves(board, self.color);
+        //     let best_move_is_legal = all_moves.iter().any(|m| m == &best_move);
+        //     if !best_move_is_legal {
+        //         println!("best move \n{}", best_move);
+        //         println!(
+        //             "all moves \n{}",
+        //             all_moves
+        //                 .iter()
+        //                 .map(|m| m.to_string())
+        //                 .collect::<Vec<String>>()
+        //                 .join("\n")
+        //         );
+        //         panic!("AI SEARCH TRYING ILLEGAL MOVE");
+        //     }
+        // }
 
         // print stuff here
         self.time_elapsed_during_search = Some(self.started_at.elapsed());
-        return Some((eval, best_move.unwrap()));
+        return Some((eval, best_move));
     }
 
     pub fn make_move(&mut self, board: &Board, depth: Option<u8>) -> Option<Move> {
@@ -328,7 +337,7 @@ impl ai {
         let m = self.search(board, search_depth, self.color);
         match m {
             None => None,
-            Some((_eval, m)) => Some(m),
+            Some((_eval, m)) => m,
         }
     }
 }
