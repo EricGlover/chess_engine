@@ -32,7 +32,7 @@ mod tests {
         fn test_initial_board_at_depth(depth: u8) {
             let mut ai = ai::new(Color::White);
             let mut board = make_initial_board();
-            let (eval, best_move) = ai.alpha_beta(&board, Color::White, depth, None, None);
+            let (eval, best_move) = ai.alpha_beta(&mut *board.clone(), Color::White, depth, None, None);
             let (expected_eval, expected_best_move) = ai.minimax(&mut board, Color::White, depth);
 
             assert!(best_move.is_some(), "there is a best move");
@@ -114,7 +114,7 @@ impl ai {
     // black sets upper bound , and will accept no branch evaluated higher than that
     fn alpha_beta(
         &mut self,
-        board: &dyn BoardTrait,
+        board: &mut dyn BoardTrait,
         player_moving: Color,
         depth_to_go: u8,
         mut lower_bound: Option<evaluator::Evaluation>,
@@ -146,20 +146,15 @@ impl ai {
             // player takes move , examine this board
             // assuming this player and the opponent make optimal moves
             // what's the evaluation of the best board state starting from here ?
-
-            // @todo : make / unmake moves
-            // @todo: how to make a move that gives you a new board ?
-
-            let mut new_board = board.clone();
-            new_board.make_move_mut(&a_move);
+            board.make_move_mut(&a_move);
             let (eval, m) = self.alpha_beta(
-                &*new_board,
+                board,
                 player_moving.opposite(),
                 depth_to_go - 1,
                 lower_bound,
                 upper_bound,
             );
-            // println!("{:?}, depth = {} move = {:?} ", eval, depth_to_go, a_move);
+            board.unmake_move_mut(&a_move);
 
             // set best_move and best eval if they're not set
             if best_move.is_none() {
@@ -303,7 +298,7 @@ impl ai {
         self.started_at = Instant::now();
 
         let (eval, best_move): (Evaluation, Option<Move>) = match self.ai_search_function {
-            AiSearch::AlphaBeta => self.alpha_beta(board, color, depth, None, None),
+            AiSearch::AlphaBeta => self.alpha_beta(&mut *board.clone(), color, depth, None, None),
             AiSearch::Minimax => self.minimax(&mut *board.clone(), color, depth),
             AiSearch::Random => self.choose_random_move(board),
             _ => panic!("testing")

@@ -177,8 +177,8 @@ pub fn make_board(fen_string: &str) -> Board {
     } else {
         Some(Coordinate::from(parts[3]))
     };
-    let half_move_clock = parts[4].parse::<u8>().unwrap();
-    let full_move_number = parts[5].parse::<u8>().unwrap();
+    let half_move_clock = parts[4].parse::<u32>().unwrap();
+    let full_move_number = parts[5].parse::<u32>().unwrap();
 
     let mut board = Board::make_board(
         player_to_move,

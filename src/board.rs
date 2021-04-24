@@ -27,8 +27,8 @@ pub trait BoardTrait {
     // info about game going on
     fn player_to_move(&self) -> Color;
     fn en_passant_target(&self) -> Option<Coordinate>;
-    fn half_move_clock(&self) -> u8;
-    fn full_move_number(&self) -> u8;
+    fn half_move_clock(&self) -> u32;
+    fn full_move_number(&self) -> u32;
     fn can_castle_queen_side(&self, color: Color) -> bool;
     fn can_castle_king_side(&self, color: Color) -> bool;
     fn white_castling_rights(&self) -> CastlingRights;
@@ -263,8 +263,8 @@ pub struct Board {
     previous_white_castling_rights: CastlingRights, // used in unmake move
     previous_black_castling_rights: CastlingRights, // used in unmake move
     en_passant_target: Option<Coordinate>,
-    half_move_clock: u8,
-    full_move_number: u8,
+    half_move_clock: u32,
+    full_move_number: u32,
     squares: Vec<Vec<Square>>,
 }
 
@@ -304,10 +304,10 @@ impl BoardTrait for Board {
     fn en_passant_target(&self) -> Option<Coordinate> {
         self.en_passant_target.clone()
     }
-    fn half_move_clock(&self) -> u8 {
+    fn half_move_clock(&self) -> u32 {
         self.half_move_clock
     }
-    fn full_move_number(&self) -> u8 {
+    fn full_move_number(&self) -> u32 {
         self.full_move_number
     }
     fn can_castle_queen_side(&self, color: Color) -> bool {
@@ -537,8 +537,8 @@ impl Board {
         black_can_castle_king_side: bool,
         black_can_castle_queen_side: bool,
         en_passant_target: Option<Coordinate>,
-        half_move_clock: u8,
-        full_move_number: u8,
+        half_move_clock: u32,
+        full_move_number: u32,
     ) -> Board {
         Board {
             player_to_move,

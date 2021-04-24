@@ -28,6 +28,7 @@ I do have a FEN reader that works that you can probably use btw, that thing is a
 - Test / benchmark
   https://crates.io/crates/chess
 - Try bit boards ?
+- Threads for searching 
 
 - DONE: Implement Alpha - Beta Searching
 - Fully Implement algebraic notation parsing 

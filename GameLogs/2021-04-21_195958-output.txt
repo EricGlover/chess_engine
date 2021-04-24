@@ -1,2 +1,21 @@
 e3
-rnbqkbnr/pppp1ppp/4p3/8/8/4P3/PPPP1PPP/RNBQKBNR w KQkq - 2 2
+Qf3
+Qxf6
+Bd3
+Nf3
+a3
+Nc3
+e4
+Nxh4
+Nf3
+Bc4
+Bb3
+d4
+Kd1
+xf3
+Bf4
+Bxc7
+Rf1
+a4
+Ba5
+r3k1r1/1b1p1p2/p3pp2/B1b4p/Pp2P3/1BN2P2/1PP4P/R2K1R2 b KQkq - 10 20
