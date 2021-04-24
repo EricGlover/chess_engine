@@ -5,10 +5,6 @@ mod pseudo_legal_move_generator;
 
 use crate::board::*;
 use crate::board_console_printer::print_board;
-use crate::fen_reader;
-use crate::fen_reader::make_board;
-#[cfg(test)]
-use crate::fen_reader::make_initial_board;
 use crate::move_generator::path::*;
 use crate::move_generator::pseudo_legal_move_generator::*;
 use std::borrow::Borrow;
@@ -24,7 +20,9 @@ mod tests {
     use super::*;
     use crate::ai::{ai, AiSearch};
     use test::Bencher;
-
+    use crate::fen_reader;
+    use crate::fen_reader::make_board;
+    use crate::fen_reader::make_initial_board;
 
     #[bench]
     fn bench_perft(b: &mut Bencher) {
@@ -38,6 +36,11 @@ mod tests {
             // ai.make_move(&board, Some(4));
             // ai.make_move(&board, Some(5));
         })
+    }
+
+    #[test]
+    fn test_gen_pseudo_legal_moves() {
+
     }
 
     #[test]
@@ -230,8 +233,9 @@ mod tests {
 
     #[test]
     fn test_get_checks() {
-        let board =
-            fen_reader::make_board("rnb1kbnr/pppp1p1p/4pp2/8/8/3BP3/PPPP1PPP/RNB1K1NR b KQkq - 1 4");
+        let board = fen_reader::make_board(
+            "rnb1kbnr/pppp1p1p/4pp2/8/8/3BP3/PPPP1PPP/RNB1K1NR b KQkq - 1 4",
+        );
     }
 
     #[test]
@@ -322,7 +326,7 @@ enum MoveType {
     Capture,
     Castling,
     EnPassant,
-    Promotion
+    Promotion,
 }
 
 // @todo: maybe consider adding the algebraic notation for this move (the pgn)
@@ -617,7 +621,11 @@ pub fn get_checks(board: &dyn BoardTrait, color_being_checked: Color) -> Vec<Mov
     moves.into_iter().filter(|m| &m.to == at).collect()
 }
 
-fn find_checks_from_moves<'a>(board: &dyn BoardTrait, moves: &'a Vec<Move>, color_being_checked: Color) -> Vec<&'a Move> {
+fn find_checks_from_moves<'a>(
+    board: &dyn BoardTrait,
+    moves: &'a Vec<Move>,
+    color_being_checked: Color,
+) -> Vec<&'a Move> {
     let king_pieces = board.get_pieces(color_being_checked, PieceType::King);
     if king_pieces.len() == 0 {
         return vec![];
@@ -731,18 +739,20 @@ pub fn gen_legal_moves(board: &dyn BoardTrait, color: Color) -> Vec<Move> {
 
 // ignores enemy captures
 pub fn gen_attack_vectors(board: &dyn BoardTrait, color: Color) -> Vec<Move> {
-    let mut moves: Vec<Move> = Vec::new();
-    let pieces = board.get_all_pieces(color);
-    for piece in pieces.iter() {
-        let m = gen_vectors_for(board, piece);
-        moves.extend(m.into_iter());
-    }
-    return moves;
+    board
+        .get_all_pieces(color)
+        .into_iter()
+        .map(|piece| gen_vectors_for(board, piece))
+        .flatten()
+        .collect()
 }
 
-// change this to -> Vec<Coordinate>?
-//@todo: test
+
+
 // PSEUDO LEGAL MOVE GENERATION
+// determines what moves the pieces can legally do
+// does not check whether the player can legally do that move
+// for instance : no checking pins or checks , etc...
 pub fn gen_pseudo_legal_moves(board: &dyn BoardTrait, color: Color) -> Vec<Move> {
     board
         .get_all_pieces(color)

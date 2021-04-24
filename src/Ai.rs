@@ -32,7 +32,8 @@ mod tests {
         fn test_initial_board_at_depth(depth: u8) {
             let mut ai = ai::new(Color::White);
             let mut board = make_initial_board();
-            let (eval, best_move) = ai.alpha_beta(&mut *board.clone(), Color::White, depth, None, None);
+            let (eval, best_move) =
+                ai.alpha_beta(&mut *board.clone(), Color::White, depth, None, None);
             let (expected_eval, expected_best_move) = ai.minimax(&mut board, Color::White, depth);
 
             assert!(best_move.is_some(), "there is a best move");
@@ -85,7 +86,7 @@ impl ai {
         }
     }
 
-    pub fn new_with_search(color: Color, searchFn: AiSearch) -> ai {
+    pub fn new_with_search(color: Color, search_fn: AiSearch) -> ai {
         ai {
             rng: rand::thread_rng(),
             color,
@@ -93,7 +94,7 @@ impl ai {
             started_at: Instant::now(),
             time_elapsed_during_search: None,
             minimax_calls: 0,
-            ai_search_function: searchFn,
+            ai_search_function: search_fn,
         }
     }
 
@@ -301,7 +302,7 @@ impl ai {
             AiSearch::AlphaBeta => self.alpha_beta(&mut *board.clone(), color, depth, None, None),
             AiSearch::Minimax => self.minimax(&mut *board.clone(), color, depth),
             AiSearch::Random => self.choose_random_move(board),
-            _ => panic!("testing")
+            _ => panic!("testing"),
         };
         // check move
         // if best_move.is_some() {
