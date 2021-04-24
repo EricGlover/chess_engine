@@ -19,10 +19,10 @@ use std::fmt::Formatter;
 mod tests {
     use super::*;
     use crate::ai::{ai, AiSearch};
-    use test::Bencher;
     use crate::fen_reader;
     use crate::fen_reader::make_board;
     use crate::fen_reader::make_initial_board;
+    use test::Bencher;
 
     #[bench]
     fn bench_perft(b: &mut Bencher) {
@@ -39,9 +39,7 @@ mod tests {
     }
 
     #[test]
-    fn test_gen_pseudo_legal_moves() {
-
-    }
+    fn test_gen_pseudo_legal_moves() {}
 
     #[test]
     fn perft_initial_position() {
@@ -746,8 +744,6 @@ pub fn gen_attack_vectors(board: &dyn BoardTrait, color: Color) -> Vec<Move> {
         .flatten()
         .collect()
 }
-
-
 
 // PSEUDO LEGAL MOVE GENERATION
 // determines what moves the pieces can legally do

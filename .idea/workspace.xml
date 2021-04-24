@@ -5,26 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="49ae807d-88c8-4d8d-a8ce-b8e901995cf7" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/Benchmarks/make_unmake.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/GameLogs/2021-04-17_183039-output.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/GameLogs/2021-04-20_215028-output.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/GameLogs/2021-04-20_220616-output.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/GameLogs/2021-04-20_220655-output.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/GameLogs/2021-04-20_220804-output.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/GameLogs/2021-04-20_222907-output.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/GameLogs/2021-04-20_224954-output.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/GameLogs/2021-04-21_195958-output.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Ai.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/Ai.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Ai/evaluator.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/Ai/evaluator.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Board/board_stuff.rs" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/board.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/board.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/board_console_printer.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/board_console_printer.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/chess_notation.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/chess_notation.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/fen_reader.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/fen_reader.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/game.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/game.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/move_generator.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/move_generator.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/move_generator/pseudo_legal_move_generator.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/move_generator/pseudo_legal_move_generator.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

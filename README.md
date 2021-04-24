@@ -15,6 +15,14 @@ Ohh and unfortunately I haven't fully implemented algebraic move notation parsin
 how to write moves that it can correctly parse.
 I do have a FEN reader that works that you can probably use btw, that thing is actually pretty handy.
 
+
+### Short Term Goals
+- Fix Castling
+- Finish Chess Notation
+  - PGN output
+  - Parsing && Outputting moves with Algebraic notation   
+  - Game From PGN 
+
 ### Plans
 - Make/Unmake boards
 - Try going back to Piece pointers

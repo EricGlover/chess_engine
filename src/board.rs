@@ -1,27 +1,24 @@
-mod board_stuff;
+mod piece;
+mod square;
+mod castling_rights;
+mod color;
+mod piece_type;
+mod coordinate;
 
 use crate::board_console_printer::print_board;
 use crate::fen_reader;
 use crate::move_generator::{gen_pseudo_legal_moves, Move};
-pub use board_stuff::*;
+pub use piece::Piece;
+pub use square::Square;
+pub use castling_rights::CastlingRights;
+pub use color::Color;
+pub use piece_type::PieceType;
+pub use coordinate::*;
 use std::fmt;
 use std::fmt::Formatter;
 
 // getting pieces && squares return references
 pub trait BoardTrait {
-    // constructors
-    // fn make_board(
-    //     player_to_move: Color,
-    //     white_can_castle_king_side: bool,
-    //     white_can_castle_queen_side: bool,
-    //     black_can_castle_king_side: bool,
-    //     black_can_castle_queen_side: bool,
-    //     en_passant_target: Option<Coordinate>,
-    //     half_move_clock: u8,
-    //     full_move_number: u8,
-    // ) -> Board;
-    // fn new() -> Board;
-
     fn clone(&self) -> Box<dyn BoardTrait>;
 
     // info about game going on
@@ -143,7 +140,7 @@ mod test {
         let square = rank.get(0);
         assert!(square.is_some(), "there is a square at 1 1 ");
         let at = Coordinate::new(1, 1);
-        assert_eq!(square.unwrap().coordinate, at, "at 1 1");
+        assert_eq!(square.unwrap().coordinate(), &at, "at 1 1");
     }
 
     #[test]
@@ -169,91 +166,13 @@ mod test {
         let files = board.get_files();
         for (j, row) in files.iter().enumerate() {
             for (i, s) in row.iter().enumerate() {
-                assert_eq!((i + 1) as u8, s.coordinate.y());
-                assert_eq!((j + 1) as u8, s.coordinate.x());
+                assert_eq!((i + 1) as u8, s.coordinate().y());
+                assert_eq!((j + 1) as u8, s.coordinate().x());
             }
         }
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
-pub struct Piece {
-    pub piece_type: PieceType,
-    pub color: Color,
-    at: Option<Coordinate>,
-}
-
-impl fmt::Display for Piece {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {}", self.color, self.piece_type)
-    }
-}
-
-impl Piece {
-    pub fn new(color: Color, piece_type: PieceType, at: Option<Coordinate>) -> Piece {
-        Piece {
-            piece_type,
-            color,
-            at,
-        }
-    }
-    pub fn at(&self) -> Option<&Coordinate> {
-        self.at.as_ref()
-    }
-}
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct CastlingRights {
-    king_side: bool,
-    queen_side: bool,
-}
-impl CastlingRights {
-    pub fn new(king_side: bool, queen_side: bool) -> CastlingRights {
-        CastlingRights {
-            king_side,
-            queen_side,
-        }
-    }
-    pub fn king_side(&self) -> bool {
-        self.king_side
-    }
-    pub fn queen_side(&self) -> bool {
-        self.queen_side
-    }
-}
-
-#[derive(Debug, Eq, PartialEq)]
-pub struct Square {
-    coordinate: Coordinate,
-    piece: Option<Piece>,
-    color: Color,
-}
-
-impl Square {
-    pub fn new(coordinate: Coordinate, piece: Option<Piece>, color: Color) -> Square {
-        Square {
-            coordinate,
-            piece,
-            color,
-        }
-    }
-    pub fn coordinate(&self) -> &Coordinate {
-        &self.coordinate
-    }
-    pub fn piece(&self) -> Option<&Piece> {
-        self.piece.as_ref()
-    }
-    pub fn color(&self) -> &Color {
-        &self.color
-    }
-    pub fn place_piece(&mut self, mut piece: Piece) {
-        piece.at = Some(self.coordinate.clone());
-        self.piece = Some(piece)
-    }
-    pub fn remove_piece(&mut self) -> Option<Piece> {
-        self.piece.take()
-    }
-}
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Board {
@@ -274,18 +193,18 @@ impl BoardTrait for Board {
     //
     // }
     fn clone(&self) -> Box<dyn BoardTrait> {
-        let mut squares: Vec<Vec<Square>> = vec![];
-        for row in self.squares.iter() {
-            let mut new_row: Vec<Square> = vec![];
-            for square in row.iter() {
-                new_row.push(Square::new(
-                    square.coordinate.clone(),
-                    square.piece.clone(),
-                    square.color.clone(),
-                ));
-            }
-            squares.push(new_row);
-        }
+        // let mut squares: Vec<Vec<Square>> = vec![];
+        // for row in self.squares.iter() {
+        //     let mut new_row: Vec<Square> = vec![];
+        //     for square in row.iter() {
+        //         new_row.push(Square::new(
+        //             square.coordinate().clone(),
+        //             square.piece().map(|p| p.clone()),
+        //             square.color().clone(),
+        //         ));
+        //     }
+        //     squares.push(new_row);
+        // }
         Box::new(Board {
             player_to_move: self.player_to_move,
             white_castling_rights: self.white_castling_rights.clone(),
@@ -295,7 +214,7 @@ impl BoardTrait for Board {
             en_passant_target: self.en_passant_target.clone(),
             half_move_clock: self.half_move_clock,
             full_move_number: self.full_move_number,
-            squares,
+            squares: self.clone_squares()
         })
     }
     fn player_to_move(&self) -> Color {
@@ -492,7 +411,7 @@ impl BoardTrait for Board {
     }
     fn place_piece(&mut self, mut piece: Piece, at: &Coordinate) {
         if at.is_valid_coordinate() {
-            piece.at = Some(at.clone());
+            piece.set_at(at.clone());
             self.get_square_mut(&at).place_piece(piece)
         }
     }
@@ -506,26 +425,26 @@ impl BoardTrait for Board {
         if !at.is_valid_coordinate() {
             return None;
         }
-        self.get_square(at).piece.as_ref()
+        self.get_square(at).piece()
     }
     fn get_kings(&self) -> Vec<&Piece> {
         self.find_pieces(|&square| {
             square
-                .piece
+                .piece()
                 .map_or(false, |piece| piece.piece_type == PieceType::King)
         })
     }
 
     fn get_pieces(&self, color: Color, piece_type: PieceType) -> Vec<&Piece> {
         self.find_pieces(|&square| {
-            square.piece.map_or(false, |piece| {
+            square.piece().map_or(false, |piece| {
                 piece.piece_type == piece_type && piece.color == color
             })
         })
     }
 
     fn get_all_pieces(&self, color: Color) -> Vec<&Piece> {
-        self.find_pieces(|&square| square.piece.map_or(false, |p| p.color == color))
+        self.find_pieces(|&square| square.piece().map_or(false, |p| p.color == color))
     }
 }
 
@@ -578,18 +497,21 @@ impl Board {
         }
     }
     pub fn from(board: &dyn BoardTrait) -> Board {
-        let mut squares: Vec<Vec<Square>> = vec![];
-        for row in board.get_squares() {
-            let mut new_row: Vec<Square> = vec![];
-            for square in row.iter() {
-                new_row.push(Square::new(
-                    square.coordinate.clone(),
-                    square.piece.clone(),
-                    square.color.clone(),
-                ));
-            }
-            squares.push(new_row);
-        }
+        let squares = board
+            .get_squares()
+            .into_iter()
+            .map(|row| {
+                row.into_iter()
+                    .map(|square| {
+                        Square::new(
+                            square.coordinate().clone(),
+                            square.piece().map(|p| p.clone()),
+                            square.color().clone(),
+                        )
+                    })
+                    .collect()
+            })
+            .collect();
         Board {
             player_to_move: board.player_to_move().clone(),
             white_castling_rights: board.white_castling_rights(),
@@ -612,10 +534,7 @@ impl Board {
     }
 
     fn remove_piece_at(&mut self, at: &Coordinate) -> Option<Piece> {
-        let square = self.get_square_mut(at);
-        let piece = square.piece;
-        square.piece = None;
-        piece
+        self.get_square_mut(at).remove_piece()
     }
 
     fn find_square_mut<F>(&mut self, filter: F) -> Option<&mut Square>
@@ -633,7 +552,7 @@ impl Board {
             .iter()
             .flatten()
             .filter(filter)
-            .map(|square| square.piece.as_ref().unwrap())
+            .map(|square| square.piece().unwrap())
             .collect()
     }
 
@@ -679,19 +598,24 @@ impl Board {
         }
         return vec;
     }
+    fn clone_squares(&self) -> Vec<Vec<Square>> {
+        self
+            .squares
+            .iter()
+            .map(|row| {
+                row.iter()
+                    .map(|square| {
+                        Square::new(
+                            square.coordinate().clone(),
+                            square.piece().map(|p| p.clone()),
+                            square.color().clone(),
+                        )
+                    })
+                    .collect()
+            })
+            .collect()
+    }
     fn _clone(&self) -> Board {
-        let mut squares: Vec<Vec<Square>> = vec![];
-        for row in self.squares.iter() {
-            let mut new_row: Vec<Square> = vec![];
-            for square in row.iter() {
-                new_row.push(Square::new(
-                    square.coordinate.clone(),
-                    square.piece.clone(),
-                    square.color.clone(),
-                ));
-            }
-            squares.push(new_row);
-        }
         Board {
             player_to_move: self.player_to_move,
             white_castling_rights: self.white_castling_rights.clone(),
@@ -701,7 +625,7 @@ impl Board {
             en_passant_target: self.en_passant_target.clone(),
             half_move_clock: self.half_move_clock,
             full_move_number: self.full_move_number,
-            squares,
+            squares: self.clone_squares()
         }
     }
 }
