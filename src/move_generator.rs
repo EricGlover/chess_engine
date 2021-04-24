@@ -2,6 +2,9 @@
 
 mod path;
 mod pseudo_legal_move_generator;
+mod chess_move;
+
+pub use chess_move::*;
 
 use crate::board::*;
 use crate::board_console_printer::print_board;
@@ -23,6 +26,7 @@ mod tests {
     use crate::fen_reader::make_board;
     use crate::fen_reader::make_initial_board;
     use test::Bencher;
+    use crate::move_generator::chess_move::MoveType;
 
     #[bench]
     fn bench_perft(b: &mut Bencher) {
@@ -94,12 +98,14 @@ mod tests {
             knight_at.clone(),
             Coordinate::new(4, 7),
             knight.piece_type,
+            MoveType::Move,
             None,
         ));
         moves.push(Move::new(
             knight_at.clone(),
             Coordinate::new(3, 6),
             knight.piece_type,
+            MoveType::Move,
             None,
         ));
         // bishop interpose
@@ -109,6 +115,7 @@ mod tests {
             bishop_at.clone(),
             bishop_at.add(1, -1),
             bishop.piece_type,
+            MoveType::Move,
             None,
         ));
         // queen captures
@@ -118,6 +125,7 @@ mod tests {
             queen_at.clone(),
             queen_at.add(1, 1),
             queen.piece_type,
+            MoveType::Move,
             Some(PieceType::Queen),
         ));
         // king move left one, right one
@@ -127,12 +135,14 @@ mod tests {
             king_at.clone(),
             king_at.add(-1, 0),
             king.piece_type,
+            MoveType::Move,
             None,
         ));
         moves.push(Move::new(
             king_at.clone(),
             king_at.add(1, 0),
             king.piece_type,
+            MoveType::Move,
             None,
         ));
 
@@ -310,182 +320,19 @@ pub struct MoveLog {
 
 impl MoveLog {
     pub fn new(m: &Move) -> MoveLog {
+        let promoted_to = match m.move_type() {
+            MoveType::Promotion(t) => Some(t.clone()),
+            _ => None,
+        };
         MoveLog {
             piece_type: m.piece,
             from: m.from.clone(),
             to: m.to.clone(),
-            promoted_to: m.promoted_to.clone(),
+            promoted_to,
         }
     }
 }
 
-enum MoveType {
-    Move,
-    Capture,
-    Castling,
-    EnPassant,
-    Promotion,
-}
-
-// @todo: maybe consider adding the algebraic notation for this move (the pgn)
-// @todo : add old castling rights to moves ?
-// @todo : add all the info needed for the unmake function , consider this a two-way change object
-#[derive(Debug, Eq, PartialEq, Copy, Clone)]
-pub struct Move {
-    pub piece: PieceType,
-    pub from: Coordinate,
-    pub to: Coordinate,
-    pub promoted_to: Option<PieceType>, // pawn promotion
-    pub captured: Option<PieceType>,
-    pub is_castling: bool,
-    pub is_check: bool,     // @todo : set these in game when eval happens ?
-    pub is_checkmate: bool, // @todo : set these in game when eval happens ?
-    pub rook: Option<PieceType>,
-    pub rook_from: Option<Coordinate>,
-    pub rook_to: Option<Coordinate>,
-}
-
-impl fmt::Display for Move {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{} moving from {} to {} ",
-            self.piece, self.from, self.to
-        )
-    }
-}
-
-impl Move {
-    pub fn new(
-        from: Coordinate,
-        to: Coordinate,
-        piece: PieceType,
-        captured: Option<PieceType>,
-    ) -> Move {
-        Move {
-            piece,
-            from,
-            to,
-            promoted_to: None,
-            is_castling: false,
-            captured,
-            rook: None,
-            rook_from: None,
-            rook_to: None,
-            is_check: false,
-            is_checkmate: false,
-        }
-    }
-
-    pub fn pawn_promotion(
-        from: Coordinate,
-        to: Coordinate,
-        piece: PieceType,
-        promoted_type: PieceType,
-        captured: Option<PieceType>,
-    ) -> Move {
-        Move {
-            piece,
-            from,
-            to,
-            promoted_to: Some(promoted_type),
-            is_castling: false,
-            captured,
-            rook: None,
-            rook_from: None,
-            rook_to: None,
-            is_check: false,
-            is_checkmate: false,
-        }
-    }
-
-    // @todo: static lifetime is suss
-    pub fn print_moves(moves: &Vec<Move>) {
-        moves.iter().for_each(|m| {
-            let str = m.to_string();
-            println!("{}", str.as_str());
-        })
-    }
-
-    pub fn castle_king_side<'a>(king: &'a Piece, rook: &'a Piece) -> Move {
-        let (from, to) = Move::king_side_castle_coordinates(king.color, PieceType::King);
-        let (rook_from, rook_to) = Move::king_side_castle_coordinates(king.color, PieceType::Rook);
-        Move {
-            piece: PieceType::King,
-            from,
-            to,
-            promoted_to: None,
-            is_castling: true,
-            captured: None,
-            rook: Some(PieceType::Rook),
-            rook_from: Some(rook_from),
-            rook_to: Some(rook_to),
-            is_check: false,
-            is_checkmate: false,
-        }
-    }
-    pub fn castle_queen_side<'a>(king: &'a Piece, rook: &'a Piece) -> Move {
-        let (from, to) = Move::queen_side_castle_coordinates(king.color, PieceType::King);
-        let (rook_from, rook_to) = Move::queen_side_castle_coordinates(king.color, PieceType::Rook);
-        Move {
-            piece: PieceType::King,
-            from,
-            to,
-            promoted_to: None,
-            is_castling: true,
-            captured: None,
-            rook: Some(PieceType::Rook),
-            rook_from: Some(rook_from),
-            rook_to: Some(rook_to),
-            is_check: false,
-            is_checkmate: false,
-        }
-    }
-    pub fn is_king_side_castle(&self) -> bool {
-        self.rook_from.is_some() && self.rook_from.unwrap().x() == 8
-    }
-    pub fn is_queen_side_castle(&self) -> bool {
-        self.rook_from.is_some() && self.rook_from.unwrap().x() == 1
-    }
-    pub fn king_side_castle_coordinates(
-        color: Color,
-        piece_type: PieceType,
-    ) -> (Coordinate, Coordinate) {
-        let y: u8 = if color == Color::White { 1 } else { 8 };
-        match piece_type {
-            PieceType::King => {
-                let from = Coordinate::new(5, y);
-                let to = Coordinate::new(7, y);
-                return (from, to);
-            }
-            PieceType::Rook => {
-                let from = Coordinate::new(8, y);
-                let to = Coordinate::new(6, y);
-                return (from, to);
-            }
-            _ => panic!("invalid"),
-        }
-    }
-    pub fn queen_side_castle_coordinates(
-        color: Color,
-        piece_type: PieceType,
-    ) -> (Coordinate, Coordinate) {
-        let y: u8 = if color == Color::White { 1 } else { 8 };
-        match piece_type {
-            PieceType::King => {
-                let from = Coordinate::new(5, y);
-                let to = Coordinate::new(3, y);
-                return (from, to);
-            }
-            PieceType::Rook => {
-                let from = Coordinate::new(1, y);
-                let to = Coordinate::new(4, y);
-                return (from, to);
-            }
-            _ => panic!("invalid"),
-        }
-    }
-}
 
 pub fn print_move(m: &Move) {
     println!(

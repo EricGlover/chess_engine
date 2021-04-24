@@ -5,6 +5,7 @@ use crate::fen_reader::make_board;
 use crate::fen_reader::make_initial_board;
 use crate::move_generator::path::{get_path_from, Direction};
 use crate::move_generator::Move;
+use crate::move_generator::chess_move::MoveType;
 
 #[cfg(test)]
 mod tests {
@@ -27,7 +28,12 @@ mod tests {
         let king = board.get_pieces(Color::White, PieceType::King).remove(0);
         assert_eq!(king.piece_type, PieceType::King);
         let king_moves = gen_king_moves(&board, &king);
-        let has_castling_moves = king_moves.iter().any(|m| m.is_castling);
+        let has_castling_moves = king_moves.iter().any(|m| {
+            match m.move_type() {
+                MoveType::Castling {rook_from, rook_to} => true,
+                _ => false,
+            }
+        });
         king_moves.iter().for_each(|m| {
             println!("{:?}", m.to);
         });
@@ -49,6 +55,7 @@ mod tests {
             Coordinate::new(2, 5),
             Coordinate::new(4, 7),
             white_queen.piece_type,
+            MoveType::Move,
             Some(PieceType::King),
         );
         let moves = gen_queen_moves(&board, &white_queen);
@@ -67,12 +74,14 @@ mod tests {
                 Coordinate::new(1, 2),
                 Coordinate::new(1, 3),
                 pawn.piece_type,
+                MoveType::Move,
                 None,
             ),
             Move::new(
                 Coordinate::new(1, 2),
                 Coordinate::new(1, 4),
                 pawn.piece_type,
+                MoveType::Move,
                 None,
             ),
         ];
@@ -123,27 +132,31 @@ pub fn gen_vectors_for(board: &dyn BoardTrait, piece: &Piece) -> Vec<Move> {
     return moves;
 }
 
-fn make_move_to(from: &Coordinate, to: &Coordinate, piece: &Piece, board: &dyn BoardTrait) -> Move {
+fn make_move_to(from: &Coordinate, to: &Coordinate, piece: &Piece, move_type: MoveType, board: &dyn BoardTrait) -> Move {
     Move::new(
         from.clone(),
         to.clone(),
         piece.piece_type,
+        move_type,
         board.get_piece_at(&to).map(|p| p.piece_type.clone()),
     )
 }
 
-fn make_move(x: i8, y: i8, from: &Coordinate, piece: &Piece, board: &dyn BoardTrait) -> Move {
+fn make_move(x: i8, y: i8, from: &Coordinate, piece: &Piece, move_type: MoveType, board: &dyn BoardTrait) -> Move {
     let to = from.add(x, y);
     Move::new(
         from.clone(),
         to,
         piece.piece_type,
+        move_type,
         board.get_piece_at(&to).map(|p| p.piece_type.clone()),
     )
 }
 
 mod move_generation {
     use super::*;
+    use crate::move_generator::chess_move::MoveType;
+
     // @todo : test
     // make linear moves along some path
     pub fn make_moves(path: Vec<Coordinate>, board: &dyn BoardTrait, piece: &Piece) -> Vec<Move> {
@@ -159,7 +172,7 @@ mod move_generation {
             if !square_occupiable_by(board, &coordinate, piece.color) {
                 break;
             }
-            moves.push(make_move_to(from, &coordinate, piece, board));
+            moves.push(make_move_to(from, &coordinate, piece, MoveType::Move, board));
             // if it wasn't empty then it had an enemy piece so stop
             if !square_is_empty(board, &coordinate) {
                 break;
@@ -172,14 +185,14 @@ mod move_generation {
     pub fn gen_king_moves(board: &dyn BoardTrait, piece: &Piece) -> Vec<Move> {
         let from = piece.at().unwrap();
         let mut moves: Vec<Move> = vec![
-            make_move(-1, -1, from, piece, board),
-            make_move(0, -1, from, piece, board),
-            make_move(1, -1, from, piece, board),
-            make_move(-1, 0, from, piece, board),
-            make_move(1, 0, from, piece, board),
-            make_move(-1, 1, from, piece, board),
-            make_move(0, 1, from, piece, board),
-            make_move(1, 1, from, piece, board),
+            make_move(-1, -1, from, piece, MoveType::Move , board),
+            make_move(0, -1, from, piece, MoveType::Move , board),
+            make_move(1, -1, from, piece, MoveType::Move , board),
+            make_move(-1, 0, from, piece, MoveType::Move , board),
+            make_move(1, 0, from, piece, MoveType::Move , board),
+            make_move(-1, 1, from, piece, MoveType::Move , board),
+            make_move(0, 1, from, piece, MoveType::Move , board),
+            make_move(1, 1, from, piece, MoveType::Move , board),
         ]
         .into_iter()
         .filter(|m| square_occupiable_by(board, &m.to, piece.color))
@@ -201,7 +214,7 @@ mod move_generation {
                     Coordinate::new(4, 1),
                 ];
                 if pass_through_spots.iter().all(|c| !board.has_piece(&c)) {
-                    moves.push(Move::castle_queen_side(piece, rook));
+                    moves.push(Move::castle_queen_side(piece.color));
                 }
             }
         }
@@ -215,7 +228,7 @@ mod move_generation {
                 // 7, 6
                 let pass_through_spots = [Coordinate::new(6, 1), Coordinate::new(7, 1)];
                 if pass_through_spots.iter().all(|c| !board.has_piece(&c)) {
-                    moves.push(Move::castle_king_side(piece, rook));
+                    moves.push(Move::castle_king_side(piece.color));
                 }
             }
         }
@@ -233,7 +246,7 @@ mod move_generation {
                     Coordinate::new(4, 8),
                 ];
                 if pass_through_spots.iter().all(|c| !board.has_piece(&c)) {
-                    moves.push(Move::castle_queen_side(piece, rook));
+                    moves.push(Move::castle_queen_side(piece.color));
                 }
             }
         }
@@ -247,7 +260,7 @@ mod move_generation {
                 // 7, 6
                 let pass_through_spots = [Coordinate::new(6, 8), Coordinate::new(7, 8)];
                 if pass_through_spots.iter().all(|c| !board.has_piece(&c)) {
-                    moves.push(Move::castle_king_side(piece, rook));
+                    moves.push(Move::castle_king_side(piece.color));
                 }
             }
         }
@@ -278,14 +291,14 @@ mod move_generation {
     pub fn gen_knight_moves(board: &dyn BoardTrait, piece: &Piece) -> Vec<Move> {
         let from = piece.at().unwrap();
         let moves = vec![
-            make_move(-2, 1, from, piece, board),
-            make_move(-1, 2, from, piece, board),
-            make_move(1, 2, from, piece, board),
-            make_move(2, 1, from, piece, board),
-            make_move(2, -1, from, piece, board),
-            make_move(1, -2, from, piece, board),
-            make_move(-1, -2, from, piece, board),
-            make_move(-2, -1, from, piece, board),
+            make_move(-2, 1, from, piece, MoveType::Move, board),
+            make_move(-1, 2, from, piece, MoveType::Move, board),
+            make_move(1, 2, from, piece, MoveType::Move, board),
+            make_move(2, 1, from, piece, MoveType::Move, board),
+            make_move(2, -1, from, piece, MoveType::Move, board),
+            make_move(1, -2, from, piece, MoveType::Move, board),
+            make_move(-1, -2, from, piece, MoveType::Move, board),
+            make_move(-2, -1, from, piece, MoveType::Move, board),
         ];
         moves
             .into_iter()
@@ -331,11 +344,11 @@ mod move_generation {
                     PieceType::Knight,
                 ];
                 for promotion_type in promotion_pieces.iter() {
-                    let m = Move::pawn_promotion(
+                    let m = Move::new(
                         from.clone(),
                         to,
                         piece.piece_type,
-                        promotion_type.clone(),
+                        MoveType::Promotion(promotion_type.clone()),
                         board.get_piece_at(&to).map(|p| p.piece_type.clone()),
                     );
                     moves.push(m);
@@ -347,6 +360,7 @@ mod move_generation {
                 from.clone(),
                 to,
                 piece.piece_type,
+                MoveType::Move,
                 board.get_piece_at(&to).map(|p| p.piece_type.clone()),
             ));
         }
@@ -355,8 +369,8 @@ mod move_generation {
         if (piece.color == Color::White && from.y() == 2)
             || (piece.color == Color::Black && from.y() == 7)
         {
-            let m1 = make_move(0, 1 * direction, from, piece, board);
-            let m2 = make_move(0, 2 * direction, from, piece, board);
+            let m1 = make_move(0, 1 * direction, from, piece, MoveType::Move, board);
+            let m2 = make_move(0, 2 * direction, from, piece, MoveType::Move, board);
             if is_on_board(&m2.to)
                 && square_is_empty(board, &m2.to)
                 && is_on_board(&m1.to)
@@ -377,12 +391,20 @@ mod move_generation {
             piece: &Piece,
         ) -> Option<Move> {
             if has_enemy_piece(board, at, pawn_color)
-                || board.en_passant_target().is_some() && board.en_passant_target().unwrap() == *at
             {
                 return Some(Move::new(
                     from.clone(),
                     at.clone(),
                     piece.piece_type,
+                    MoveType::Move,
+                    board.get_piece_at(at).map(|p| p.piece_type.clone()),
+                ));
+            } else if board.en_passant_target().is_some() && board.en_passant_target().unwrap() == *at {
+                return Some(Move::new(
+                    from.clone(),
+                    at.clone(),
+                    piece.piece_type,
+                    MoveType::EnPassant,
                     board.get_piece_at(at).map(|p| p.piece_type.clone()),
                 ));
             }
@@ -418,7 +440,7 @@ mod vector_generation {
             if !square_occupiable_by(board, &coordinate, piece.color) {
                 break;
             }
-            moves.push(make_move_to(from, &coordinate, piece, board))
+            moves.push(make_move_to(from, &coordinate, piece, MoveType::Move, board))
         }
         moves
     }

@@ -6,7 +6,7 @@ pub mod pgn {
     use crate::board::{BoardTrait, Coordinate, PieceType};
     use crate::fen_reader::make_board;
     use crate::game::Game as chess_game;
-    use crate::move_generator::{gen_legal_moves, Move};
+    use crate::move_generator::{gen_legal_moves, Move, MoveType};
     use std::fmt;
     use std::fmt::Formatter;
 
@@ -148,9 +148,12 @@ Nf2 42. g4 Bd3 43. Re6 1/2-1/2"#;
 
         // =Q or =B etc
         let mut pawn_promotion = String::new();
-        if m.promoted_to.is_some() {
-            pawn_promotion = format!("={}", m.promoted_to.unwrap().to().to_uppercase());
+        if let MoveType::Promotion(promoted_to) = m.move_type() {
+            pawn_promotion = format!("={}", promoted_to.to().to_uppercase());
         }
+        // if m.move_type() == MoveType.is_some() {
+        //     pawn_promotion = format!("={}", m.promoted_to.unwrap().to().to_uppercase());
+        // }
         //@todo:: en passant
 
         let mut check = "";
@@ -342,6 +345,6 @@ mod tests {
         let rook = Piece::new(Color::White, PieceType::Rook, Some(a1.clone()));
         let pawn = Piece::new(Color::White, PieceType::Pawn, Some(a2.clone()));
         assert!(m.is_none());
-        assert_eq!(m2, Move::new(a2.clone(), a4.clone(), pawn.piece_type, None));
+        assert_eq!(m2, Move::new(a2.clone(), a4.clone(), pawn.piece_type, MoveType::Move,None));
     }
 }

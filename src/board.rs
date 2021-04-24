@@ -7,7 +7,7 @@ mod coordinate;
 
 use crate::board_console_printer::print_board;
 use crate::fen_reader;
-use crate::move_generator::{gen_pseudo_legal_moves, Move};
+use crate::move_generator::{gen_pseudo_legal_moves, MoveType, Move};
 pub use piece::Piece;
 pub use square::Square;
 pub use castling_rights::CastlingRights;
@@ -193,18 +193,6 @@ impl BoardTrait for Board {
     //
     // }
     fn clone(&self) -> Box<dyn BoardTrait> {
-        // let mut squares: Vec<Vec<Square>> = vec![];
-        // for row in self.squares.iter() {
-        //     let mut new_row: Vec<Square> = vec![];
-        //     for square in row.iter() {
-        //         new_row.push(Square::new(
-        //             square.coordinate().clone(),
-        //             square.piece().map(|p| p.clone()),
-        //             square.color().clone(),
-        //         ));
-        //     }
-        //     squares.push(new_row);
-        // }
         Box::new(Board {
             player_to_move: self.player_to_move,
             white_castling_rights: self.white_castling_rights.clone(),
@@ -328,28 +316,54 @@ impl BoardTrait for Board {
         }
         let mut moving_piece = removed.unwrap();
 
-        // if it gets promoted, then switch it's type
-        if mov.promoted_to.is_some() && mov.piece == PieceType::Pawn {
-            moving_piece.piece_type = mov.promoted_to.unwrap();
+        match mov.move_type() {
+            MoveType::Castling {rook_from, rook_to} => {
+                // @todo : this doesn't really work , you want to be able to roll back multiple moves if needed,
+                // because if this is used for searching then it'll be doing that
+                match moving_piece.color {
+                    Color::White => {
+                        self.white_castling_rights = CastlingRights::new(false, false);
+                    }
+                    Color::Black => {
+                        self.black_castling_rights = CastlingRights::new(false, false);
+                    }
+                }
+                self.move_piece(rook_from, rook_to);
+            },
+            // if it gets promoted, then switch it's type
+            MoveType::Promotion(promoted_to) => {
+                moving_piece.piece_type = promoted_to.clone();
+            },
+            MoveType::EnPassant => {
+
+            },
+            MoveType::Move => {
+
+            }
         }
+
+        // // if it gets promoted, then switch it's type
+        // if let MoveType::Promotion(promoted_to) = mov.move_type() {
+        //     moving_piece.piece_type = promoted_to.clone();
+        // }
 
         // move the piece ( update the piece and square )
         self.place_piece(moving_piece, &mov.to);
 
-        // castling
-        if mov.is_castling && mov.rook_from.is_some() && mov.rook_to.is_some() {
-            // @todo : this doesn't really work , you want to be able to roll back multiple moves if needed,
-            // because if this is used for searching then it'll be doing that
-            match moving_piece.color {
-                Color::White => {
-                    self.white_castling_rights = CastlingRights::new(false, false);
-                }
-                Color::Black => {
-                    self.black_castling_rights = CastlingRights::new(false, false);
-                }
-            }
-            self.move_piece(mov.rook_from.as_ref().unwrap(), &mov.rook_to.unwrap());
-        }
+        // // castling
+        // if let MoveType::Castling {rook_from, rook_to} = mov.move_type() {
+        //     // @todo : this doesn't really work , you want to be able to roll back multiple moves if needed,
+        //     // because if this is used for searching then it'll be doing that
+        //     match moving_piece.color {
+        //         Color::White => {
+        //             self.white_castling_rights = CastlingRights::new(false, false);
+        //         }
+        //         Color::Black => {
+        //             self.black_castling_rights = CastlingRights::new(false, false);
+        //         }
+        //     }
+        //     self.move_piece(rook_from, rook_to);
+        // }
 
         //@todo check castling rights
 
@@ -372,6 +386,7 @@ impl BoardTrait for Board {
         //     self.half_move_clock = 0;
         // }
 
+
         if mov.captured.is_some() {
             // replace piece
             let square = self.get_square_mut(&mov.to);
@@ -382,25 +397,51 @@ impl BoardTrait for Board {
             ));
         }
 
-        // if it was promoted, then switch it's type
-        if mov.promoted_to.is_some() {
-            let mut piece = self.remove_piece(&moving_piece);
-            piece.piece_type = mov.promoted_to.unwrap().clone();
+        match mov.move_type() {
+            MoveType::Castling {rook_from, rook_to} => {
+                match moving_piece.color {
+                    Color::White => {
+                        self.white_castling_rights = self.previous_white_castling_rights.clone();
+                    }
+                    Color::Black => {
+                        self.black_castling_rights = self.previous_black_castling_rights.clone();
+                    }
+                }
+                // move the rook back
+                self.move_piece(rook_to, rook_from);
+            },
+            // if it gets promoted, then switch it's type
+            MoveType::Promotion(_) => {
+                let mut piece = self.remove_piece(&moving_piece);
+                piece.piece_type = PieceType::Pawn;
+            },
+            MoveType::EnPassant => {
+
+            },
+            MoveType::Move => {
+
+            }
         }
 
+        // if it was promoted, then switch it's type
+        // if mov.promoted_to.is_some() {
+        //     let mut piece = self.remove_piece(&moving_piece);
+        //     piece.piece_type = mov.promoted_to.unwrap().clone();
+        // }
+
         // castling
-        if mov.is_castling && mov.rook_from.is_some() && mov.rook_to.is_some() {
-            match moving_piece.color {
-                Color::White => {
-                    self.white_castling_rights = self.previous_white_castling_rights.clone();
-                }
-                Color::Black => {
-                    self.black_castling_rights = self.previous_black_castling_rights.clone();
-                }
-            }
-            // move the rook back
-            self.move_piece(mov.rook_to.as_ref().unwrap(), &mov.rook_from.unwrap());
-        }
+        // if mov.is_castling && mov.rook_from.is_some() && mov.rook_to.is_some() {
+        //     match moving_piece.color {
+        //         Color::White => {
+        //             self.white_castling_rights = self.previous_white_castling_rights.clone();
+        //         }
+        //         Color::Black => {
+        //             self.black_castling_rights = self.previous_black_castling_rights.clone();
+        //         }
+        //     }
+        //     // move the rook back
+        //     self.move_piece(mov.rook_to.as_ref().unwrap(), &mov.rook_from.unwrap());
+        // }
         // rollback the move counter
         if moving_piece.color == Color::Black {
             self.full_move_number = self.full_move_number - 1;
