@@ -10,48 +10,58 @@ The chess programming wiki https://www.chessprogramming.org/Main_Page goes prett
 
 ### Project Current State
 The project is currently setup to play a chess game on the command line, you'll play against my AI which is quite bad.
-The AI uses an unoptimized depth first search (minimax) over all possible legal moves to evaluate all board states 3 moves ahead (3 ply). 
+The AI uses a bounded depth first search (alpha-beta searching) over all possible legal moves to evaluate all board states 3 moves ahead (3 ply). 
 Ohh and unfortunately I haven't fully implemented algebraic move notation parsing so you'd have to look at the code to see 
 how to write moves that it can correctly parse.
 I do have a FEN reader that works that you can probably use btw, that thing is actually pretty handy.
+
+
+### Chess Engine Technical Overview
+#### Board Evaluation algorithm
+```
+f(p) = 200(K-K')
+   + 9(Q-Q')
+   + 5(R-R')
+   + 3(B-B' + N-N')
+   + 1(P-P')
+   - 0.5(D-D' + S-S' + I-I')
+   + 0.1(M-M')
+```
+KQRBNP = number of kings, queens, rooks, bishops, knights and pawns
+D,S,I = doubled, blocked and isolated pawns
+M = Mobility (the number of legal moves)
+#### Searching 
+Alpha Beta Search . The algorithm is really simple and something people normally do when playing chess. 
+When searching for moves the engine will assume that each player chooses an optimal move, it considers the possible
+moves and the possible opponent moves and it's possible responses and etc.. to a given depth. Out of all the paths in 
+this move tree it chooses the best one for it. Alpha Beta Searching is a way to make your search over the move tree a bit 
+easy by ignoring obviously bad moves. Example , as white,  you fully evaluate one possible move and score it .4 , then when you look at 
+the next move you find that black has a killer response scored at -1.5; here you could continue to evaluate the rest of this move tree, 
+like in minimax, but instead since you know the previous move had a better score (.4) you skip evaluating anything else with this move
+and move on to the next one.
+
 
 ### Running 
 Running the project require the rust nightly build because I'm using Bencher at the moment.
 https://rust-lang.github.io/rustup/concepts/channels.html
 
+### Plans
+- Try bit boards ?
+- Threads for searching
+- Fully Implement algebraic notation parsing
+- Bit boards
+- DONE: Implement Alpha - Beta Searching
 
 ### Short Term Goals
 - Finish Chess Notation
   - PGN output
-  - Parsing && Outputting moves with Algebraic notation   
-  - Game From PGN 
+  - Parsing && Outputting moves with Algebraic notation
+  - Game From PGN
 
-### Plans
-- Make/Unmake boards
-- Try going back to Piece pointers
-- benchmark board cloning 
+- benchmark board cloning
 - Implement draws
   - I think this is why perft is failing at depth 3
-- Switch to use Result<> more often 
-- Fix bug in bug.log 
-- Board Traits
+- Switch to use Result<> more often
 - Try optimizing the move generation
 - Test / benchmark
   https://crates.io/crates/chess
-- Try bit boards ?
-- Threads for searching 
-
-- DONE: Implement Alpha - Beta Searching
-- Fully Implement algebraic notation parsing 
-- Print pgn files of the engine playing itself for the lolz
-- Bit boards
-- do more /#[bench] benchmarking 
-
-
-## changes
-Piece Refs
-Pins ^
-Moves ^
-Square returns Piece with remove
-Square no longer uses public fields 
-Move needs fields for unmake
