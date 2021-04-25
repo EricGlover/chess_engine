@@ -228,7 +228,6 @@ mod move_generation {
         {
             let rook = board.get_piece_at(&Coordinate::new(1, 1));
             if rook.map_or(false, |p| p.piece_type == PieceType::Rook) {
-                let rook = rook.unwrap();
                 // 2,3,4
                 let pass_through_spots = [
                     Coordinate::new(2, 1),
@@ -246,7 +245,6 @@ mod move_generation {
         {
             let rook = board.get_piece_at(&Coordinate::new(8, 1));
             if rook.map_or(false, |p| p.piece_type == PieceType::Rook) {
-                let rook = rook.unwrap();
                 // 7, 6
                 let pass_through_spots = [Coordinate::new(6, 1), Coordinate::new(7, 1)];
                 if pass_through_spots.iter().all(|c| !board.has_piece(&c)) {
@@ -260,7 +258,6 @@ mod move_generation {
         {
             let rook = board.get_piece_at(&Coordinate::new(1, 8));
             if rook.map_or(false, |p| p.piece_type == PieceType::Rook) {
-                let rook = rook.unwrap();
                 //2,3,4
                 let pass_through_spots = [
                     Coordinate::new(2, 8),
@@ -278,7 +275,6 @@ mod move_generation {
         {
             let rook = board.get_piece_at(&Coordinate::new(8, 8));
             if rook.is_some() && rook.map_or(false, |p| p.piece_type == PieceType::Rook) {
-                let rook = rook.unwrap();
                 // 7, 6
                 let pass_through_spots = [Coordinate::new(6, 8), Coordinate::new(7, 8)];
                 if pass_through_spots.iter().all(|c| !board.has_piece(&c)) {

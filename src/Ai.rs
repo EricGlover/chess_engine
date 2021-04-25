@@ -124,19 +124,29 @@ impl ai {
         // end of recursion, depth_to_go = 0 so eval the board
         if depth_to_go == 0 {
             self.minimax_calls = self.minimax_calls + 1;
-            return (evaluator::evaluate(board), None);
+            return (evaluator::evaluate(board, None, None), None);
         }
         // also end recursion if someone lost a king
         let kings = board.get_kings();
         if kings.len() < 2 {
-            return (evaluator::evaluate(board), None);
+            return (evaluator::evaluate(board, None, None), None);
         }
         // search moves
         let moves_to_try = gen_legal_moves(board, player_moving);
         // this should cover checkmates so we don't try to search further,
-        // @todo: draws
+
+        // attempting to pass moves to evaluator
+        let white_moves = match player_moving {
+            Color::White => Some(&moves_to_try),
+            Color::Black => None,
+        };
+        let black_moves = match player_moving {
+            Color::White => None,
+            Color::Black => Some(&moves_to_try),
+        };
+
         if moves_to_try.len() == 0 {
-            return (evaluator::evaluate(board), None);
+            return (evaluator::evaluate(board, white_moves, black_moves), None);
         }
 
         // dfs with bounds
@@ -148,7 +158,7 @@ impl ai {
             // assuming this player and the opponent make optimal moves
             // what's the evaluation of the best board state starting from here ?
             board.make_move_mut(&a_move);
-            let (eval, m) = self.alpha_beta(
+            let (eval, _m) = self.alpha_beta(
                 board,
                 player_moving.opposite(),
                 depth_to_go - 1,
@@ -184,8 +194,6 @@ impl ai {
                 && lower_bound.is_some()
                 && eval.score < lower_bound.as_ref().unwrap().score
             {
-                // println!("{:?}, depth = {} move = {:?} ", eval, depth_to_go, a_move);
-                // println!("returning early");
                 return (best_eval.unwrap(), best_move);
             }
             // if score is higher than higher bound then black will object
@@ -193,20 +201,16 @@ impl ai {
                 && upper_bound.is_some()
                 && eval.score > upper_bound.as_ref().unwrap().score
             {
-                // println!("{:?}, depth = {} move = {:?} ", eval, depth_to_go, a_move);
-                // println!("returning early");
                 return (best_eval.unwrap(), best_move);
             }
 
             // set bounds
             // if no bounds set, then set them
             if Color::White == player_moving && lower_bound.is_none() {
-                // ????
                 lower_bound = Some(eval.clone());
                 best_move = Some(a_move);
             }
             if Color::Black == player_moving && upper_bound.is_none() {
-                // ????
                 upper_bound = Some(eval.clone());
                 best_move = Some(a_move);
             }
@@ -214,18 +218,18 @@ impl ai {
         return (best_eval.unwrap(), best_move);
     }
 
-    fn choose_random_move<'a>(
+    fn choose_random_move(
         &mut self,
-        board: &'a dyn BoardTrait,
+        board: &dyn BoardTrait,
     ) -> (evaluator::Evaluation, Option<Move>) {
         let mut moves = gen_legal_moves(board, self.color);
         if moves.len() == 0 {
-            return (evaluator::evaluate(board), None);
+            return (evaluator::evaluate(board, None, None), None);
         }
         let move_count = moves.iter().len();
         let i = self.rng.gen_range(0..move_count);
         let chosen_move = moves.remove(i);
-        (evaluator::evaluate(board), Some(chosen_move))
+        (evaluator::evaluate(board, None, None), Some(chosen_move))
     }
 
     fn minimax(
@@ -237,17 +241,17 @@ impl ai {
         // end of recursion
         if depth == 0 {
             self.minimax_calls = self.minimax_calls + 1;
-            return (evaluator::evaluate(board), None);
+            return (evaluator::evaluate(board, None, None), None);
         }
         // also end recursion if someone lost a king
         let kings = board.get_kings();
         if kings.len() < 2 {
-            return (evaluator::evaluate(board), None);
+            return (evaluator::evaluate(board, None, None), None);
         }
         // search moves
-        let mut moves_to_try = gen_legal_moves(board, color);
+        let moves_to_try = gen_legal_moves(board, color);
         if moves_to_try.len() == 0 {
-            return (evaluator::evaluate(board), None);
+            return (evaluator::evaluate(board, None, None), None);
         }
 
         // dfs with recursion time
@@ -271,7 +275,7 @@ impl ai {
             }
 
             // choose the best move for this player, white wants high eval scores , black wants low eval scores
-            let (best_eval_so_far, best_move_so_far) = acc.as_ref().unwrap();
+            let (best_eval_so_far, _best_move_so_far) = acc.as_ref().unwrap();
             if (Color::White == color && eval.score > best_eval_so_far.score)
                 || (Color::Black == color && eval.score < best_eval_so_far.score)
             {
@@ -280,7 +284,7 @@ impl ai {
             return acc;
         });
         if best.is_none() {
-            return (evaluator::evaluate(board), None);
+            return (evaluator::evaluate(board, None, None), None);
         } else {
             let (eval, m) = best.unwrap();
             return (eval, Some(m));
@@ -302,7 +306,6 @@ impl ai {
             AiSearch::AlphaBeta => self.alpha_beta(&mut *board.clone(), color, depth, None, None),
             AiSearch::Minimax => self.minimax(&mut *board.clone(), color, depth),
             AiSearch::Random => self.choose_random_move(board),
-            _ => panic!("testing"),
         };
         // check move
         // if best_move.is_some() {

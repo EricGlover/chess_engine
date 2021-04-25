@@ -10,7 +10,7 @@ use crate::board::*;
 use crate::board_console_printer::print_board;
 use crate::move_generator::path::*;
 use crate::move_generator::pseudo_legal_move_generator::*;
-use std::borrow::Borrow;
+// use std::borrow::Borrow;
 use std::fmt;
 use std::fmt::Formatter;
 

@@ -98,13 +98,13 @@ impl Game {
     pub fn run_ai_versus_ai(mut self) {
         loop {
             self.ai2_make_move();
-            let evaluation = evaluate(&self.board);
+            let evaluation = evaluate(&self.board, None, None);
             if evaluation.is_checkmate() {
                 self.end_game(evaluation.mated_player.unwrap().opposite());
             }
             self.write_log();
             self.ai1_make_move();
-            let evaluation = evaluate(&self.board);
+            let evaluation = evaluate(&self.board, None, None);
             if evaluation.is_checkmate() {
                 self.end_game(evaluation.mated_player.unwrap().opposite());
             }
@@ -134,7 +134,7 @@ impl Game {
             self.write_log();
 
             // print eval
-            let eval = ai::evaluator::evaluate(&self.board);
+            let eval = ai::evaluator::evaluate(&self.board, None, None);
             println!("eval {}", eval.score);
             if eval.is_checkmate() {
                 self.end_game(eval.mated_player.unwrap().opposite());
@@ -150,7 +150,7 @@ impl Game {
             self.board.make_move_mut(&m);
             // self.moves.push(m);
             println!("Black moves... {}", m);
-            let eval = ai::evaluator::evaluate(&self.board);
+            let eval = ai::evaluator::evaluate(&self.board, None, None);
             println!("eval {}", eval.score);
             println!(
                 "moves evaluated {}, time elapsed {:?}",

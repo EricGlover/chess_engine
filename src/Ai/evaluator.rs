@@ -1,11 +1,13 @@
 use crate::board::*;
 use crate::move_generator;
+use crate::move_generator::Move;
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::board_console_printer::print_board;
     use crate::fen_reader;
+    use test::Bencher;
 
     #[test]
     fn test_pawn_count() {
@@ -34,6 +36,15 @@ mod tests {
         let (w, b) = count_isolated_pawns(&w_count, &b_count);
         assert_eq!(5, b);
         assert_eq!(0, w);
+    }
+
+    #[bench]
+    fn bench_evaluate_board(b: &mut Bencher) {
+        let fen = "rnb1kr2/pp1p1p1p/1qB2n2/7Q/1P1pPP1p/b4N1R/P1P3P1/RNB1K3 b Qq - 4 10";
+        let board = fen_reader::make_board(fen);
+        b.iter(|| {
+            evaluate(&board, None, None)
+        })
     }
 }
 
@@ -284,7 +295,11 @@ impl Evaluation {
 //     }
 // }
 
-pub fn evaluate(board: &dyn BoardTrait) -> Evaluation {
+pub fn evaluate(
+    board: &dyn BoardTrait,
+    white_moves_ref: Option<&Vec<Move>>,
+    black_moves_ref: Option<&Vec<Move>>,
+) -> Evaluation {
     let c = PieceCount::new(board);
     let k: i32 = 200 * (c.white_king as i32 - c.black_king as i32);
     let q: i32 = 9 * (c.white_queen as i32 - c.black_queen as i32);
@@ -307,19 +322,27 @@ pub fn evaluate(board: &dyn BoardTrait) -> Evaluation {
     let pawn_structure = 0.5 * (doubled + isolated + blocked) as f32;
 
     // mobility
-    let white_moves = move_generator::gen_legal_moves(board, Color::White);
-    let black_moves = move_generator::gen_legal_moves(board, Color::Black);
+    let white_move_count: i32 = white_moves_ref.map_or_else(
+        || move_generator::gen_legal_moves(board, Color::White).len() as i32,
+        // || 0,
+        |moves| moves.len() as i32,
+    );
+    let black_move_count: i32 = black_moves_ref.map_or_else(
+        || move_generator::gen_legal_moves(board, Color::Black).len() as i32,
+        // || 0,
+        |moves| moves.len() as i32,
+    );
 
     // checkmate
-    let mated_player = if board.player_to_move() == Color::White && white_moves.len() == 0 {
+    let mated_player = if board.player_to_move() == Color::White && white_move_count == 0 {
         Some(Color::White)
-    } else if board.player_to_move() == Color::Black && black_moves.len() == 0 {
+    } else if board.player_to_move() == Color::Black && black_move_count == 0 {
         Some(Color::Black)
     } else {
         None
     };
 
-    let mobility = 0.1 * (white_moves.iter().len() as i32 - black_moves.iter().len() as i32) as f32;
+    let mobility = 0.1 * (white_move_count - black_move_count) as f32;
 
     Evaluation {
         score: (k + q + r + b + p) as f32 + mobility + pawn_structure,

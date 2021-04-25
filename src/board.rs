@@ -215,20 +215,20 @@ impl BoardTrait for Board {
                 match moving_piece.color {
                     Color::White => {
                         *self.white_castling_rights.king_side_mut() = false;
-                    },
+                    }
                     Color::Black => {
                         *self.black_castling_rights.king_side_mut() = false;
-                    },
+                    }
                 }
             }
             if removed.queen_side() {
                 match moving_piece.color {
                     Color::White => {
                         *self.white_castling_rights.queen_side_mut() = false;
-                    },
+                    }
                     Color::Black => {
                         *self.black_castling_rights.queen_side_mut() = false;
-                    },
+                    }
                 }
             }
         }
@@ -293,20 +293,20 @@ impl BoardTrait for Board {
                 match moving_piece.color {
                     Color::White => {
                         *self.white_castling_rights.king_side_mut() = true;
-                    },
+                    }
                     Color::Black => {
                         *self.black_castling_rights.king_side_mut() = true;
-                    },
+                    }
                 }
             }
             if removed.queen_side() {
                 match moving_piece.color {
                     Color::White => {
                         *self.white_castling_rights.queen_side_mut() = true;
-                    },
+                    }
                     Color::Black => {
                         *self.black_castling_rights.queen_side_mut() = true;
-                    },
+                    }
                 }
             }
         }
@@ -509,7 +509,7 @@ impl Board {
         let mut vec: Vec<Vec<Square>> = Vec::with_capacity(8);
         for (_, y) in (1..9).enumerate() {
             let mut row: Vec<Square> = Vec::with_capacity(8);
-            for (i, x) in (1..9).enumerate() {
+            for (_, x) in (1..9).enumerate() {
                 // odd numbered rows have black squares on even x's
                 let color: Color;
                 if y % 2 == 0 {
@@ -653,7 +653,10 @@ mod test {
         // if we move a rook we can't use it to castle
         let old_rights = board.white_castling_rights;
         board.make_move_mut(&white_rook_move);
-        assert_eq!(board.white_castling_rights, CastlingRights::new(false, true));
+        assert_eq!(
+            board.white_castling_rights,
+            CastlingRights::new(false, true)
+        );
         board.unmake_move_mut(&white_rook_move);
         assert!(board.white_castling_rights.both());
     }

@@ -229,7 +229,7 @@ Nf2 42. g4 Bd3 43. Re6 1/2-1/2",
 
     impl fmt::Display for Game {
         fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-            let mut tags = vec![
+            let tags = vec![
                 self.print_tag("Event", &self.event),
                 self.print_tag("Site", &self.site),
                 self.print_tag("Date", &self.date),
@@ -317,13 +317,12 @@ pub fn parse_move(str: &str) -> (PieceType, Coordinate) {
 
 // change this to result error ?
 // doesn't return illegal moves, return None if not possible
-pub fn read_move<'a>(str: &str, board: &'a dyn BoardTrait, color: Color) -> Option<Move> {
+pub fn read_move(str: &str, board: &dyn BoardTrait, color: Color) -> Option<Move> {
     // figure out what they're trying to move and where
     let (piece_type, to) = parse_move(str);
 
     // find what piece they're talking about by looking through the possible moves
-    let mut moves = gen_legal_moves(board, color);
-    moves
+    gen_legal_moves(board, color)
         .into_iter()
         .find(|m| m.piece == piece_type && m.to == to)
 }
