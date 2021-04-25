@@ -1,8 +1,8 @@
 use crate::board::*;
 use crate::chess_notation::pgn::make_move_log;
-use crate::fen_reader::make_board;
+use crate::chess_notation::fen_reader::make_board;
 #[cfg(test)]
-use crate::fen_reader::make_initial_board;
+use crate::chess_notation::fen_reader::make_initial_board;
 use crate::move_generator::chess_move::MoveType;
 use crate::move_generator::path::{get_path_from, Direction};
 use crate::move_generator::Move;
@@ -12,7 +12,7 @@ mod tests {
     use super::move_generation::*;
     use crate::board::Coordinate;
     use crate::board::*;
-    use crate::fen_reader;
+    use crate::chess_notation::fen_reader;
     use crate::move_generator::pseudo_legal_move_generator::*;
     use crate::move_generator::Move;
 

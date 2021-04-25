@@ -15,9 +15,12 @@ Ohh and unfortunately I haven't fully implemented algebraic move notation parsin
 how to write moves that it can correctly parse.
 I do have a FEN reader that works that you can probably use btw, that thing is actually pretty handy.
 
+### Running 
+Running the project require the rust nightly build because I'm using Bencher at the moment.
+https://rust-lang.github.io/rustup/concepts/channels.html
+
 
 ### Short Term Goals
-- Fix Castling
 - Finish Chess Notation
   - PGN output
   - Parsing && Outputting moves with Algebraic notation   

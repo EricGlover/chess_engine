@@ -6,7 +6,7 @@ use crate::move_generator::Move;
 mod tests {
     use super::*;
     use crate::board_console_printer::print_board;
-    use crate::fen_reader;
+    use crate::chess_notation::fen_reader;
     use test::Bencher;
 
     #[test]

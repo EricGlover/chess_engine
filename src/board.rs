@@ -6,7 +6,7 @@ mod piece_type;
 mod square;
 
 use crate::board_console_printer::print_board;
-use crate::fen_reader;
+use crate::chess_notation::fen_reader;
 use crate::move_generator::{gen_pseudo_legal_moves, Move, MoveType};
 pub use castling_rights::CastlingRights;
 pub use color::Color;
@@ -567,7 +567,7 @@ impl Board {
 #[cfg(test)]
 mod test {
     use crate::board::*;
-    use crate::fen_reader;
+    use crate::chess_notation::fen_reader;
     use crate::move_generator::gen_legal_moves;
 
     fn assert_board_is_same(board: &Board, board_2: &Board) {

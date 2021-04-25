@@ -4,7 +4,7 @@ use crate::board::*;
 use crate::board_console_printer::print_board;
 use crate::chess_notation;
 use crate::chess_notation::pgn::make_move_log;
-use crate::fen_reader;
+use crate::chess_notation::fen_reader;
 use crate::move_generator::Move;
 use chrono::{DateTime, Local};
 use std::fs::File;

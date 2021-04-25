@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::fen_reader::{make_board, make_initial_board};
+    use crate::chess_notation::fen_reader::{make_board, make_initial_board};
     use ai;
     use std::time::{Duration, Instant};
 

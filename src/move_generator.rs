@@ -10,7 +10,6 @@ use crate::board::*;
 use crate::board_console_printer::print_board;
 use crate::move_generator::path::*;
 use crate::move_generator::pseudo_legal_move_generator::*;
-// use std::borrow::Borrow;
 use std::fmt;
 use std::fmt::Formatter;
 
@@ -22,9 +21,8 @@ use std::fmt::Formatter;
 mod tests {
     use super::*;
     use crate::ai::{ai, AiSearch};
-    use crate::fen_reader;
-    use crate::fen_reader::make_board;
-    use crate::fen_reader::make_initial_board;
+    use crate::chess_notation::fen_reader;
+    use crate::chess_notation::fen_reader::*;
     use crate::move_generator::chess_move::MoveType;
     use test::Bencher;
 

@@ -1,24 +1,24 @@
 #[cfg(test)]
 mod eval_tester {
-    use crate::fen_reader;
-    use crate::AI::evaluator;
-    use crate::AI::AI;
+    use crate::chess_notation::fen_reader;
+    use crate::ai::evaluator;
+    use crate::ai::*;
 
     fn test_evaluate() {}
 
     #[test]
     fn test_eval() {
         let board = fen_reader::make_board(fen_reader::INITIAL_BOARD);
-        assert_eq!(evaluator::evaluate(&board).score, 0.0);
+        assert_eq!(evaluator::evaluate(&board, None, None).score, 0.0);
         let board = fen_reader::make_board(fen_reader::WHITE_IN_CHECK);
-        println!("{:?}", evaluator::evaluate(&board));
+        println!("{:?}", evaluator::evaluate(&board, None, None));
     }
 }
 
 #[cfg(test)]
 mod move_gen_tester {
     use crate::board::*;
-    use crate::fen_reader;
+    use crate::chess_notation::fen_reader;
     use crate::move_generator::*;
 
     fn move_list_eq(m: &Vec<Move>, m2: &Vec<Move>) -> bool {
@@ -61,9 +61,9 @@ mod move_gen_tester {
         let pawn = Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(1, 1)));
         let pawn_2 = Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(1, 1)));
 
-        let m1 = Move::new(Coordinate::new(1, 1), Coordinate::new(1, 1), pawn, false);
-        let m2 = Move::new(Coordinate::new(2, 1), Coordinate::new(1, 1), pawn, false);
-        let m3 = Move::new(Coordinate::new(1, 1), Coordinate::new(1, 1), pawn_2, false);
+        let m1 = Move::new(Coordinate::new(1, 1), Coordinate::new(1, 1), PieceType::Pawn, MoveType::Move, None, None);
+        let m2 = Move::new(Coordinate::new(2, 1), Coordinate::new(1, 1), PieceType::Pawn, MoveType::Move,None, None);
+        let m3 = Move::new(Coordinate::new(1, 1), Coordinate::new(1, 1), PieceType::Pawn, MoveType::Move,None, None);
 
         let ml: Vec<Move> = vec![m1.clone(), m2.clone()];
         let ml2: Vec<Move> = vec![m1.clone(), m2.clone()];
