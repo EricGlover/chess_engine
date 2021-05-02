@@ -316,17 +316,27 @@ mod test {
     }
 
     #[test]
-    fn add_piece() {
-        //@todo::
+    fn test_add_remove_piece() {
+        let hasher = Zobrist::new();
+        let board = fen_reader::make_initial_board();
+        let hash = hasher.hash_board(&board);
+        let mut hash2 = hasher.remove_piece(hash, &PieceType::Rook, &Color::White, &Coordinate::new(1,1));
+        assert_ne!(hash, hash2);
+        hash2 = hasher.add_piece(hash2, &PieceType::Rook, &Color::White, &Coordinate::new(1,1));
+        assert_eq!(hash, hash2);
+
+        // remove piece
+        hash2 = hasher.remove_piece(hash, &PieceType::Rook, &Color::White, &Coordinate::new(1,1));
+        let mut board = fen_reader::make_board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/1NBQKBNR w KQkq - 0 1");
+        let hash = hasher.hash_board(&board);
+        assert_eq!(hash, hash2);
     }
     #[test]
-    fn remove_piece() {
-        //@todo::
+    fn test_remove_piece() {
+        let hasher = Zobrist::new();
+        let board = fen_reader::make_initial_board();
+        let hash = hasher.hash_board(&board);
+        let mut hash2 = hasher.remove_piece(hash, &PieceType::Rook, &Color::White, &Coordinate::new(1,2));
+        assert_ne!(hash, hash2);
     }
 }
-
-// hash board
-
-// make move
-
-// unmake move
