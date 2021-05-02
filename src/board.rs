@@ -60,26 +60,18 @@ pub struct Board {
     player_to_move: Color,
     white_castling_rights: CastlingRights,
     black_castling_rights: CastlingRights,
-    previous_white_castling_rights: CastlingRights, // used in unmake move
-    previous_black_castling_rights: CastlingRights, // used in unmake move
     en_passant_target: Option<Coordinate>,
     half_move_clock: u32,
     full_move_number: u32,
     squares: Vec<Vec<Square>>,
 }
 
-//@todo : piece.at
 impl BoardTrait for Board {
-    // fn clone(&self) -> Board {
-    //
-    // }
     fn clone(&self) -> Box<dyn BoardTrait> {
         Box::new(Board {
             player_to_move: self.player_to_move,
             white_castling_rights: self.white_castling_rights.clone(),
             black_castling_rights: self.black_castling_rights.clone(),
-            previous_white_castling_rights: self.white_castling_rights.clone(),
-            previous_black_castling_rights: self.black_castling_rights.clone(),
             en_passant_target: self.en_passant_target.clone(),
             half_move_clock: self.half_move_clock,
             full_move_number: self.full_move_number,
@@ -157,12 +149,6 @@ impl BoardTrait for Board {
         &self.squares
     }
 
-    fn remove_piece(&mut self, piece: &Piece) -> Piece {
-        self.get_square_mut(&piece.at().unwrap())
-            .remove_piece()
-            .unwrap()
-    }
-
     // doesn't check legality of moves
     // fn make_move_mut(&mut self, m: &Move) {
     fn make_move_mut(&mut self, mov: &Move) {
@@ -209,6 +195,7 @@ impl BoardTrait for Board {
             MoveType::Move => {}
         }
 
+        // update castling rights
         if !mov.castling_rights_removed().none() {
             let removed = mov.castling_rights_removed();
             if removed.king_side() {
@@ -267,14 +254,6 @@ impl BoardTrait for Board {
 
         match mov.move_type() {
             MoveType::Castling { rook_from, rook_to } => {
-                match moving_piece.color {
-                    Color::White => {
-                        self.white_castling_rights = self.previous_white_castling_rights.clone();
-                    }
-                    Color::Black => {
-                        self.black_castling_rights = self.previous_black_castling_rights.clone();
-                    }
-                }
                 // move the rook back
                 self.move_piece(rook_to, rook_from);
             }
@@ -287,6 +266,7 @@ impl BoardTrait for Board {
             MoveType::Move => {}
         }
 
+        // revert castling rights
         if !mov.castling_rights_removed().none() {
             let removed = mov.castling_rights_removed();
             if removed.king_side() {
@@ -318,11 +298,17 @@ impl BoardTrait for Board {
         // update white to move flag
         self.player_to_move = self.player_to_move.opposite();
     }
+
     fn place_piece(&mut self, mut piece: Piece, at: &Coordinate) {
         if at.is_valid_coordinate() {
             piece.set_at(at.clone());
             self.get_square_mut(&at).place_piece(piece)
         }
+    }
+    fn remove_piece(&mut self, piece: &Piece) -> Piece {
+        self.get_square_mut(&piece.at().unwrap())
+            .remove_piece()
+            .unwrap()
     }
     fn has_piece(&self, at: &Coordinate) -> bool {
         self.get_piece_at(at).is_some()
@@ -404,14 +390,6 @@ impl Board {
                 black_can_castle_king_side,
                 black_can_castle_queen_side,
             ),
-            previous_white_castling_rights: CastlingRights::new(
-                white_can_castle_king_side,
-                white_can_castle_queen_side,
-            ),
-            previous_black_castling_rights: CastlingRights::new(
-                black_can_castle_king_side,
-                black_can_castle_queen_side,
-            ),
             en_passant_target,
             half_move_clock,
             full_move_number,
@@ -423,8 +401,6 @@ impl Board {
             player_to_move: Color::White,
             white_castling_rights: CastlingRights::new(true, true),
             black_castling_rights: CastlingRights::new(true, true),
-            previous_white_castling_rights: CastlingRights::new(true, true),
-            previous_black_castling_rights: CastlingRights::new(true, true),
             en_passant_target: None,
             half_move_clock: 0,
             full_move_number: 0,
@@ -451,8 +427,6 @@ impl Board {
             player_to_move: board.player_to_move().clone(),
             white_castling_rights: board.white_castling_rights(),
             black_castling_rights: board.black_castling_rights(),
-            previous_white_castling_rights: board.white_castling_rights(),
-            previous_black_castling_rights: board.black_castling_rights(),
             en_passant_target: board.en_passant_target().clone(),
             half_move_clock: board.half_move_clock(),
             full_move_number: board.full_move_number(),
@@ -554,8 +528,6 @@ impl Board {
             player_to_move: self.player_to_move,
             white_castling_rights: self.white_castling_rights.clone(),
             black_castling_rights: self.black_castling_rights.clone(),
-            previous_white_castling_rights: self.white_castling_rights.clone(),
-            previous_black_castling_rights: self.black_castling_rights.clone(),
             en_passant_target: self.en_passant_target.clone(),
             half_move_clock: self.half_move_clock,
             full_move_number: self.full_move_number,
@@ -585,14 +557,6 @@ mod test {
             board.black_castling_rights(),
             board_2.black_castling_rights(),
             "same black_castling_rights"
-        );
-        assert_eq!(
-            board.previous_white_castling_rights, board_2.previous_white_castling_rights,
-            "same previous_white_castling_rights"
-        );
-        assert_eq!(
-            board.previous_black_castling_rights, board_2.previous_black_castling_rights,
-            "same previous_black_castling_rights"
         );
         assert_eq!(
             board.en_passant_target(),

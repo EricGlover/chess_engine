@@ -38,6 +38,25 @@ impl Direction {
     }
 }
 
+// excludes from and to in the path
+pub fn get_path_between(from: &Coordinate, to: &Coordinate) -> Option<Vec<Coordinate>> {
+    make_path(from, to, false, false)
+}
+
+// gets a straight path
+// includes from and to in the path
+pub fn get_path_to(from: &Coordinate, to: &Coordinate) -> Option<Vec<Coordinate>> {
+    make_path(from, to, true, true)
+}
+
+// includes from in the path
+pub fn get_path_from(from: &Coordinate, direction: Direction) -> Vec<Coordinate> {
+    let delta_x = direction.x();
+    let delta_y = direction.y();
+    get_path(from, delta_x, delta_y)
+}
+
+
 // includes from in the path
 fn get_path(from: &Coordinate, delta_x: i8, delta_y: i8) -> Vec<Coordinate> {
     let mut path: Vec<Coordinate> = vec![];
@@ -50,14 +69,7 @@ fn get_path(from: &Coordinate, delta_x: i8, delta_y: i8) -> Vec<Coordinate> {
     path
 }
 
-pub fn get_path_from(from: &Coordinate, direction: Direction) -> Vec<Coordinate> {
-    let delta_x = direction.x();
-    let delta_y = direction.y();
-    get_path(from, delta_x, delta_y)
-}
-
-// gets a straight path
-pub fn get_path_to(from: &Coordinate, to: &Coordinate) -> Option<Vec<Coordinate>> {
+fn make_path(from: &Coordinate, to: &Coordinate, include_from: bool, include_to: bool) -> Option<Vec<Coordinate>> {
     let (x_diff, y_diff) = to.diff(&from);
 
     // if they're on the same rank or file then there's a valid straight path
@@ -86,17 +98,51 @@ pub fn get_path_to(from: &Coordinate, to: &Coordinate) -> Option<Vec<Coordinate>
     };
     let mut path: Vec<Coordinate> = vec![];
     let mut current = from.clone();
+    let mut is_first = true;
     while current.is_valid_coordinate() && &current != to {
-        path.push(current.clone());
+        if is_first && include_from {
+            path.push(current.clone());
+        } else if !is_first {
+            path.push(current.clone());
+        }
+        is_first = false;
         current = current.add(delta_x, delta_y);
     }
-    path.push(current);
+    if include_to {
+        path.push(current);
+    }
     Some(path)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_get_path_between() {
+        let start = Coordinate::new(5, 1);
+        let end = Coordinate::new(8,1 );
+        let expected = Coordinate::new_vec(vec![
+            (6,1),
+            (7,1),
+        ]);
+        let path = get_path_between(&start, &end);
+        assert_eq!(path.unwrap(), expected, "finds path between start and end squares, excluding start and end");
+    }
+
+    #[test]
+    fn test_get_path_to() {
+        let start = Coordinate::new(5, 1);
+        let end = Coordinate::new(8,1 );
+        let expected = Coordinate::new_vec(vec![
+            (5,1),
+            (6,1),
+            (7,1),
+            (8,1),
+        ]);
+        let path = get_path_to(&start, &end);
+        assert_eq!(path.unwrap(), expected, "finds inclusive path between start and end squares");
+    }
 
     #[test]
     fn test_get_path() {

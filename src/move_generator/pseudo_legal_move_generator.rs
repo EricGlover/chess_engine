@@ -172,8 +172,9 @@ fn make_move(
 mod move_generation {
     use super::*;
     use crate::move_generator::chess_move::MoveType;
+    use crate::move_generator::path::get_path_between;
 
-    // @todo : test
+
     // make linear moves along some path
     pub fn make_moves(path: Vec<Coordinate>, board: &dyn BoardTrait, piece: &Piece) -> Vec<Move> {
         let from = piece.at().unwrap();
@@ -204,81 +205,56 @@ mod move_generation {
     }
     // one square any direction
     // castling
-    pub fn gen_king_moves(board: &dyn BoardTrait, piece: &Piece) -> Vec<Move> {
-        let from = piece.at().unwrap();
+    pub fn gen_king_moves(board: &dyn BoardTrait, king: &Piece) -> Vec<Move> {
+        let from = king.at().unwrap();
+
+        // does this move remove our right to castle ?
+        /// @todo
+        // board.get_castling_rights_changes_if_piece_moves()
+
         let mut moves: Vec<Move> = vec![
-            make_move(-1, -1, from, piece, MoveType::Move, board),
-            make_move(0, -1, from, piece, MoveType::Move, board),
-            make_move(1, -1, from, piece, MoveType::Move, board),
-            make_move(-1, 0, from, piece, MoveType::Move, board),
-            make_move(1, 0, from, piece, MoveType::Move, board),
-            make_move(-1, 1, from, piece, MoveType::Move, board),
-            make_move(0, 1, from, piece, MoveType::Move, board),
-            make_move(1, 1, from, piece, MoveType::Move, board),
+            make_move(-1, -1, from, king, MoveType::Move, board),
+            make_move(0, -1, from, king, MoveType::Move, board),
+            make_move(1, -1, from, king, MoveType::Move, board),
+            make_move(-1, 0, from, king, MoveType::Move, board),
+            make_move(1, 0, from, king, MoveType::Move, board),
+            make_move(-1, 1, from, king, MoveType::Move, board),
+            make_move(0, 1, from, king, MoveType::Move, board),
+            make_move(1, 1, from, king, MoveType::Move, board),
         ]
         .into_iter()
-        .filter(|m| square_occupiable_by(board, &m.to, piece.color))
+        .filter(|m| square_occupiable_by(board, &m.to, king.color))
         .collect();
 
-        // castling
-        // @todo : clean up
-        if piece.color == Color::White
-            && board.can_castle_queen_side(piece.color)
-            && piece.at().unwrap() == &Coordinate::new(5, 1)
-        {
-            let rook = board.get_piece_at(&Coordinate::new(1, 1));
+        // castling logic :
+        // do we have castling rights && is the king in the correct spot ?
+        //
+        // castling queen side
+        let king_castle_start = Move::queen_side_castle_coordinates(king.color, king.piece_type).0;
+        if board.can_castle_queen_side(king.color) && king.at().unwrap() == &king_castle_start {
+            let rook_at = Move::queen_side_castle_coordinates(king.color, PieceType::Rook).0;
+            let rook = board.get_piece_at(&rook_at);
             if rook.map_or(false, |p| p.piece_type == PieceType::Rook) {
-                // 2,3,4
-                let pass_through_spots = [
-                    Coordinate::new(2, 1),
-                    Coordinate::new(3, 1),
-                    Coordinate::new(4, 1),
-                ];
-                if pass_through_spots.iter().all(|c| !board.has_piece(&c)) {
-                    moves.push(Move::castle_queen_side(piece.color));
+                let pass_through_spots = get_path_between(&king_castle_start, &rook_at);
+                if pass_through_spots.is_some() {
+                    let pass_through_spots = pass_through_spots.unwrap();
+                    if pass_through_spots.iter().all(|c| !board.has_piece(&c)) {
+                        moves.push(Move::castle_queen_side(king.color));
+                    }
                 }
             }
         }
-        if piece.color == Color::White
-            && board.can_castle_king_side(piece.color)
-            && piece.at().unwrap() == &Coordinate::new(5, 1)
-        {
-            let rook = board.get_piece_at(&Coordinate::new(8, 1));
+        // castling king side
+        if board.can_castle_king_side(king.color) && king.at().unwrap() == &king_castle_start {
+            let rook_at = Move::king_side_castle_coordinates(king.color, PieceType::Rook).0;
+            let rook = board.get_piece_at(&rook_at);
             if rook.map_or(false, |p| p.piece_type == PieceType::Rook) {
-                // 7, 6
-                let pass_through_spots = [Coordinate::new(6, 1), Coordinate::new(7, 1)];
-                if pass_through_spots.iter().all(|c| !board.has_piece(&c)) {
-                    moves.push(Move::castle_king_side(piece.color));
-                }
-            }
-        }
-        if piece.color == Color::Black
-            && board.can_castle_queen_side(piece.color)
-            && piece.at().unwrap() == &Coordinate::new(5, 8)
-        {
-            let rook = board.get_piece_at(&Coordinate::new(1, 8));
-            if rook.map_or(false, |p| p.piece_type == PieceType::Rook) {
-                //2,3,4
-                let pass_through_spots = [
-                    Coordinate::new(2, 8),
-                    Coordinate::new(3, 8),
-                    Coordinate::new(4, 8),
-                ];
-                if pass_through_spots.iter().all(|c| !board.has_piece(&c)) {
-                    moves.push(Move::castle_queen_side(piece.color));
-                }
-            }
-        }
-        if piece.color == Color::Black
-            && board.can_castle_king_side(piece.color)
-            && piece.at().unwrap() == &Coordinate::new(5, 8)
-        {
-            let rook = board.get_piece_at(&Coordinate::new(8, 8));
-            if rook.is_some() && rook.map_or(false, |p| p.piece_type == PieceType::Rook) {
-                // 7, 6
-                let pass_through_spots = [Coordinate::new(6, 8), Coordinate::new(7, 8)];
-                if pass_through_spots.iter().all(|c| !board.has_piece(&c)) {
-                    moves.push(Move::castle_king_side(piece.color));
+                let pass_through_spots = get_path_between(&king_castle_start, &rook_at);
+                if pass_through_spots.is_some() {
+                    let pass_through_spots = pass_through_spots.unwrap();
+                    if pass_through_spots.iter().all(|c| !board.has_piece(&c)) {
+                        moves.push(Move::castle_king_side(king.color));
+                    }
                 }
             }
         }
