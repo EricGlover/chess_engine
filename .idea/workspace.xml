@@ -6,7 +6,6 @@
   <component name="ChangeListManager">
     <list default="true" id="49ae807d-88c8-4d8d-a8ce-b8e901995cf7" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -42,7 +41,7 @@
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/../chp_15" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../../ProtoGame/typescript-Node-React-BoilerPlate" />
     <property name="node.js.detected.package.eslint" value="true" />
     <property name="node.js.detected.package.tslint" value="true" />
     <property name="node.js.path.for.package.eslint" value="project" />
@@ -95,7 +94,7 @@
       <workItem from="1616813393318" duration="135859000" />
       <workItem from="1617469148596" duration="5321000" />
       <workItem from="1617486126215" duration="160683000" />
-      <workItem from="1619370293598" duration="3631000" />
+      <workItem from="1619370293598" duration="5031000" />
     </task>
     <servers />
   </component>

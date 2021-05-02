@@ -17,6 +17,8 @@ I do have a FEN reader that works that you can probably use btw, that thing is a
 
 
 ### Chess Engine Technical Overview
+#### Board Representation 
+
 #### Board Evaluation algorithm
 ```
 f(p) = 200(K-K')
@@ -30,6 +32,7 @@ f(p) = 200(K-K')
 KQRBNP = number of kings, queens, rooks, bishops, knights and pawns
 D,S,I = doubled, blocked and isolated pawns
 M = Mobility (the number of legal moves)
+
 #### Searching 
 Alpha Beta Search . The algorithm is really simple and something people normally do when playing chess. 
 When searching for moves the engine will assume that each player chooses an optimal move, it considers the possible
