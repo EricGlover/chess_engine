@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod eval_tester {
-    use crate::chess_notation::fen_reader;
     use crate::ai::evaluator;
     use crate::ai::*;
+    use crate::chess_notation::fen_reader;
 
     fn test_evaluate() {}
 
@@ -61,9 +61,30 @@ mod move_gen_tester {
         let pawn = Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(1, 1)));
         let pawn_2 = Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(1, 1)));
 
-        let m1 = Move::new(Coordinate::new(1, 1), Coordinate::new(1, 1), PieceType::Pawn, MoveType::Move, None, None);
-        let m2 = Move::new(Coordinate::new(2, 1), Coordinate::new(1, 1), PieceType::Pawn, MoveType::Move,None, None);
-        let m3 = Move::new(Coordinate::new(1, 1), Coordinate::new(1, 1), PieceType::Pawn, MoveType::Move,None, None);
+        let m1 = Move::new(
+            Coordinate::new(1, 1),
+            Coordinate::new(1, 1),
+            PieceType::Pawn,
+            MoveType::Move,
+            None,
+            None,
+        );
+        let m2 = Move::new(
+            Coordinate::new(2, 1),
+            Coordinate::new(1, 1),
+            PieceType::Pawn,
+            MoveType::Move,
+            None,
+            None,
+        );
+        let m3 = Move::new(
+            Coordinate::new(1, 1),
+            Coordinate::new(1, 1),
+            PieceType::Pawn,
+            MoveType::Move,
+            None,
+            None,
+        );
 
         let ml: Vec<Move> = vec![m1.clone(), m2.clone()];
         let ml2: Vec<Move> = vec![m1.clone(), m2.clone()];

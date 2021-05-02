@@ -66,7 +66,6 @@ impl Move {
         &self.move_type
     }
 
-    // @todo: static lifetime is suss
     pub fn print_moves(moves: &Vec<Move>) {
         moves.iter().for_each(|m| {
             let str = m.to_string();
@@ -104,13 +103,19 @@ impl Move {
     }
     pub fn is_king_side_castle(&self) -> bool {
         match self.move_type {
-            MoveType::Castling { rook_from, rook_to:_ } => rook_from.x() == 8,
+            MoveType::Castling {
+                rook_from,
+                rook_to: _,
+            } => rook_from.x() == 8,
             _ => false,
         }
     }
     pub fn is_queen_side_castle(&self) -> bool {
         match self.move_type {
-            MoveType::Castling { rook_from, rook_to:_ } => rook_from.x() == 1,
+            MoveType::Castling {
+                rook_from,
+                rook_to: _,
+            } => rook_from.x() == 1,
             _ => false,
         }
     }

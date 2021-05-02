@@ -18,6 +18,22 @@ I do have a FEN reader that works that you can probably use btw, that thing is a
 
 ### Chess Engine Technical Overview
 #### Board Representation 
+```Rust 
+#[derive(Debug, Eq, PartialEq)]
+pub struct Board {
+    player_to_move: Color,
+    white_castling_rights: CastlingRights,
+    black_castling_rights: CastlingRights,
+    en_passant_target: Option<Coordinate>,
+    half_move_clock: u32,
+    full_move_number: u32,
+    squares: Vec<Vec<Square>>,
+}
+```
+
+The board is a very simple mailbox representation https://www.chessprogramming.org/Mailbox, where
+the pieces reside in a 2d vector.
+
 
 #### Board Evaluation algorithm
 ```

@@ -42,9 +42,7 @@ mod tests {
     fn bench_evaluate_board(b: &mut Bencher) {
         let fen = "rnb1kr2/pp1p1p1p/1qB2n2/7Q/1P1pPP1p/b4N1R/P1P3P1/RNB1K3 b Qq - 4 10";
         let board = fen_reader::make_board(fen);
-        b.iter(|| {
-            evaluate(&board, None, None)
-        })
+        b.iter(|| evaluate(&board, None, None))
     }
 }
 

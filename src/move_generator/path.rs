@@ -56,7 +56,6 @@ pub fn get_path_from(from: &Coordinate, direction: Direction) -> Vec<Coordinate>
     get_path(from, delta_x, delta_y)
 }
 
-
 // includes from in the path
 fn get_path(from: &Coordinate, delta_x: i8, delta_y: i8) -> Vec<Coordinate> {
     let mut path: Vec<Coordinate> = vec![];
@@ -69,7 +68,12 @@ fn get_path(from: &Coordinate, delta_x: i8, delta_y: i8) -> Vec<Coordinate> {
     path
 }
 
-fn make_path(from: &Coordinate, to: &Coordinate, include_from: bool, include_to: bool) -> Option<Vec<Coordinate>> {
+fn make_path(
+    from: &Coordinate,
+    to: &Coordinate,
+    include_from: bool,
+    include_to: bool,
+) -> Option<Vec<Coordinate>> {
     let (x_diff, y_diff) = to.diff(&from);
 
     // if they're on the same rank or file then there's a valid straight path
@@ -121,27 +125,27 @@ mod tests {
     #[test]
     fn test_get_path_between() {
         let start = Coordinate::new(5, 1);
-        let end = Coordinate::new(8,1 );
-        let expected = Coordinate::new_vec(vec![
-            (6,1),
-            (7,1),
-        ]);
+        let end = Coordinate::new(8, 1);
+        let expected = Coordinate::new_vec(vec![(6, 1), (7, 1)]);
         let path = get_path_between(&start, &end);
-        assert_eq!(path.unwrap(), expected, "finds path between start and end squares, excluding start and end");
+        assert_eq!(
+            path.unwrap(),
+            expected,
+            "finds path between start and end squares, excluding start and end"
+        );
     }
 
     #[test]
     fn test_get_path_to() {
         let start = Coordinate::new(5, 1);
-        let end = Coordinate::new(8,1 );
-        let expected = Coordinate::new_vec(vec![
-            (5,1),
-            (6,1),
-            (7,1),
-            (8,1),
-        ]);
+        let end = Coordinate::new(8, 1);
+        let expected = Coordinate::new_vec(vec![(5, 1), (6, 1), (7, 1), (8, 1)]);
         let path = get_path_to(&start, &end);
-        assert_eq!(path.unwrap(), expected, "finds inclusive path between start and end squares");
+        assert_eq!(
+            path.unwrap(),
+            expected,
+            "finds inclusive path between start and end squares"
+        );
     }
 
     #[test]

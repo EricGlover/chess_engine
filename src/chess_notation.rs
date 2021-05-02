@@ -4,7 +4,6 @@ pub mod pgn;
 use crate::board::*;
 use crate::move_generator::*;
 
-
 /**
 chess move reader
 <piece_specifier><piece_file | piece_rank | piece_file && piece_rank><captures><file><rank>

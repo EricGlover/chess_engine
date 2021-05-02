@@ -1,10 +1,10 @@
 use crate::board::{BoardTrait, Coordinate, PieceType};
+use crate::chess_notation::fen_reader;
 use crate::chess_notation::fen_reader::make_board;
 use crate::game::Game as chess_game;
 use crate::move_generator::{gen_legal_moves, Move, MoveType};
 use std::fmt;
 use std::fmt::Formatter;
-use crate::chess_notation::fen_reader;
 
 const TEST_PGN: &str = r#"[Event "F/S Return Match"]
 [Site "Belgrade, Serbia JUG"]
@@ -133,7 +133,6 @@ fn get_piece_specifier(m: &Move, board: &dyn BoardTrait) -> String {
 }
 
 pub fn make_move_log(m: &Move, board: &dyn BoardTrait) -> String {
-
     // if m.is_king_side_castle() {
     //     return String::from("O-O"); // O not 0
     // }

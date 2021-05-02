@@ -39,9 +39,7 @@ impl Coordinate {
         Coordinate { x, y }
     }
     pub fn new_vec(c: Vec<(u8, u8)>) -> Vec<Coordinate> {
-        c.into_iter().map(|(x, y)| {
-            Coordinate::new(x, y)
-        }).collect()
+        c.into_iter().map(|(x, y)| Coordinate::new(x, y)).collect()
     }
     // const LOW_X
     pub fn add(&self, x: i8, y: i8) -> Coordinate {

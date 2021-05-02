@@ -1,8 +1,8 @@
 use crate::board::*;
-use crate::chess_notation::pgn::make_move_log;
 use crate::chess_notation::fen_reader::make_board;
 #[cfg(test)]
 use crate::chess_notation::fen_reader::make_initial_board;
+use crate::chess_notation::pgn::make_move_log;
 use crate::move_generator::chess_move::MoveType;
 use crate::move_generator::path::{get_path_from, Direction};
 use crate::move_generator::Move;
@@ -174,7 +174,6 @@ mod move_generation {
     use crate::move_generator::chess_move::MoveType;
     use crate::move_generator::path::get_path_between;
 
-
     // make linear moves along some path
     pub fn make_moves(path: Vec<Coordinate>, board: &dyn BoardTrait, piece: &Piece) -> Vec<Move> {
         let from = piece.at().unwrap();
@@ -207,11 +206,6 @@ mod move_generation {
     // castling
     pub fn gen_king_moves(board: &dyn BoardTrait, king: &Piece) -> Vec<Move> {
         let from = king.at().unwrap();
-
-        // does this move remove our right to castle ?
-        /// @todo
-        // board.get_castling_rights_changes_if_piece_moves()
-
         let mut moves: Vec<Move> = vec![
             make_move(-1, -1, from, king, MoveType::Move, board),
             make_move(0, -1, from, king, MoveType::Move, board),
