@@ -1,0 +1,7 @@
+e4
+d5
+xd5
+Qxd5
+Nc3
+Qe5
+rnb1kbnr/ppp1pppp/8/4q3/8/2N5/PPPP1PPP/R1BQKBNR w KQkq - 3 4

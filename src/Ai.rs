@@ -5,6 +5,9 @@ use crate::move_generator::*;
 use rand::prelude::ThreadRng;
 use rand::Rng;
 use std::time::{Duration, Instant};
+use crate::hash::Zobrist;
+use std::iter::Map;
+use std::collections::HashMap;
 
 #[cfg(test)]
 mod tests {
@@ -61,6 +64,10 @@ pub enum AiSearch {
     Random,
 }
 
+struct SearchResultCache {
+    cache: HashMap<u64, (evaluator::Evaluation, Option<Move>)>
+}
+
 //@todo : pass in an Evaluator struct, or Evaluation function
 // need to understand Box<> or something first
 pub struct ai {
@@ -71,6 +78,8 @@ pub struct ai {
     time_elapsed_during_search: Option<Duration>,
     minimax_calls: i64,
     ai_search_function: AiSearch,
+    hasher: Zobrist,
+    transposition_table: HashMap<u64, (evaluator::Evaluation, Option<Move>)>
 }
 
 impl ai {
@@ -83,6 +92,8 @@ impl ai {
             time_elapsed_during_search: None,
             minimax_calls: 0,
             ai_search_function: AiSearch::AlphaBeta,
+            hasher: Zobrist::new(),
+            transposition_table: HashMap::new(),
         }
     }
 
@@ -95,8 +106,13 @@ impl ai {
             time_elapsed_during_search: None,
             minimax_calls: 0,
             ai_search_function: search_fn,
+            hasher: Zobrist::new(),
+            transposition_table: HashMap::new(),
         }
     }
+
+
+
 
     pub fn minimax_calls(&self) -> i64 {
         self.minimax_calls
@@ -113,6 +129,7 @@ impl ai {
     // returns  evaluation, final board, lower_bound, upper_bound
     // white sets lower bound , and will accept no branch evaluated lower than that
     // black sets upper bound , and will accept no branch evaluated higher than that
+    //
     fn alpha_beta(
         &mut self,
         board: &mut dyn BoardTrait,
@@ -121,6 +138,12 @@ impl ai {
         mut lower_bound: Option<evaluator::Evaluation>,
         mut upper_bound: Option<evaluator::Evaluation>,
     ) -> (evaluator::Evaluation, Option<Move>) {
+        // transposition table
+        let hash = self.hasher.hash_board(board);
+        if self.transposition_table.contains_key(&hash) {
+            return self.transposition_table.get(&hash).unwrap().clone();
+        }
+
         // end of recursion, depth_to_go = 0 so eval the board
         if depth_to_go == 0 {
             self.minimax_calls = self.minimax_calls + 1;
@@ -215,7 +238,9 @@ impl ai {
                 best_move = Some(a_move);
             }
         }
-        return (best_eval.unwrap(), best_move);
+        let result = (best_eval.unwrap(), best_move);
+        self.transposition_table.insert(hash, result.clone());
+        return result;
     }
 
     fn choose_random_move(
@@ -286,6 +311,7 @@ impl ai {
         if best.is_none() {
             return (evaluator::evaluate(board, None, None), None);
         } else {
+
             let (eval, m) = best.unwrap();
             return (eval, Some(m));
         }

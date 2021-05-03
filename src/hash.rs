@@ -13,7 +13,7 @@ fn init() {
 }
 
 #[derive(Debug)]
-struct Zobrist {
+pub struct Zobrist {
     white_pawn: [u64; 64],
     white_knight: [u64; 64],
     white_bishop: [u64; 64],
