@@ -7,6 +7,8 @@
     <list default="true" id="49ae807d-88c8-4d8d-a8ce-b8e901995cf7" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Ai.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/Ai.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Board/square.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/Board/square.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/board.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/board.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/hash.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/hash.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -96,7 +98,7 @@
       <workItem from="1616813393318" duration="135859000" />
       <workItem from="1617469148596" duration="5321000" />
       <workItem from="1617486126215" duration="160683000" />
-      <workItem from="1619370293598" duration="22615000" />
+      <workItem from="1619370293598" duration="25666000" />
     </task>
     <servers />
   </component>
