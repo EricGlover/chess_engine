@@ -21,6 +21,7 @@ pub struct Move {
     pub to: Coordinate,
     move_type: MoveType,
     pub captured: Option<PieceType>,
+    // @todo : make this white && black castling rights removed because taking a rook removes castling rights
     castling_rights_removed: CastlingRights,
     pub is_check: bool,     // @todo : set these in game when eval happens ?
     pub is_checkmate: bool, // @todo : set these in game when eval happens ?

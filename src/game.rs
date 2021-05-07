@@ -41,6 +41,10 @@ impl Game {
         self.moves.clone()
     }
 
+    pub fn make_moves(&mut self, moves : Vec<(Move, Option<Move>)>) {
+        //@todo : need this for testing pgn make_from_game
+    }
+
     fn write_log(&self) {
         let path_str = format!("./GameLogs/{}-output.txt", self.start_time);
         let path = Path::new(path_str.as_str());

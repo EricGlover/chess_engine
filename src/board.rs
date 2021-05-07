@@ -35,7 +35,7 @@ pub trait BoardTrait {
     // getting squares
     fn squares_list(&self) -> Vec<&Square>;
     fn get_rank(&self, y: u8) -> Vec<&Square>;
-    fn get_files(&self) ->Vec<Vec<&Square>>;
+    fn get_files(&self) -> Vec<Vec<&Square>>;
     fn get_squares(&self) -> Vec<Vec<&Square>>;
 
     // moves
@@ -149,9 +149,7 @@ impl BoardTrait for Board {
     fn get_squares(&self) -> Vec<Vec<&Square>> {
         self.squares
             .iter()
-            .map(|row| {
-                row.iter().map(|s| s).collect()
-            })
+            .map(|row| row.iter().map(|s| s).collect())
             .collect()
     }
 
@@ -546,7 +544,11 @@ impl Board {
     pub fn clone_squares(&self) -> [[Square; 8]; 8] {
         let s = self.get_square(&Coordinate::new(1, 1)).clone();
         fn clone_square(s: &Square) -> Square {
-            Square::new(s.coordinate().clone(), s.piece().map(|p| p.clone()), s.color().clone())
+            Square::new(
+                s.coordinate().clone(),
+                s.piece().map(|p| p.clone()),
+                s.color().clone(),
+            )
         }
         [
             [

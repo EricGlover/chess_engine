@@ -133,12 +133,12 @@ fn get_piece_specifier(m: &Move, board: &dyn BoardTrait) -> String {
 }
 
 pub fn make_move_log(m: &Move, board: &dyn BoardTrait) -> String {
-    // if m.is_king_side_castle() {
-    //     return String::from("O-O"); // O not 0
-    // }
-    // if m.is_queen_side_castle() {
-    //     return String::from("O-O-O"); // O not 0
-    // }
+    if m.is_king_side_castle() {
+        return String::from("O-O"); // O not 0
+    }
+    if m.is_queen_side_castle() {
+        return String::from("O-O-O"); // O not 0
+    }
 
     let piece_specifier = get_piece_specifier(m, board);
 
@@ -147,9 +147,6 @@ pub fn make_move_log(m: &Move, board: &dyn BoardTrait) -> String {
     if let MoveType::Promotion(promoted_to) = m.move_type() {
         pawn_promotion = format!("={}", promoted_to.to().to_uppercase());
     }
-    // if m.move_type() == MoveType.is_some() {
-    //     pawn_promotion = format!("={}", m.promoted_to.unwrap().to().to_uppercase());
-    // }
     //@todo:: en passant
 
     let mut check = "";
@@ -161,7 +158,11 @@ pub fn make_move_log(m: &Move, board: &dyn BoardTrait) -> String {
     }
 
     let piece = if m.piece == PieceType::Pawn {
-        String::new()
+        if m.captured.is_none() {
+            String::new()
+        } else {
+            String::from(m.from.x_to())
+        }
     } else {
         m.piece.to().to_uppercase()
     };
@@ -187,17 +188,32 @@ pub struct Game {
 
 impl Game {
     pub fn new_from_game(game: chess_game) -> Game {
-        //  @todo:
-        // let mut moves:Vec<String> = game.moves();
-        // let mut turns = vec![];
-        // while moves.len() > 1 {
-        //     let m1 = moves.remove(0);
-        // }
-        //
-        // // check for one move
-        // for (i, &turn) in moves.into_iter().enumerate() {
-        //
-        // }
+        // partition and step_by work here ?
+        // try step_by and zip
+        // zip together moves
+        fn make_move_pairs(mut moves: Vec<String>) -> Vec<(String, Option<String>)> {
+            let mut pairs = Vec::new();
+            while moves.len() > 0 {
+                let first = moves.remove(0);
+                let second = if moves.len() > 0 {
+                    Some(moves.remove(0))
+                } else {
+                    None
+                };
+                pairs.push((first, second));
+            }
+            pairs
+        }
+        let pairs = make_move_pairs(game.moves());
+
+        // @todo : add result
+        let move_text = pairs.into_iter().enumerate().fold(String::new(), |mut acc, (idx, (white, black))| {
+            let black = black.unwrap_or(String::new());
+            let move_string = format!("{}. {} {} ", idx, white, black);
+            acc.push_str(move_string.as_str());
+            acc
+        });
+
         Game {
             event: String::from(r#""""#),
             site: String::from(r#""""#),
@@ -206,16 +222,7 @@ impl Game {
             white: String::from(r#""""#),
             black: String::from(r#""""#),
             result: String::from(r#""""#),
-            move_text: String::from(
-                "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 {This opening is called the Ruy Lopez.}
-4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 d6 8. c3 O-O 9. h3 Nb8 10. d4 Nbd7
-11. c4 c6 12. cxb5 axb5 13. Nc3 Bb7 14. Bg5 b4 15. Nb1 h6 16. Bh4 c5 17. dxe5
-Nxe4 18. Bxe7 Qxe7 19. exd6 Qf6 20. Nbd2 Nxd6 21. Nc4 Nxc4 22. Bxc4 Nb6
-23. Ne5 Rae8 24. Bxf7+ Rxf7 25. Nxf7 Rxe1+ 26. Qxe1 Kxf7 27. Qe3 Qg5 28. Qxg5
-hxg5 29. b3 Ke6 30. a3 Kd6 31. axb4 cxb4 32. Ra5 Nd5 33. f3 Bc8 34. Kf2 Bf5
-35. Ra7 g6 36. Ra6+ Kc5 37. Ke1 Nf4 38. g3 Nxh3 39. Kd2 Kb5 40. Rd6 Kc5 41. Ra6
-Nf2 42. g4 Bd3 43. Re6 1/2-1/2",
-            ),
+            move_text,
         }
     }
     fn print_tag(&self, name: &str, value: &String) -> String {
@@ -242,6 +249,246 @@ impl fmt::Display for Game {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::board::CastlingRights;
+
+    #[test]
+    fn pawn_move() {
+        let board = fen_reader::make_initial_board();
+        let m = Move::new(
+            Coordinate::new(1, 2),
+            Coordinate::new(1, 3),
+            PieceType::Pawn,
+            MoveType::Move,
+            None,
+            None,
+        );
+        let log = make_move_log(&m, &board);
+        assert_eq!(log, String::from("a3"));
+    }
+
+    #[test]
+    fn non_pawn_move() {
+        let board = fen_reader::make_initial_board();
+        let m = Move::new(
+            Coordinate::new(2, 1),
+            Coordinate::new(1, 3),
+            PieceType::Knight,
+            MoveType::Move,
+            None,
+            None,
+        );
+        let log = make_move_log(&m, &board);
+        assert_eq!(log, String::from("Na3"));
+
+        // file specified
+        let fen = "rnbqkbnr/1ppppppp/8/8/8/p1N1N3/PPPPPPPP/R1BQKB1R b KQkq - 1 5";
+        let board = make_board(fen);
+        let m = Move::new(
+            Coordinate::new(3, 3),
+            Coordinate::new(4, 5),
+            PieceType::Knight,
+            MoveType::Move,
+            None,
+            None,
+        );
+        let log = make_move_log(&m, &board);
+        assert_eq!(
+            log,
+            String::from("Ncd5"),
+            "Two Knights can reach d5, c file knight needs to be specified."
+        );
+
+        let m = Move::new(
+            Coordinate::new(5, 3),
+            Coordinate::new(4, 5),
+            PieceType::Knight,
+            MoveType::Move,
+            None,
+            None,
+        );
+        let log = make_move_log(&m, &board);
+        assert_eq!(
+            log,
+            String::from("Ned5"),
+            "Two Knights can reach d5, e file knight needs to be specified."
+        );
+
+        //rank specified
+        let fen = "rnbqkbnr/1ppppppp/8/3N4/8/1nP5/P1QPPPPP/2BNKB1R w Kkq - 5 10";
+        let board = make_board(fen);
+        let m = Move::new(
+            Coordinate::new(4, 1),
+            Coordinate::new(5, 3),
+            PieceType::Knight,
+            MoveType::Move,
+            None,
+            None,
+        );
+        let log = make_move_log(&m, &board);
+        assert_eq!(
+            log,
+            String::from("N1e3"),
+            "Two Knights can reach d5, 1 rank knight needs to be specified."
+        );
+
+        let m = Move::new(
+            Coordinate::new(4, 5),
+            Coordinate::new(5, 3),
+            PieceType::Knight,
+            MoveType::Move,
+            None,
+            None,
+        );
+        let log = make_move_log(&m, &board);
+        assert_eq!(
+            log,
+            String::from("N5e3"),
+            "Two Knights can reach d5, 5th rank knight needs to be specified."
+        );
+    }
+
+    #[test]
+    fn captures() {
+        let fen = "rnbqkbnr/1ppppppp/8/3N4/8/1nP5/P1QPPPPP/2BNKB1R w Kkq - 5 10";
+        let board = make_board(fen);
+        let m = Move::new(
+            Coordinate::new(1, 2),
+            Coordinate::new(2, 3),
+            PieceType::Pawn,
+            MoveType::Move,
+            Some(PieceType::Knight),
+            None,
+        );
+        let log = make_move_log(&m, &board);
+        assert_eq!(log, String::from("axb3"), "A Pawn takes knight.");
+    }
+
+    #[test]
+    fn pawn_promotion() {
+        let fen = "rnbqkbnr/1ppppppp/8/8/2N5/2N5/PpPPPPPP/R1BQKB1R b KQkq - 1 6";
+        let board = make_board(fen);
+        let m = Move::new(
+            Coordinate::new(2, 2),
+            Coordinate::new(1, 1),
+            PieceType::Pawn,
+            MoveType::Promotion(PieceType::Knight),
+            Some(PieceType::Rook),
+            None,
+        );
+        let log = make_move_log(&m, &board);
+        assert_eq!(
+            log,
+            String::from("bxa1=N"),
+            "Pawn promotes and captures rook"
+        );
+
+        let m = Move::new(
+            Coordinate::new(2, 2),
+            Coordinate::new(1, 1),
+            PieceType::Pawn,
+            MoveType::Promotion(PieceType::Bishop),
+            Some(PieceType::Rook),
+            None,
+        );
+        let log = make_move_log(&m, &board);
+        assert_eq!(
+            log,
+            String::from("bxa1=B"),
+            "Pawn promotes and captures rook"
+        );
+
+
+        let m = Move::new(
+            Coordinate::new(2, 2),
+            Coordinate::new(1, 1),
+            PieceType::Pawn,
+            MoveType::Promotion(PieceType::Rook),
+            Some(PieceType::Rook),
+            None,
+        );
+        let log = make_move_log(&m, &board);
+        assert_eq!(
+            log,
+            String::from("bxa1=R"),
+            "Pawn promotes and captures rook"
+        );
+        let m = Move::new(
+            Coordinate::new(2, 2),
+            Coordinate::new(1, 1),
+            PieceType::Pawn,
+            MoveType::Promotion(PieceType::Queen),
+            Some(PieceType::Rook),
+            None,
+        );
+        let log = make_move_log(&m, &board);
+        assert_eq!(
+            log,
+            String::from("bxa1=Q"),
+            "Pawn promotes and captures rook"
+        );
+    }
+
+    #[test]
+    fn castling() {
+        let fen = "rnbqkbnr/1pp4p/4pp2/3p2p1/3P4/2NQN1PB/PBP1PP1P/R3K2R b KQkq - 1 10";
+        let board = make_board(fen);
+        let m = Move::new(
+            Coordinate::new(5, 1),
+            Coordinate::new(7, 1),
+            PieceType::King,
+            MoveType::Castling {
+                rook_from: Coordinate::new(8,1),
+                rook_to: Coordinate::new(6, 1),
+            },
+            None,
+            Some(CastlingRights::new(true, true)),
+        );
+        let log = make_move_log(&m, &board);
+        assert_eq!(
+            log,
+            String::from("O-O"),
+            "short castles"
+        );
+
+        let m = Move::new(
+            Coordinate::new(5, 1),
+            Coordinate::new(3, 1),
+            PieceType::King,
+            MoveType::Castling {
+                rook_from: Coordinate::new(1,1),
+                rook_to: Coordinate::new(4, 1),
+            },
+            None,
+            Some(CastlingRights::new(true, true)),
+        );
+        let log = make_move_log(&m, &board);
+        assert_eq!(
+            log,
+            String::from("O-O-O"),
+            "long castles"
+        );
+    }
+
+    #[test]
+    fn en_passant() {
+        // unimplemented!("");
+        let fen = "rnbqkbnr/1pp4p/4pp2/3p4/3P1Pp1/2NQN1PB/PBP1P2P/R3K2R b KQkq f3 0 11";
+        let board = make_board(fen);
+        let m = Move::new(
+            Coordinate::new(7, 4),
+            Coordinate::new(6, 3),
+            PieceType::Pawn,
+            MoveType::EnPassant,
+            Some(PieceType::Pawn),
+            None,
+        );
+        let log = make_move_log(&m, &board);
+        assert_eq!(
+            log,
+            String::from("gxf3"),
+            "Pawn en passant captures"
+        );
+    }
 
     #[test]
     fn test_make_move_log() {
@@ -249,6 +496,12 @@ mod tests {
         let double_capture = "rnbqkbnr/ppppp1pp/8/5p2/4P1P1/8/PPPP1P1P/RNBQKBNR b KQkq g3 0 2";
         let board = make_board(double_capture);
         // let m = Move::new()
+    }
+
+    #[test]
+    fn move_from_game() {
+        let game = chess_game::new();
+
     }
 
     #[test]
