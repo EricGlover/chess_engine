@@ -1,0 +1,47 @@
+https://en.wikipedia.org/wiki/Finite_set
+
+
+set cardinality : size of the set
+
+
+https://en.wikipedia.org/wiki/Injective_function
+domain and codomain
+-----------------------
+f(x) = y
+all x's are in domain X
+all y's are in codomain Y
+
+
+injective
+-------------
+all y's have 0 to 1 x's that map to them
+
+surjective
+---------------
+mapping domain X to domain Y, all y's in Y have an x in X
+
+
+f(x) -> y
+for every y in domain Y
+there exists some x such that
+f(x) = y;
+the mapping doesn't have to be unique
+so x1 = y  && x2 = y may happen
+
+
+
+bijection (One to One correspondence)
+-------------
+a function that is both injective and surjective
+for every x there is a unique y
+and for every y there is a unique x
+
+
+
+Pigeonhole principle
+---------------------
+ the pigeonhole principle states that if n items are put into m containers,
+ with n > m ,
+ then at least one container must contain more than one item.
+
+ For example, given that the population of London is greater than the maximum number of hairs that can be present on a human's head, then the pigeonhole principle requires that there must be at least two people in London who have the same number of hairs on their heads.

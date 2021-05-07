@@ -1,0 +1,6 @@
+transposition tables
+
+- when we search keep a dictionary of board states we've already searched
+- when searching check the dictionary first
+
+hashing boards

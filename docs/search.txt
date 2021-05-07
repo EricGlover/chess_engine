@@ -1,0 +1,64 @@
+Search :
+minimax
+negamax
+alpha - beta pruning
+
+
+iterative deepening
+
+quiescence search
+
+
+
+MiniMax
+
+one ply
+given all possible moves , pick the highest evaluation
+
+two ply
+Max picks highest eval on ply one
+Min picks lowest eval on ply two
+
+
+
+Color Black
+ply 1
+pick min eval move for black
+ply 2
+pick max eval move for white
+ply 3
+pick min eval move for black
+
+Color Black
+depth 2
+move = vec[]
+for moves {
+
+}
+ply 1
+look at available moves
+search move trees with that move as root
+move tree evaluates to the best worst move ?
+
+
+int maxi( int depth ) {
+    if ( depth == 0 ) return evaluate();
+    int max = -oo;
+    for ( all moves) {
+        score = mini( depth - 1 );
+        if( score > max )
+            max = score;
+    }
+    return max;
+}
+
+int mini( int depth ) {
+    if ( depth == 0 ) return -evaluate();
+    int min = +oo;
+    for ( all moves) {
+        score = maxi( depth - 1 );
+        if( score < min )
+            min = score;
+    }
+    return min;
+}
