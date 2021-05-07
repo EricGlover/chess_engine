@@ -1,13 +1,13 @@
 pub mod evaluator;
 use crate::ai::evaluator::Evaluation;
 use crate::board::*;
+use crate::hash::Zobrist;
 use crate::move_generator::*;
 use rand::prelude::ThreadRng;
 use rand::Rng;
-use std::time::{Duration, Instant};
-use crate::hash::Zobrist;
-use std::iter::Map;
 use std::collections::HashMap;
+use std::iter::Map;
+use std::time::{Duration, Instant};
 
 #[cfg(test)]
 mod tests {
@@ -65,7 +65,7 @@ pub enum AiSearch {
 }
 
 struct SearchResultCache {
-    cache: HashMap<u64, (evaluator::Evaluation, Option<Move>)>
+    cache: HashMap<u64, (evaluator::Evaluation, Option<Move>)>,
 }
 
 //@todo : pass in an Evaluator struct, or Evaluation function
@@ -79,7 +79,7 @@ pub struct ai {
     minimax_calls: i64,
     ai_search_function: AiSearch,
     hasher: Zobrist,
-    transposition_table: HashMap<u64, (evaluator::Evaluation, Option<Move>)>
+    transposition_table: HashMap<u64, (evaluator::Evaluation, Option<Move>)>,
 }
 
 impl ai {
@@ -110,9 +110,6 @@ impl ai {
             transposition_table: HashMap::new(),
         }
     }
-
-
-
 
     pub fn minimax_calls(&self) -> i64 {
         self.minimax_calls
@@ -311,7 +308,6 @@ impl ai {
         if best.is_none() {
             return (evaluator::evaluate(board, None, None), None);
         } else {
-
             let (eval, m) = best.unwrap();
             return (eval, Some(m));
         }

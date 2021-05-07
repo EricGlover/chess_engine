@@ -16,6 +16,7 @@ pub use piece_type::PieceType;
 pub use square::Square;
 use std::fmt;
 use std::fmt::Formatter;
+use std::slice::Iter;
 
 // getting pieces && squares return references
 pub trait BoardTrait {
@@ -34,8 +35,8 @@ pub trait BoardTrait {
     // getting squares
     fn squares_list(&self) -> Vec<&Square>;
     fn get_rank(&self, y: u8) -> Vec<&Square>;
-    fn get_files(&self) -> Vec<Vec<&Square>>;
-    fn get_squares(&self) -> &Vec<Vec<Square>>;
+    fn get_files(&self) ->Vec<Vec<&Square>>;
+    fn get_squares(&self) -> Vec<Vec<&Square>>;
 
     // moves
     // fn make_move(&self, m: &Move) -> Self where Self: Sized ;
@@ -63,7 +64,7 @@ pub struct Board {
     en_passant_target: Option<Coordinate>,
     half_move_clock: u32,
     full_move_number: u32,
-    squares: Vec<Vec<Square>>,
+    squares: [[Square; 8]; 8],
 }
 
 impl BoardTrait for Board {
@@ -130,7 +131,7 @@ impl BoardTrait for Board {
     }
 
     fn get_files(&self) -> Vec<Vec<&Square>> {
-        let mut files: Vec<Vec<&Square>> = vec![];
+        let mut files = vec![];
         {
             let mut x = 0;
             let row_length = self.squares.get(0).unwrap().len();
@@ -145,8 +146,13 @@ impl BoardTrait for Board {
         files
     }
 
-    fn get_squares(&self) -> &Vec<Vec<Square>> {
-        &self.squares
+    fn get_squares(&self) -> Vec<Vec<&Square>> {
+        self.squares
+            .iter()
+            .map(|row| {
+                row.iter().map(|s| s).collect()
+            })
+            .collect()
     }
 
     // doesn't check legality of moves
@@ -407,32 +413,6 @@ impl Board {
             squares: Board::make_squares(),
         }
     }
-    pub fn from(board: &dyn BoardTrait) -> Board {
-        let squares = board
-            .get_squares()
-            .into_iter()
-            .map(|row| {
-                row.into_iter()
-                    .map(|square| {
-                        Square::new(
-                            square.coordinate().clone(),
-                            square.piece().map(|p| p.clone()),
-                            square.color().clone(),
-                        )
-                    })
-                    .collect()
-            })
-            .collect();
-        Board {
-            player_to_move: board.player_to_move().clone(),
-            white_castling_rights: board.white_castling_rights(),
-            black_castling_rights: board.black_castling_rights(),
-            en_passant_target: board.en_passant_target().clone(),
-            half_move_clock: board.half_move_clock(),
-            full_move_number: board.full_move_number(),
-            squares,
-        }
-    }
 
     fn move_piece(&mut self, at: &Coordinate, to: &Coordinate) {
         // @todo : handle unwrap
@@ -479,49 +459,177 @@ impl Board {
             .get_mut((at.x() - 1) as usize)
             .unwrap()
     }
-    fn make_squares() -> Vec<Vec<Square>> {
-        let mut vec: Vec<Vec<Square>> = Vec::with_capacity(8);
-        for (_, y) in (1..9).enumerate() {
-            let mut row: Vec<Square> = Vec::with_capacity(8);
-            for (_, x) in (1..9).enumerate() {
-                // odd numbered rows have black squares on even x's
-                let color: Color;
-                if y % 2 == 0 {
-                    // even row , white is even, black is odd
-                    color = if x % 2 == 0 {
-                        Color::White
-                    } else {
-                        Color::Black
-                    }
-                } else {
-                    // odd row , white is odd , black is even
-                    color = if x % 2 == 0 {
-                        Color::Black
-                    } else {
-                        Color::White
-                    }
-                }
-                row.push(Square::new(Coordinate::new(x, y), None, color));
-            }
-            vec.push(row);
-        }
-        return vec;
+    fn make_squares() -> [[Square; 8]; 8] {
+        [
+            [
+                Square::new(Coordinate::new(1, 1), None, Color::Black),
+                Square::new(Coordinate::new(2, 1), None, Color::White),
+                Square::new(Coordinate::new(3, 1), None, Color::Black),
+                Square::new(Coordinate::new(4, 1), None, Color::White),
+                Square::new(Coordinate::new(5, 1), None, Color::Black),
+                Square::new(Coordinate::new(6, 1), None, Color::White),
+                Square::new(Coordinate::new(7, 1), None, Color::Black),
+                Square::new(Coordinate::new(8, 1), None, Color::White),
+            ],
+            [
+                Square::new(Coordinate::new(1, 2), None, Color::White),
+                Square::new(Coordinate::new(2, 2), None, Color::Black),
+                Square::new(Coordinate::new(3, 2), None, Color::White),
+                Square::new(Coordinate::new(4, 2), None, Color::Black),
+                Square::new(Coordinate::new(5, 2), None, Color::White),
+                Square::new(Coordinate::new(6, 2), None, Color::Black),
+                Square::new(Coordinate::new(7, 2), None, Color::White),
+                Square::new(Coordinate::new(8, 2), None, Color::Black),
+            ],
+            [
+                Square::new(Coordinate::new(1, 3), None, Color::Black),
+                Square::new(Coordinate::new(2, 3), None, Color::White),
+                Square::new(Coordinate::new(3, 3), None, Color::Black),
+                Square::new(Coordinate::new(4, 3), None, Color::White),
+                Square::new(Coordinate::new(5, 3), None, Color::Black),
+                Square::new(Coordinate::new(6, 3), None, Color::White),
+                Square::new(Coordinate::new(7, 3), None, Color::Black),
+                Square::new(Coordinate::new(8, 3), None, Color::White),
+            ],
+            [
+                Square::new(Coordinate::new(1, 4), None, Color::White),
+                Square::new(Coordinate::new(2, 4), None, Color::Black),
+                Square::new(Coordinate::new(3, 4), None, Color::White),
+                Square::new(Coordinate::new(4, 4), None, Color::Black),
+                Square::new(Coordinate::new(5, 4), None, Color::White),
+                Square::new(Coordinate::new(6, 4), None, Color::Black),
+                Square::new(Coordinate::new(7, 4), None, Color::White),
+                Square::new(Coordinate::new(8, 4), None, Color::Black),
+            ],
+            [
+                Square::new(Coordinate::new(1, 5), None, Color::Black),
+                Square::new(Coordinate::new(2, 5), None, Color::White),
+                Square::new(Coordinate::new(3, 5), None, Color::Black),
+                Square::new(Coordinate::new(4, 5), None, Color::White),
+                Square::new(Coordinate::new(5, 5), None, Color::Black),
+                Square::new(Coordinate::new(6, 5), None, Color::White),
+                Square::new(Coordinate::new(7, 5), None, Color::Black),
+                Square::new(Coordinate::new(8, 5), None, Color::White),
+            ],
+            [
+                Square::new(Coordinate::new(1, 6), None, Color::White),
+                Square::new(Coordinate::new(2, 6), None, Color::Black),
+                Square::new(Coordinate::new(3, 6), None, Color::White),
+                Square::new(Coordinate::new(4, 6), None, Color::Black),
+                Square::new(Coordinate::new(5, 6), None, Color::White),
+                Square::new(Coordinate::new(6, 6), None, Color::Black),
+                Square::new(Coordinate::new(7, 6), None, Color::White),
+                Square::new(Coordinate::new(8, 6), None, Color::Black),
+            ],
+            [
+                Square::new(Coordinate::new(1, 7), None, Color::Black),
+                Square::new(Coordinate::new(2, 7), None, Color::White),
+                Square::new(Coordinate::new(3, 7), None, Color::Black),
+                Square::new(Coordinate::new(4, 7), None, Color::White),
+                Square::new(Coordinate::new(5, 7), None, Color::Black),
+                Square::new(Coordinate::new(6, 7), None, Color::White),
+                Square::new(Coordinate::new(7, 7), None, Color::Black),
+                Square::new(Coordinate::new(8, 7), None, Color::White),
+            ],
+            [
+                Square::new(Coordinate::new(1, 8), None, Color::White),
+                Square::new(Coordinate::new(2, 8), None, Color::Black),
+                Square::new(Coordinate::new(3, 8), None, Color::White),
+                Square::new(Coordinate::new(4, 8), None, Color::Black),
+                Square::new(Coordinate::new(5, 8), None, Color::White),
+                Square::new(Coordinate::new(6, 8), None, Color::Black),
+                Square::new(Coordinate::new(7, 8), None, Color::White),
+                Square::new(Coordinate::new(8, 8), None, Color::Black),
+            ],
+        ]
     }
-    fn clone_squares(&self) -> Vec<Vec<Square>> {
-        self.squares
-            .iter()
-            .map(|row| {
-                row.iter()
-                    .map(|square| {
-                        Square::new(
-                            square.coordinate().clone(),
-                            square.piece().map(|p| p.clone()),
-                            square.color().clone(),
-                        )
-                    })
-                    .collect()
-            })
-            .collect()
+    pub fn clone_squares(&self) -> [[Square; 8]; 8] {
+        let s = self.get_square(&Coordinate::new(1, 1)).clone();
+        fn clone_square(s: &Square) -> Square {
+            Square::new(s.coordinate().clone(), s.piece().map(|p| p.clone()), s.color().clone())
+        }
+        [
+            [
+                clone_square(self.get_square(&Coordinate::new(1, 1)).clone()),
+                clone_square(self.get_square(&Coordinate::new(2, 1)).clone()),
+                clone_square(self.get_square(&Coordinate::new(3, 1)).clone()),
+                clone_square(self.get_square(&Coordinate::new(4, 1)).clone()),
+                clone_square(self.get_square(&Coordinate::new(5, 1)).clone()),
+                clone_square(self.get_square(&Coordinate::new(6, 1)).clone()),
+                clone_square(self.get_square(&Coordinate::new(7, 1)).clone()),
+                clone_square(self.get_square(&Coordinate::new(8, 1)).clone()),
+            ],
+            [
+                clone_square(self.get_square(&Coordinate::new(1, 2)).clone()),
+                clone_square(self.get_square(&Coordinate::new(2, 2)).clone()),
+                clone_square(self.get_square(&Coordinate::new(3, 2)).clone()),
+                clone_square(self.get_square(&Coordinate::new(4, 2)).clone()),
+                clone_square(self.get_square(&Coordinate::new(5, 2)).clone()),
+                clone_square(self.get_square(&Coordinate::new(6, 2)).clone()),
+                clone_square(self.get_square(&Coordinate::new(7, 2)).clone()),
+                clone_square(self.get_square(&Coordinate::new(8, 2)).clone()),
+            ],
+            [
+                clone_square(self.get_square(&Coordinate::new(1, 3)).clone()),
+                clone_square(self.get_square(&Coordinate::new(2, 3)).clone()),
+                clone_square(self.get_square(&Coordinate::new(3, 3)).clone()),
+                clone_square(self.get_square(&Coordinate::new(4, 3)).clone()),
+                clone_square(self.get_square(&Coordinate::new(5, 3)).clone()),
+                clone_square(self.get_square(&Coordinate::new(6, 3)).clone()),
+                clone_square(self.get_square(&Coordinate::new(7, 3)).clone()),
+                clone_square(self.get_square(&Coordinate::new(8, 3)).clone()),
+            ],
+            [
+                clone_square(self.get_square(&Coordinate::new(1, 4)).clone()),
+                clone_square(self.get_square(&Coordinate::new(2, 4)).clone()),
+                clone_square(self.get_square(&Coordinate::new(3, 4)).clone()),
+                clone_square(self.get_square(&Coordinate::new(4, 4)).clone()),
+                clone_square(self.get_square(&Coordinate::new(5, 4)).clone()),
+                clone_square(self.get_square(&Coordinate::new(6, 4)).clone()),
+                clone_square(self.get_square(&Coordinate::new(7, 4)).clone()),
+                clone_square(self.get_square(&Coordinate::new(8, 4)).clone()),
+            ],
+            [
+                clone_square(self.get_square(&Coordinate::new(1, 5)).clone()),
+                clone_square(self.get_square(&Coordinate::new(2, 5)).clone()),
+                clone_square(self.get_square(&Coordinate::new(3, 5)).clone()),
+                clone_square(self.get_square(&Coordinate::new(4, 5)).clone()),
+                clone_square(self.get_square(&Coordinate::new(5, 5)).clone()),
+                clone_square(self.get_square(&Coordinate::new(6, 5)).clone()),
+                clone_square(self.get_square(&Coordinate::new(7, 5)).clone()),
+                clone_square(self.get_square(&Coordinate::new(8, 5)).clone()),
+            ],
+            [
+                clone_square(self.get_square(&Coordinate::new(1, 6)).clone()),
+                clone_square(self.get_square(&Coordinate::new(2, 6)).clone()),
+                clone_square(self.get_square(&Coordinate::new(3, 6)).clone()),
+                clone_square(self.get_square(&Coordinate::new(4, 6)).clone()),
+                clone_square(self.get_square(&Coordinate::new(5, 6)).clone()),
+                clone_square(self.get_square(&Coordinate::new(6, 6)).clone()),
+                clone_square(self.get_square(&Coordinate::new(7, 6)).clone()),
+                clone_square(self.get_square(&Coordinate::new(8, 6)).clone()),
+            ],
+            [
+                clone_square(self.get_square(&Coordinate::new(1, 7)).clone()),
+                clone_square(self.get_square(&Coordinate::new(2, 7)).clone()),
+                clone_square(self.get_square(&Coordinate::new(3, 7)).clone()),
+                clone_square(self.get_square(&Coordinate::new(4, 7)).clone()),
+                clone_square(self.get_square(&Coordinate::new(5, 7)).clone()),
+                clone_square(self.get_square(&Coordinate::new(6, 7)).clone()),
+                clone_square(self.get_square(&Coordinate::new(7, 7)).clone()),
+                clone_square(self.get_square(&Coordinate::new(8, 7)).clone()),
+            ],
+            [
+                clone_square(self.get_square(&Coordinate::new(1, 8)).clone()),
+                clone_square(self.get_square(&Coordinate::new(2, 8)).clone()),
+                clone_square(self.get_square(&Coordinate::new(3, 8)).clone()),
+                clone_square(self.get_square(&Coordinate::new(4, 8)).clone()),
+                clone_square(self.get_square(&Coordinate::new(5, 8)).clone()),
+                clone_square(self.get_square(&Coordinate::new(6, 8)).clone()),
+                clone_square(self.get_square(&Coordinate::new(7, 8)).clone()),
+                clone_square(self.get_square(&Coordinate::new(8, 8)).clone()),
+            ],
+        ]
     }
     fn _clone(&self) -> Board {
         Board {

@@ -170,81 +170,57 @@ impl Zobrist {
         // prev rows = (at.y - 1) * 8
         // ((at.y - 1) * 8 ) +
         // (at.x - 1)
-        (((at.y() -1) * 8) + (at.x() -1)) as usize
+        (((at.y() - 1) * 8) + (at.x() - 1)) as usize
     }
 
     fn hash_piece(&self, piece_type: &PieceType, color: &Color, at: &Coordinate) -> u64 {
         let index = Zobrist::coordinate_to_index(at);
         let arr = match piece_type {
-            &PieceType::King => {
-                match color {
-                    &Color::White => {
-                        &self.white_king
-                    },
-                    &Color::Black => {
-                        &self.black_king
-                    }
-                }
-            }
-            &PieceType::Queen => {
-                match color {
-                    &Color::White => {
-                        &self.white_queen
-                    },
-                    &Color::Black => {
-                        &self.black_queen
-                    }
-                }
-            }
-            &PieceType::Bishop => {
-                match color {
-                    &Color::White => {
-                        &self.white_bishop
-                    },
-                    &Color::Black => {
-                        &self.black_bishop
-                    }
-                }
-            }
-            &PieceType::Knight => {
-                match color {
-                    &Color::White => {
-                        &self.white_knight
-                    },
-                    &Color::Black => {
-                        &self.black_knight
-                    }
-                }
-            }
-            &PieceType::Rook => {
-                match color {
-                    &Color::White => {
-                        &self.white_rook
-                    },
-                    &Color::Black => {
-                        &self.black_rook
-                    }
-                }
-            }
-            &PieceType::Pawn => {
-                match color {
-                    &Color::White => {
-                        &self.white_pawn
-                    },
-                    &Color::Black => {
-                        &self.black_pawn
-                    }
-                }
-            }
+            &PieceType::King => match color {
+                &Color::White => &self.white_king,
+                &Color::Black => &self.black_king,
+            },
+            &PieceType::Queen => match color {
+                &Color::White => &self.white_queen,
+                &Color::Black => &self.black_queen,
+            },
+            &PieceType::Bishop => match color {
+                &Color::White => &self.white_bishop,
+                &Color::Black => &self.black_bishop,
+            },
+            &PieceType::Knight => match color {
+                &Color::White => &self.white_knight,
+                &Color::Black => &self.black_knight,
+            },
+            &PieceType::Rook => match color {
+                &Color::White => &self.white_rook,
+                &Color::Black => &self.black_rook,
+            },
+            &PieceType::Pawn => match color {
+                &Color::White => &self.white_pawn,
+                &Color::Black => &self.black_pawn,
+            },
         };
         arr.get(index).unwrap().clone()
     }
 
-    pub fn add_piece(&self, hash: u64, piece_type: &PieceType, color: &Color, at: &Coordinate) -> u64 {
+    pub fn add_piece(
+        &self,
+        hash: u64,
+        piece_type: &PieceType,
+        color: &Color,
+        at: &Coordinate,
+    ) -> u64 {
         hash ^ self.hash_piece(piece_type, color, at)
     }
 
-    pub fn remove_piece(&self, hash: u64, piece_type: &PieceType, color: &Color, at: &Coordinate) -> u64 {
+    pub fn remove_piece(
+        &self,
+        hash: u64,
+        piece_type: &PieceType,
+        color: &Color,
+        at: &Coordinate,
+    ) -> u64 {
         hash ^ self.hash_piece(piece_type, color, at)
     }
 }
@@ -284,12 +260,12 @@ mod test {
     fn test_coordinate_to_index() {
         // starting index
         let expected = 0usize;
-        let index = Zobrist::coordinate_to_index(&Coordinate::new(1,1));
+        let index = Zobrist::coordinate_to_index(&Coordinate::new(1, 1));
         assert_eq!(expected, index, "a1 is starting index");
 
         // ending index
         let expected = 63usize;
-        let index = Zobrist::coordinate_to_index(&Coordinate::new(8,8));
+        let index = Zobrist::coordinate_to_index(&Coordinate::new(8, 8));
         assert_eq!(expected, index, "h8 is ending index");
 
         let expected = 8usize;
@@ -320,14 +296,30 @@ mod test {
         let hasher = Zobrist::new();
         let board = fen_reader::make_initial_board();
         let hash = hasher.hash_board(&board);
-        let mut hash2 = hasher.remove_piece(hash, &PieceType::Rook, &Color::White, &Coordinate::new(1,1));
+        let mut hash2 = hasher.remove_piece(
+            hash,
+            &PieceType::Rook,
+            &Color::White,
+            &Coordinate::new(1, 1),
+        );
         assert_ne!(hash, hash2);
-        hash2 = hasher.add_piece(hash2, &PieceType::Rook, &Color::White, &Coordinate::new(1,1));
+        hash2 = hasher.add_piece(
+            hash2,
+            &PieceType::Rook,
+            &Color::White,
+            &Coordinate::new(1, 1),
+        );
         assert_eq!(hash, hash2);
 
         // remove piece
-        hash2 = hasher.remove_piece(hash, &PieceType::Rook, &Color::White, &Coordinate::new(1,1));
-        let mut board = fen_reader::make_board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/1NBQKBNR w KQkq - 0 1");
+        hash2 = hasher.remove_piece(
+            hash,
+            &PieceType::Rook,
+            &Color::White,
+            &Coordinate::new(1, 1),
+        );
+        let mut board =
+            fen_reader::make_board("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/1NBQKBNR w KQkq - 0 1");
         let hash = hasher.hash_board(&board);
         assert_eq!(hash, hash2);
     }
@@ -336,7 +328,12 @@ mod test {
         let hasher = Zobrist::new();
         let board = fen_reader::make_initial_board();
         let hash = hasher.hash_board(&board);
-        let mut hash2 = hasher.remove_piece(hash, &PieceType::Rook, &Color::White, &Coordinate::new(1,2));
+        let mut hash2 = hasher.remove_piece(
+            hash,
+            &PieceType::Rook,
+            &Color::White,
+            &Coordinate::new(1, 2),
+        );
         assert_ne!(hash, hash2);
     }
 }

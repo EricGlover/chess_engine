@@ -49,3 +49,73 @@ stack backtrace:
    5: core::ops::function::FnOnce::call_once
              at /rustc/2fd73fabe469357a12c2c974c140f67e7cdd76d0\library\core\src\ops\function.rs:227
 note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+
+
+
+=== arrays 
+warning: 75 warnings emitted
+
+    Finished bench [optimized] target(s) in 3.65s
+     Running unittests (target\release\deps\chess_engine-0727de5a98e369e6.exe)
+
+running 49 tests
+test ai::evaluator::tests::test_count_pawn_structure ... ignored
+test ai::evaluator::tests::test_pawn_count ... ignored
+test ai::tests::bug_alpha_beta ... ignored
+test ai::tests::search ... ignored
+test ai::tests::test_alpha_beta ... ignored
+test board::coordinate::tests::from_coordinate_test ... ignored
+test board::coordinate::tests::to_coordinate_test ... ignored
+test board::test::test_castling_rights ... ignored
+test board::test::test_clone ... ignored
+test board::test::test_get_files ... ignored
+test board::test::test_get_pieces ... ignored
+test board::test::test_get_rank ... ignored
+test board::test::test_make_unmake ... ignored
+test chess_notation::fen_reader::tests::test_board_2 ... ignored
+test chess_notation::fen_reader::tests::test_initial_board ... ignored
+test chess_notation::fen_reader::tests::test_make_fen ... ignored
+test chess_notation::fen_reader::tests::test_make_fen_pieces ... ignored
+test chess_notation::pgn::tests::test_make_move_log ... ignored
+test chess_notation::pgn::tests::test_pgn ... ignored
+test chess_notation::tests::read_move_test ... ignored
+test hash::test::test_add_remove_piece ... ignored
+test hash::test::test_coordinate_to_index ... ignored
+test hash::test::test_hash_board ... ignored
+test hash::test::test_hash_piece ... ignored
+test hash::test::test_remove_piece ... ignored
+test hash::test::zobrist_new ... ignored
+test move_generator::path::tests::test_get_path ... ignored
+test move_generator::path::tests::test_get_path_between ... ignored
+test move_generator::path::tests::test_get_path_to ... ignored
+test move_generator::pseudo_legal_move_generator::tests::test_gen_queen_moves ... ignored
+test move_generator::pseudo_legal_move_generator::tests::test_king_moves ... ignored
+test move_generator::pseudo_legal_move_generator::tests::test_pawn_moves ... ignored
+test move_generator::tests::perft_initial_position ... ignored
+test move_generator::tests::test_find_attacking_pieces ... ignored
+test move_generator::tests::test_find_moves_to_resolve_check ... ignored
+test move_generator::tests::test_find_pinned_pieces ... ignored
+test move_generator::tests::test_gen_legal_moves_checkmate ... ignored
+test move_generator::tests::test_gen_pseudo_legal_moves ... ignored
+test move_generator::tests::test_get_checks ... ignored
+test move_generator::tests::test_in_check ... ignored
+test tests::eval_tester::test_eval ... ignored
+test tests::move_gen_tester::move_gen ... ignored
+test tests::move_gen_tester::move_list_is_same ... ignored
+test ai::evaluator::tests::bench_evaluate_board          ... bench:      41,289 ns/iter (+/- 1,599)
+test move_generator::tests::bench_gen_attack_vectors     ... bench:       5,592 ns/iter (+/- 76)
+test move_generator::tests::bench_gen_find_pinned_pieces ... bench:       5,935 ns/iter (+/- 100)
+test move_generator::tests::bench_gen_legal_moves        ... bench:     278,830 ns/iter (+/- 5,042)
+test move_generator::tests::bench_gen_pseudo_legal_moves ... bench:      21,013 ns/iter (+/- 273)
+test move_generator::tests::bench_perft                  ... bench: 467,048,720 ns/iter (+/- 8,832,415)
+
+test result: ok. 0 passed; 0 failed; 43 ignored; 6 measured; 0 filtered out; finished in 144.13s
+
+     Running unittests (target\release\deps\chess_engine-760ea83535b37962.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+15732@DESKTOP-GGJLT66 /cygdrive/c/Programming/Rust/chess_engine

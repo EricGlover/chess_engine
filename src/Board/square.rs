@@ -31,4 +31,11 @@ impl Square {
     pub fn remove_piece(&mut self) -> Option<Piece> {
         self.piece.take()
     }
+    pub fn _clone(&self) -> Square {
+        Square {
+            coordinate: self.coordinate.clone(),
+            piece: self.piece.clone(),
+            color: self.color.clone(),
+        }
+    }
 }
