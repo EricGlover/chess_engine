@@ -1,4 +1,4 @@
-use crate::board::{BoardTrait, Coordinate, PieceType};
+use crate::board::{BoardTrait, Color, Coordinate, PieceType};
 use crate::chess_notation::fen_reader;
 use crate::chess_notation::fen_reader::make_board;
 use crate::game::Game as chess_game;
@@ -147,7 +147,6 @@ pub fn make_move_log(m: &Move, board: &dyn BoardTrait) -> String {
     if let MoveType::Promotion(promoted_to) = m.move_type() {
         pawn_promotion = format!("={}", promoted_to.to().to_uppercase());
     }
-    //@todo:: en passant
 
     let mut check = "";
     if m.is_check {
@@ -175,6 +174,14 @@ pub fn make_move_log(m: &Move, board: &dyn BoardTrait) -> String {
     )
 }
 
+pub fn make_move(move_string: &String, board: &dyn BoardTrait) -> Move {
+    unimplemented!("");
+    if move_string == &String::from("O-O") {
+    } else if move_string == &String::from("O-O-O") {
+    }
+    Move::castle_king_side(Color::White)
+}
+
 pub struct Game {
     pub event: String,
     pub site: String,
@@ -187,7 +194,7 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new_from_game(game: chess_game) -> Game {
+    pub fn new_from_game(game: &chess_game) -> Game {
         // partition and step_by work here ?
         // try step_by and zip
         // zip together moves
@@ -206,13 +213,24 @@ impl Game {
         }
         let pairs = make_move_pairs(game.moves());
 
-        // @todo : add result
-        let move_text = pairs.into_iter().enumerate().fold(String::new(), |mut acc, (idx, (white, black))| {
-            let black = black.unwrap_or(String::new());
-            let move_string = format!("{}. {} {} ", idx, white, black);
-            acc.push_str(move_string.as_str());
-            acc
-        });
+        let mut move_text =
+            pairs
+                .into_iter()
+                .enumerate()
+                .fold(String::new(), |mut acc, (idx, (white, black))| {
+                    // let black = black.unwrap_or(String::new());
+                    // let mut move_string = format!("{}. {} {} ", idx + 1, white, black);
+                    let mut move_string = format!("{}. {}", idx + 1, white);
+                    if black.is_some() {
+                        move_string.push_str(format!(" {} ", black.unwrap()).as_str())
+                    }
+                    acc.push_str(move_string.as_str());
+                    acc
+                });
+        match game.result() {
+            InProgress => move_text.push_str(" *"),
+            _ => (),
+        };
 
         Game {
             event: String::from(r#""""#),
@@ -397,7 +415,6 @@ mod tests {
             "Pawn promotes and captures rook"
         );
 
-
         let m = Move::new(
             Coordinate::new(2, 2),
             Coordinate::new(1, 1),
@@ -437,36 +454,28 @@ mod tests {
             Coordinate::new(7, 1),
             PieceType::King,
             MoveType::Castling {
-                rook_from: Coordinate::new(8,1),
+                rook_from: Coordinate::new(8, 1),
                 rook_to: Coordinate::new(6, 1),
             },
             None,
             Some(CastlingRights::new(true, true)),
         );
         let log = make_move_log(&m, &board);
-        assert_eq!(
-            log,
-            String::from("O-O"),
-            "short castles"
-        );
+        assert_eq!(log, String::from("O-O"), "short castles");
 
         let m = Move::new(
             Coordinate::new(5, 1),
             Coordinate::new(3, 1),
             PieceType::King,
             MoveType::Castling {
-                rook_from: Coordinate::new(1,1),
+                rook_from: Coordinate::new(1, 1),
                 rook_to: Coordinate::new(4, 1),
             },
             None,
             Some(CastlingRights::new(true, true)),
         );
         let log = make_move_log(&m, &board);
-        assert_eq!(
-            log,
-            String::from("O-O-O"),
-            "long castles"
-        );
+        assert_eq!(log, String::from("O-O-O"), "long castles");
     }
 
     #[test]
@@ -483,11 +492,7 @@ mod tests {
             None,
         );
         let log = make_move_log(&m, &board);
-        assert_eq!(
-            log,
-            String::from("gxf3"),
-            "Pawn en passant captures"
-        );
+        assert_eq!(log, String::from("gxf3"), "Pawn en passant captures");
     }
 
     #[test]
@@ -500,8 +505,262 @@ mod tests {
 
     #[test]
     fn move_from_game() {
-        let game = chess_game::new();
+        /**
+                [Event "Let\\'s Play!"]
+        [Site "Chess.com"]
+        [Date "2021.05.04"]
+        [Round "?"]
+        [White "horatiofox"]
+        [Black "chessincheck"]
+        [Result "*"]
+        [ECO "B12"]
+        [WhiteElo "750"]
+        [BlackElo "800"]
+        [TimeControl "1/604800"]
 
+        1. e4 c6 2. d4 d5 3. e5 f6 4. Nf3 Nd7 5. Bf4 fxe5 6. Nxe5 Nxe5 7. Bxe5 Nh6 8.
+        Qh5+ Nf7 9. f4 g6 10. Qh4 h6 11. Bxh8 Nxh8 12. Nd2 *
+        **/
+        let mut game = chess_game::new();
+        let mut moves = Vec::new();
+        // e4
+        let w_move = Move::new(
+            Coordinate::new(5, 2),
+            Coordinate::new(5, 4),
+            PieceType::Pawn,
+            MoveType::Move,
+            None,
+            None,
+        );
+        // c6
+        let b_move = Move::new(
+            Coordinate::new(3, 7),
+            Coordinate::new(3, 6),
+            PieceType::Pawn,
+            MoveType::Move,
+            None,
+            None,
+        );
+        moves.push((w_move, Some(b_move)));
+        // d4
+        let w_move = Move::new(
+            Coordinate::new(4, 2),
+            Coordinate::new(4, 4),
+            PieceType::Pawn,
+            MoveType::Move,
+            None,
+            None,
+        );
+        // d5
+        let b_move = Move::new(
+            Coordinate::new(4, 7),
+            Coordinate::new(4, 5),
+            PieceType::Pawn,
+            MoveType::Move,
+            None,
+            None,
+        );
+        moves.push((w_move, Some(b_move)));
+
+        // e5
+        let w_move = Move::new(
+            Coordinate::new(5, 4),
+            Coordinate::new(5, 5),
+            PieceType::Pawn,
+            MoveType::Move,
+            None,
+            None,
+        );
+        // f6
+        let b_move = Move::new(
+            Coordinate::new(6, 7),
+            Coordinate::new(6, 6),
+            PieceType::Pawn,
+            MoveType::Move,
+            None,
+            None,
+        );
+        moves.push((w_move, Some(b_move)));
+
+        //nf3
+        let w_move = Move::new(
+            Coordinate::new(7, 1),
+            Coordinate::new(6, 3),
+            PieceType::Knight,
+            MoveType::Move,
+            None,
+            None,
+        );
+        //nd7
+        let b_move = Move::new(
+            Coordinate::new(2, 8),
+            Coordinate::new(4, 7),
+            PieceType::Knight,
+            MoveType::Move,
+            None,
+            None,
+        );
+        moves.push((w_move, Some(b_move)));
+        //bf4
+        let w_move = Move::new(
+            Coordinate::new(3, 1),
+            Coordinate::new(6, 4),
+            PieceType::Bishop,
+            MoveType::Move,
+            None,
+            None,
+        );
+        //fxe5
+        let b_move = Move::new(
+            Coordinate::new(6, 6),
+            Coordinate::new(5, 5),
+            PieceType::Pawn,
+            MoveType::Move,
+            Some(PieceType::Pawn),
+            None,
+        );
+        moves.push((w_move, Some(b_move)));
+
+        //Nxe5
+        let w_move = Move::new(
+            Coordinate::new(6, 3),
+            Coordinate::new(5, 5),
+            PieceType::Knight,
+            MoveType::Move,
+            Some(PieceType::Pawn),
+            None,
+        );
+        //Nxe5
+        let b_move = Move::new(
+            Coordinate::new(4, 7),
+            Coordinate::new(5, 5),
+            PieceType::Knight,
+            MoveType::Move,
+            Some(PieceType::Knight),
+            None,
+        );
+        moves.push((w_move, Some(b_move)));
+
+        //Bxe5
+        let w_move = Move::new(
+            Coordinate::new(6, 4),
+            Coordinate::new(5, 5),
+            PieceType::Bishop,
+            MoveType::Move,
+            Some(PieceType::Pawn),
+            None,
+        );
+        //Nh6
+        let b_move = Move::new(
+            Coordinate::new(7, 8),
+            Coordinate::new(8, 6),
+            PieceType::Knight,
+            MoveType::Move,
+            None,
+            None,
+        );
+        moves.push((w_move, Some(b_move)));
+
+        //Qh5+
+        let mut w_move = Move::new(
+            Coordinate::new(4, 1),
+            Coordinate::new(8, 5),
+            PieceType::Queen,
+            MoveType::Move,
+            None,
+            None,
+        );
+        w_move.is_check = true;
+        //Nf7
+        let b_move = Move::new(
+            Coordinate::new(8, 6),
+            Coordinate::new(6, 7),
+            PieceType::Knight,
+            MoveType::Move,
+            None,
+            None,
+        );
+        moves.push((w_move, Some(b_move)));
+
+        //f4
+        let w_move = Move::new(
+            Coordinate::new(6, 2),
+            Coordinate::new(6, 4),
+            PieceType::Pawn,
+            MoveType::Move,
+            None,
+            None,
+        );
+        //g6
+        let b_move = Move::new(
+            Coordinate::new(7, 7),
+            Coordinate::new(7, 6),
+            PieceType::Pawn,
+            MoveType::Move,
+            None,
+            None,
+        );
+        moves.push((w_move, Some(b_move)));
+
+        //Qh4
+        let w_move = Move::new(
+            Coordinate::new(8, 5),
+            Coordinate::new(8, 4),
+            PieceType::Queen,
+            MoveType::Move,
+            None,
+            None,
+        );
+        //h6
+        let b_move = Move::new(
+            Coordinate::new(8, 7),
+            Coordinate::new(8, 6),
+            PieceType::Pawn,
+            MoveType::Move,
+            None,
+            None,
+        );
+        moves.push((w_move, Some(b_move)));
+
+        //@todo: update Castling rights black kingside is removed now
+        //Bxh8
+        let w_move = Move::new(
+            Coordinate::new(5, 5),
+            Coordinate::new(8, 8),
+            PieceType::Bishop,
+            MoveType::Move,
+            Some(PieceType::Rook),
+            None,
+        );
+        //Nxh8
+        let b_move = Move::new(
+            Coordinate::new(6, 7),
+            Coordinate::new(8, 8),
+            PieceType::Knight,
+            MoveType::Move,
+            Some(PieceType::Bishop),
+            None,
+        );
+        moves.push((w_move, Some(b_move)));
+        //Nd2
+        let w_move = Move::new(
+            Coordinate::new(2, 1),
+            Coordinate::new(4, 2),
+            PieceType::Knight,
+            MoveType::Move,
+            None,
+            None,
+        );
+        moves.push((w_move, None));
+        game.make_moves(moves);
+        let pgn = Game::new_from_game(game);
+        let expected_move_text = String::from(
+            "1. e4 c6 2. d4 d5 3. e5 f6 4. Nf3 Nd7 5. Bf4 fxe5 6. Nxe5 Nxe5 7. Bxe5 Nh6 8. Qh5+ Nf7 9. f4 g6 10. Qh4 h6 11. Bxh8 Nxh8 12. Nd2 *",
+        );
+        assert_eq!(
+            pgn.move_text, expected_move_text,
+            "Move text is correct for pgn."
+        );
     }
 
     #[test]

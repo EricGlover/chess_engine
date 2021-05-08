@@ -11,11 +11,19 @@ use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::path::Path;
+use crate::chess_notation::pgn::Game as PgnGame;
 
 pub struct Player {
     time_used: u16,      // milliseconds
     time_remaining: u16, // milliseconds
     name: String,
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum GameResult {
+    InProgress,
+    Draw,
+    Win { winning_player: Color },
 }
 
 pub struct Game {
@@ -24,6 +32,7 @@ pub struct Game {
     ai: ai::ai,
     ai2: ai::ai,
     start_time: String,
+    result: GameResult,
 }
 
 impl Game {
@@ -34,15 +43,32 @@ impl Game {
             ai2: ai::ai::new(Color::White),
             moves: vec![],
             start_time: Local::now().format("%Y-%m-%d_%H%M%S").to_string(),
+            result: GameResult::InProgress,
         }
+    }
+
+    pub fn result(&self) -> GameResult {
+        self.result.clone()
     }
 
     pub fn moves(&self) -> Vec<String> {
         self.moves.clone()
     }
 
-    pub fn make_moves(&mut self, moves : Vec<(Move, Option<Move>)>) {
-        //@todo : need this for testing pgn make_from_game
+    pub fn make_move(&mut self, move_: &Move) {
+        let log = make_move_log(&move_, &self.board);
+        println!("move = \n{}", log);
+        self.moves.push(log);
+        self.board.make_move_mut(&move_);
+    }
+
+    pub fn make_moves(&mut self, moves: Vec<(Move, Option<Move>)>) {
+        for (w_move, b_move) in moves {
+            self.make_move(&w_move);
+            if b_move.is_some() {
+                self.make_move(b_move.as_ref().unwrap())
+            }
+        }
     }
 
     fn write_log(&self) {
@@ -56,9 +82,9 @@ impl Game {
             Ok(file) => file,
         };
 
-        let moves = self.moves.join("\n");
+        let pgn = PgnGame::new_from_game(&self);
         let fen = fen_reader::make_fen(&self.board);
-        let log = format!("{}\n{}", moves, fen);
+        let log = format!("{}\n{}", pgn, fen);
 
         // Write the `LOREM_IPSUM` string to `file`, returns `io::Result<()>`
         match file.write_all(log.as_bytes()) {
@@ -93,7 +119,10 @@ impl Game {
         self.board.make_move_mut(&m);
     }
 
-    fn end_game(&self, winner: Color) {
+    fn end_game(&mut self, winner: Color) {
+        self.result = GameResult::Win {
+            winning_player: winner,
+        };
         print_board(&self.board);
         self.write_log();
         println!("{} wins", winner);
@@ -134,7 +163,6 @@ impl Game {
             println!("move = \n{}", log);
             self.moves.push(log);
             self.board.make_move_mut(&m);
-
             self.write_log();
 
             // print eval
