@@ -17,15 +17,15 @@ use std::fmt::Formatter;
 /**
 
 **/
+
 #[cfg(test)]
-mod tests {
+mod bench {
     use super::*;
     use crate::ai::{ai, AiSearch};
     use crate::chess_notation::fen_reader;
     use crate::chess_notation::fen_reader::*;
     use crate::move_generator::chess_move::MoveType;
     use test::Bencher;
-
     #[bench]
     fn bench_perft(b: &mut Bencher) {
         let board = fen_reader::make_initial_board();
@@ -39,6 +39,70 @@ mod tests {
             // ai.make_move(&board, Some(5));
         })
     }
+    #[bench]
+    fn bench_gen_find_pinned_pieces(b: &mut Bencher) {
+        let white_bishop_pinned =
+            "rnbqk1nr/pppp1ppp/4p3/8/1b1P4/5N2/PPPBPPPP/RN1QKB1R b KQkq - 3 3";
+        let board = make_board(white_bishop_pinned);
+        b.iter(|| {
+            let mut pins = find_pinned_pieces(&board, Color::White);
+        })
+    }
+
+    #[bench]
+    fn bench_gen_attack_vectors(b: &mut Bencher) {
+        let black_mates = "rnb1k1nr/pp2pp1p/Q5pb/2pp4/2PP4/N7/PP1qPPPP/R3KBNR w KQkq - 0 7";
+        let board = make_board(black_mates);
+        b.iter(|| {
+            let moves = gen_attack_vectors(&board, Color::White);
+        })
+    }
+
+    #[bench]
+    fn bench_gen_pseudo_legal_moves(b: &mut Bencher) {
+        let black_mates = "rnb1k1nr/pp2pp1p/Q5pb/2pp4/2PP4/N7/PP1qPPPP/R3KBNR w KQkq - 0 7";
+        let board = make_board(black_mates);
+        let initial_board = fen_reader::make_board(fen_reader::INITIAL_BOARD);
+        b.iter(|| {
+            let moves = gen_pseudo_legal_moves(&board, Color::White);
+            let moves = gen_pseudo_legal_moves(&board, Color::Black);
+            let moves = gen_pseudo_legal_moves(&initial_board, Color::White);
+            let moves = gen_pseudo_legal_moves(&initial_board, Color::Black);
+        })
+    }
+
+    #[bench]
+    fn gen_pseudo_legal_moves_initial_board_white(b: &mut Bencher) {
+        let initial_board = fen_reader::make_board(fen_reader::INITIAL_BOARD);
+        b.iter(|| {
+            let moves = gen_pseudo_legal_moves(&initial_board, Color::White);
+        })
+    }
+
+    #[bench]
+    fn bench_gen_legal_moves(b: &mut Bencher) {
+        let black_mates = "rnb1k1nr/pp2pp1p/Q5pb/2pp4/2PP4/N7/PP1qPPPP/R3KBNR w KQkq - 0 7";
+        let board = make_board(black_mates);
+        let initial_board = fen_reader::make_board(fen_reader::INITIAL_BOARD);
+        b.iter(|| {
+            let moves = gen_legal_moves(&board, Color::White);
+            let moves = gen_legal_moves(&board, Color::Black);
+            let moves = gen_legal_moves(&initial_board, Color::White);
+            let moves = gen_legal_moves(&initial_board, Color::Black);
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ai::{ai, AiSearch};
+    use crate::chess_notation::fen_reader;
+    use crate::chess_notation::fen_reader::*;
+    use crate::move_generator::chess_move::MoveType;
+    use test::Bencher;
+
+
 
     #[test]
     fn test_gen_pseudo_legal_moves() {}
@@ -267,51 +331,6 @@ mod tests {
         let board = make_board(white_mates);
         let moves = gen_legal_moves(&board, Color::Black);
         assert_eq!(moves.len(), 0, "Black has no moves");
-    }
-
-    #[bench]
-    fn bench_gen_find_pinned_pieces(b: &mut Bencher) {
-        let white_bishop_pinned =
-            "rnbqk1nr/pppp1ppp/4p3/8/1b1P4/5N2/PPPBPPPP/RN1QKB1R b KQkq - 3 3";
-        let board = make_board(white_bishop_pinned);
-        b.iter(|| {
-            let mut pins = find_pinned_pieces(&board, Color::White);
-        })
-    }
-
-    #[bench]
-    fn bench_gen_attack_vectors(b: &mut Bencher) {
-        let black_mates = "rnb1k1nr/pp2pp1p/Q5pb/2pp4/2PP4/N7/PP1qPPPP/R3KBNR w KQkq - 0 7";
-        let board = make_board(black_mates);
-        b.iter(|| {
-            let moves = gen_attack_vectors(&board, Color::White);
-        })
-    }
-
-    #[bench]
-    fn bench_gen_pseudo_legal_moves(b: &mut Bencher) {
-        let black_mates = "rnb1k1nr/pp2pp1p/Q5pb/2pp4/2PP4/N7/PP1qPPPP/R3KBNR w KQkq - 0 7";
-        let board = make_board(black_mates);
-        let initial_board = fen_reader::make_board(fen_reader::INITIAL_BOARD);
-        b.iter(|| {
-            let moves = gen_pseudo_legal_moves(&board, Color::White);
-            let moves = gen_pseudo_legal_moves(&board, Color::Black);
-            let moves = gen_pseudo_legal_moves(&initial_board, Color::White);
-            let moves = gen_pseudo_legal_moves(&initial_board, Color::Black);
-        })
-    }
-
-    #[bench]
-    fn bench_gen_legal_moves(b: &mut Bencher) {
-        let black_mates = "rnb1k1nr/pp2pp1p/Q5pb/2pp4/2PP4/N7/PP1qPPPP/R3KBNR w KQkq - 0 7";
-        let board = make_board(black_mates);
-        let initial_board = fen_reader::make_board(fen_reader::INITIAL_BOARD);
-        b.iter(|| {
-            let moves = gen_legal_moves(&board, Color::White);
-            let moves = gen_legal_moves(&board, Color::Black);
-            let moves = gen_legal_moves(&initial_board, Color::White);
-            let moves = gen_legal_moves(&initial_board, Color::Black);
-        })
     }
 }
 
@@ -606,6 +625,7 @@ pub fn gen_attack_vectors(board: &dyn BoardTrait, color: Color) -> Vec<Move> {
 // does not check whether the player can legally do that move
 // for instance : no checking pins or checks , etc...
 pub fn gen_pseudo_legal_moves(board: &dyn BoardTrait, color: Color) -> Vec<Move> {
+
     board
         .get_all_pieces(color)
         .into_iter()

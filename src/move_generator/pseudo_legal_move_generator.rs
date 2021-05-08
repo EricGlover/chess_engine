@@ -142,14 +142,15 @@ fn make_move_to(
     move_type: MoveType,
     board: &dyn BoardTrait,
 ) -> Move {
+    let captured = board.get_piece_at(&to);
     Move::new(
         from.clone(),
         to.clone(),
         piece.piece_type,
         move_type,
-        board.get_piece_at(&to).map(|p| p.piece_type.clone()),
+        captured.map(|p| p.piece_type.clone()),
         board.get_castling_rights_changes_if_piece_moves(piece),
-        None,
+        captured.map_or(None, |p| board.get_castling_rights_changes_if_piece_moves(p)),
     )
 }
 
@@ -162,15 +163,7 @@ fn make_move(
     board: &dyn BoardTrait,
 ) -> Move {
     let to = from.add(x, y);
-    Move::new(
-        from.clone(),
-        to,
-        piece.piece_type,
-        move_type,
-        board.get_piece_at(&to).map(|p| p.piece_type.clone()),
-        board.get_castling_rights_changes_if_piece_moves(piece),
-        None,
-    )
+    make_move_to(from, &to, piece, move_type, board)
 }
 
 mod move_generation {
@@ -336,29 +329,19 @@ mod move_generation {
                     PieceType::Knight,
                 ];
                 for promotion_type in promotion_pieces.iter() {
-                    let m = Move::new(
-                        from.clone(),
-                        to,
-                        piece.piece_type,
+                    let m = make_move_to(
+                        from,
+                        &to,
+                        &piece,
                         MoveType::Promotion(promotion_type.clone()),
-                        board.get_piece_at(&to).map(|p| p.piece_type.clone()),
-                        None,
-                        None,
+                        board
                     );
                     moves.push(m);
                 }
             }
         } else if is_on_board(&to) && square_is_empty(board, &to) {
             // normal pawn move
-            moves.push(Move::new(
-                from.clone(),
-                to,
-                piece.piece_type,
-                MoveType::Move,
-                board.get_piece_at(&to).map(|p| p.piece_type.clone()),
-                None,
-                None,
-            ));
+            moves.push(make_move_to(from, &to, &piece, MoveType::Move, board))
         }
 
         // pawn move two squares (both squares must be empty)
@@ -387,27 +370,11 @@ mod move_generation {
             piece: &Piece,
         ) -> Option<Move> {
             if has_enemy_piece(board, at, pawn_color) {
-                return Some(Move::new(
-                    from.clone(),
-                    at.clone(),
-                    piece.piece_type,
-                    MoveType::Move,
-                    board.get_piece_at(at).map(|p| p.piece_type.clone()),
-                    None,
-                    None,
-                ));
+                return Some(make_move_to(from, at, piece, MoveType::Move, board));
             } else if board.en_passant_target().is_some()
                 && board.en_passant_target().unwrap() == *at
             {
-                return Some(Move::new(
-                    from.clone(),
-                    at.clone(),
-                    piece.piece_type,
-                    MoveType::EnPassant,
-                    board.get_piece_at(at).map(|p| p.piece_type.clone()),
-                    None,
-                    None,
-                ));
+                return Some(make_move_to(from, at, piece, MoveType::EnPassant, board));
             }
             None
         }

@@ -4,6 +4,7 @@ mod coordinate;
 mod piece;
 mod piece_type;
 mod square;
+mod board_trait;
 
 use crate::board_console_printer::print_board;
 use crate::chess_notation::fen_reader;
@@ -14,47 +15,10 @@ pub use coordinate::*;
 pub use piece::Piece;
 pub use piece_type::PieceType;
 pub use square::Square;
+pub use board_trait::BoardTrait;
 use std::fmt;
 use std::fmt::Formatter;
 use std::slice::Iter;
-
-// getting pieces && squares return references
-pub trait BoardTrait {
-    fn clone(&self) -> Box<dyn BoardTrait>;
-
-    // info about game going on
-    fn player_to_move(&self) -> Color;
-    fn en_passant_target(&self) -> Option<Coordinate>;
-    fn half_move_clock(&self) -> u32;
-    fn full_move_number(&self) -> u32;
-    fn can_castle_queen_side(&self, color: Color) -> bool;
-    fn can_castle_king_side(&self, color: Color) -> bool;
-    fn white_castling_rights(&self) -> CastlingRights;
-    fn black_castling_rights(&self) -> CastlingRights;
-
-    // getting squares
-    fn squares_list(&self) -> Vec<&Square>;
-    fn get_rank(&self, y: u8) -> Vec<&Square>;
-    fn get_files(&self) -> Vec<Vec<&Square>>;
-    fn get_squares(&self) -> Vec<Vec<&Square>>;
-
-    // moves
-    // fn make_move(&self, m: &Move) -> Self where Self: Sized ;
-    fn make_move_mut(&mut self, m: &Move);
-    // fn unmake_move(&self, m: &Move) -> Self where Self: Sized ;
-    fn unmake_move_mut(&mut self, m: &Move);
-
-    // getting and setting pieces
-    fn place_piece(&mut self, piece: Piece, at: &Coordinate);
-    fn remove_piece(&mut self, piece: &Piece) -> Piece;
-    fn has_piece(&self, at: &Coordinate) -> bool;
-    // fn get_pieces_in(&self, area: Vec<Coordinate>) -> Vec<(Coordinate, Option<&Piece>)>;
-    fn get_piece_at(&self, at: &Coordinate) -> Option<&Piece>;
-    fn get_kings(&self) -> Vec<&Piece>;
-    fn get_pieces(&self, color: Color, piece_type: PieceType) -> Vec<&Piece>;
-    fn get_all_pieces(&self, color: Color) -> Vec<&Piece>;
-    fn get_castling_rights_changes_if_piece_moves(&self, piece: &Piece) -> Option<CastlingRights>;
-}
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Board {
@@ -65,6 +29,7 @@ pub struct Board {
     half_move_clock: u32,
     full_move_number: u32,
     squares: [[Square; 8]; 8],
+    
 }
 
 impl BoardTrait for Board {
@@ -371,6 +336,9 @@ impl BoardTrait for Board {
             None
         }
     }
+    fn get_castling_rights_changes_if_piece_is_captured(&self, piece: &Piece) -> Option<CastlingRights> {
+        self.get_castling_rights_changes_if_piece_moves(piece)
+    }
 }
 
 impl Board {
@@ -444,18 +412,20 @@ impl Board {
     }
 
     fn get_square(&self, at: &Coordinate) -> &Square {
-        self.squares
-            .get((at.y() - 1) as usize)
-            .unwrap()
-            .get((at.x() - 1) as usize)
-            .unwrap()
+        &self.squares[(at.y() - 1) as usize][(at.x() - 1) as usize]
+        // self.squares
+        //     .get((at.y() - 1) as usize)
+        //     .unwrap()
+        //     .get((at.x() - 1) as usize)
+        //     .unwrap()
     }
     fn get_square_mut(&mut self, at: &Coordinate) -> &mut Square {
-        self.squares
-            .get_mut((at.y() - 1) as usize)
-            .unwrap()
-            .get_mut((at.x() - 1) as usize)
-            .unwrap()
+        &mut self.squares[(at.y() - 1) as usize][(at.x() - 1) as usize]
+        // self.squares
+        //     .get_mut((at.y() - 1) as usize)
+        //     .unwrap()
+        //     .get_mut((at.x() - 1) as usize)
+        //     .unwrap()
     }
     fn make_squares() -> [[Square; 8]; 8] {
         [
