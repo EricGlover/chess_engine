@@ -3,15 +3,14 @@ use crate::ai::evaluator::evaluate;
 use crate::board::*;
 use crate::board_console_printer::print_board;
 use crate::chess_notation;
-use crate::chess_notation::fen_reader;
-use crate::chess_notation::pgn::make_move_log;
+use crate::chess_notation::pgn::Game as PgnGame;
+use crate::chess_notation::{fen_reader, parse_move, print_move};
 use crate::move_generator::Move;
 use chrono::{DateTime, Local};
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
 use std::path::Path;
-use crate::chess_notation::pgn::Game as PgnGame;
 
 pub struct Player {
     time_used: u16,      // milliseconds
@@ -56,7 +55,7 @@ impl Game {
     }
 
     pub fn make_move(&mut self, move_: &Move) {
-        let log = make_move_log(&move_, &self.board);
+        let log = print_move(&move_, &self.board);
         println!("move = \n{}", log);
         self.moves.push(log);
         self.board.make_move_mut(&move_);
@@ -100,7 +99,7 @@ impl Game {
         }
         {
             let m = self.ai.make_move(&self.board, None).unwrap();
-            // let log = make_move_log(&m, &self.board);
+            // let log = print_move(&m, &self.board);
             // println!("{} moves \n{}", self.ai.color(), log);
             // self.moves.push(log);
             {
@@ -113,7 +112,7 @@ impl Game {
         print_board(&self.board);
 
         let m = self.ai2.make_move(&self.board, None).unwrap();
-        let log = make_move_log(&m, &self.board);
+        let log = print_move(&m, &self.board);
         println!("{} moves \n{}", self.ai2.color(), log);
         self.moves.push(log);
         self.board.make_move_mut(&m);
@@ -153,13 +152,13 @@ impl Game {
         for line in stdin.lock().lines() {
             // white move
             let command = line.unwrap().clone();
-            let m = chess_notation::read_move(command.as_str(), &self.board, Color::White);
+            let m = parse_move(command.as_str(), &self.board, Color::White);
             if m.is_none() {
                 println!("That move is illegal!");
                 continue;
             }
             let m = m.unwrap();
-            let log = make_move_log(&m, &self.board);
+            let log = print_move(&m, &self.board);
             println!("move = \n{}", log);
             self.moves.push(log);
             self.board.make_move_mut(&m);
@@ -176,7 +175,7 @@ impl Game {
             print_board(&self.board);
             // black moves now
             let m = self.ai.make_move(&mut self.board, None).unwrap();
-            let log = make_move_log(&m, &self.board);
+            let log = print_move(&m, &self.board);
             println!("move = \n{}", log);
             self.moves.push(log);
             self.board.make_move_mut(&m);

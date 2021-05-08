@@ -2,7 +2,6 @@ use crate::board::*;
 use crate::chess_notation::fen_reader::make_board;
 #[cfg(test)]
 use crate::chess_notation::fen_reader::make_initial_board;
-use crate::chess_notation::pgn::make_move_log;
 use crate::move_generator::chess_move::MoveType;
 use crate::move_generator::path::{get_path_from, Direction};
 use crate::move_generator::Move;
@@ -56,6 +55,7 @@ mod tests {
             MoveType::Move,
             Some(PieceType::King),
             None,
+            None,
         );
         let moves = gen_queen_moves(&board, &white_queen);
         moves.iter().for_each(|m| println!("{}", m));
@@ -76,12 +76,14 @@ mod tests {
                 MoveType::Move,
                 None,
                 None,
+                None,
             ),
             Move::new(
                 Coordinate::new(1, 2),
                 Coordinate::new(1, 4),
                 pawn.piece_type,
                 MoveType::Move,
+                None,
                 None,
                 None,
             ),
@@ -147,6 +149,7 @@ fn make_move_to(
         move_type,
         board.get_piece_at(&to).map(|p| p.piece_type.clone()),
         board.get_castling_rights_changes_if_piece_moves(piece),
+        None,
     )
 }
 
@@ -166,6 +169,7 @@ fn make_move(
         move_type,
         board.get_piece_at(&to).map(|p| p.piece_type.clone()),
         board.get_castling_rights_changes_if_piece_moves(piece),
+        None,
     )
 }
 
@@ -339,6 +343,7 @@ mod move_generation {
                         MoveType::Promotion(promotion_type.clone()),
                         board.get_piece_at(&to).map(|p| p.piece_type.clone()),
                         None,
+                        None,
                     );
                     moves.push(m);
                 }
@@ -351,6 +356,7 @@ mod move_generation {
                 piece.piece_type,
                 MoveType::Move,
                 board.get_piece_at(&to).map(|p| p.piece_type.clone()),
+                None,
                 None,
             ));
         }
@@ -388,6 +394,7 @@ mod move_generation {
                     MoveType::Move,
                     board.get_piece_at(at).map(|p| p.piece_type.clone()),
                     None,
+                    None,
                 ));
             } else if board.en_passant_target().is_some()
                 && board.en_passant_target().unwrap() == *at
@@ -398,6 +405,7 @@ mod move_generation {
                     piece.piece_type,
                     MoveType::EnPassant,
                     board.get_piece_at(at).map(|p| p.piece_type.clone()),
+                    None,
                     None,
                 ));
             }

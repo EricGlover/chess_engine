@@ -12,7 +12,6 @@ pub enum MoveType {
 }
 
 // @todo: maybe consider adding the algebraic notation for this move (the pgn)
-// @todo : add old castling rights to moves ?
 // @todo : add all the info needed for the unmake function , consider this a two-way change object
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub struct Move {
@@ -23,6 +22,7 @@ pub struct Move {
     pub captured: Option<PieceType>,
     // @todo : make this white && black castling rights removed because taking a rook removes castling rights
     castling_rights_removed: CastlingRights,
+    castling_rights_removed_opponent: CastlingRights,
     pub is_check: bool,     // @todo : set these in game when eval happens ?
     pub is_checkmate: bool, // @todo : set these in game when eval happens ?
 }
@@ -45,6 +45,7 @@ impl Move {
         move_type: MoveType,
         captured: Option<PieceType>,
         castling_rights_removed: Option<CastlingRights>,
+        castling_rights_removed_opponent: Option<CastlingRights>,
     ) -> Move {
         Move {
             piece,
@@ -54,6 +55,8 @@ impl Move {
             captured,
             castling_rights_removed: castling_rights_removed
                 .map_or(CastlingRights::new(false, false), |r| r),
+            castling_rights_removed_opponent: castling_rights_removed_opponent
+                .map_or(CastlingRights::new(false, false), |r| r),
             is_check: false,
             is_checkmate: false,
         }
@@ -61,6 +64,10 @@ impl Move {
 
     pub fn castling_rights_removed(&self) -> &CastlingRights {
         &self.castling_rights_removed
+    }
+
+    pub fn castling_rights_removed_opponent(&self) -> &CastlingRights {
+        &self.castling_rights_removed_opponent
     }
 
     pub fn move_type(&self) -> &MoveType {
@@ -74,33 +81,29 @@ impl Move {
         })
     }
 
-    pub fn castle_king_side(color: Color) -> Move {
-        let (from, to) = Move::king_side_castle_coordinates(color, PieceType::King);
-        let (rook_from, rook_to) = Move::king_side_castle_coordinates(color, PieceType::Rook);
+    fn make_castling_move(rook_from: Coordinate, rook_to: Coordinate, from: Coordinate, to: Coordinate) -> Move {
         Move {
             piece: PieceType::King,
             from,
             to,
             move_type: MoveType::Castling { rook_from, rook_to },
             castling_rights_removed: CastlingRights::new(true, true),
+            castling_rights_removed_opponent: CastlingRights::new(false, false),
             captured: None,
             is_check: false,
             is_checkmate: false,
         }
     }
+
+    pub fn castle_king_side(color: Color) -> Move {
+        let (from, to) = Move::king_side_castle_coordinates(color, PieceType::King);
+        let (rook_from, rook_to) = Move::king_side_castle_coordinates(color, PieceType::Rook);
+        Move::make_castling_move(rook_from, rook_to, from, to)
+    }
     pub fn castle_queen_side(color: Color) -> Move {
         let (from, to) = Move::queen_side_castle_coordinates(color, PieceType::King);
         let (rook_from, rook_to) = Move::queen_side_castle_coordinates(color, PieceType::Rook);
-        Move {
-            piece: PieceType::King,
-            from,
-            to,
-            move_type: MoveType::Castling { rook_from, rook_to },
-            castling_rights_removed: CastlingRights::new(true, true),
-            captured: None,
-            is_check: false,
-            is_checkmate: false,
-        }
+        Move::make_castling_move(rook_from, rook_to, from, to)
     }
     pub fn is_king_side_castle(&self) -> bool {
         match self.move_type {

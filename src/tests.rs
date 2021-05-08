@@ -68,6 +68,7 @@ mod move_gen_tester {
             MoveType::Move,
             None,
             None,
+            None,
         );
         let m2 = Move::new(
             Coordinate::new(2, 1),
@@ -76,12 +77,14 @@ mod move_gen_tester {
             MoveType::Move,
             None,
             None,
+            None,
         );
         let m3 = Move::new(
             Coordinate::new(1, 1),
             Coordinate::new(1, 1),
             PieceType::Pawn,
             MoveType::Move,
+            None,
             None,
             None,
         );

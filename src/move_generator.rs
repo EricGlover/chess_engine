@@ -99,12 +99,14 @@ mod tests {
             MoveType::Move,
             None,
             None,
+            None,
         ));
         moves.push(Move::new(
             knight_at.clone(),
             Coordinate::new(3, 6),
             knight.piece_type,
             MoveType::Move,
+            None,
             None,
             None,
         ));
@@ -118,6 +120,7 @@ mod tests {
             MoveType::Move,
             None,
             None,
+            None,
         ));
         // queen captures
         let queen = board.get_piece_at(&Coordinate::new(1, 4)).unwrap();
@@ -128,6 +131,7 @@ mod tests {
             queen.piece_type,
             MoveType::Move,
             Some(PieceType::Queen),
+            None,
             None,
         ));
         // king move left one, right one
@@ -140,6 +144,7 @@ mod tests {
             MoveType::Move,
             None,
             board.get_castling_rights_changes_if_piece_moves(king),
+            None,
         ));
         moves.push(Move::new(
             king_at.clone(),
@@ -148,6 +153,7 @@ mod tests {
             MoveType::Move,
             None,
             board.get_castling_rights_changes_if_piece_moves(king),
+            None,
         ));
 
         let checks = get_checks(&board, Color::Black);

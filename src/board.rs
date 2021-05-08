@@ -707,6 +707,7 @@ mod test {
             MoveType::Move,
             None,
             board.get_castling_rights_changes_if_piece_moves(white_rook),
+            None,
         );
 
         // if we castle rights be gone
