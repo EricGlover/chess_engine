@@ -1,6 +1,18 @@
 # chess_engine
 Chess engine in Rust
 
+## Run
+Watch the AI play itself.
+```bash
+cargo run --release -- --ai
+```
+Play against the AI
+```bash
+cargo run --release
+```
+Running the project require the rust nightly build because I'm using Bencher at the moment.
+https://rust-lang.github.io/rustup/concepts/channels.html
+
 ### Purpose 
 This is just a learning exercise for me to get a little more familiar with Rust. Feel free to browse around if you're curious.
 If you are looking for a chess engine in rust https://docs.rs/chess/3.2.0/chess/ has a board and move generator. 
@@ -70,10 +82,10 @@ https://rust-lang.github.io/rustup/concepts/channels.html
 - Fully Implement algebraic notation parsing
 - Bit boards
 - DONE: Implement Alpha - Beta Searching
+- DONE: Transposition Tables
 
 ### Short Term Goals
 - Finish Chess Notation
-  - PGN output
   - Parsing && Outputting moves with Algebraic notation
   - Game From PGN
 
