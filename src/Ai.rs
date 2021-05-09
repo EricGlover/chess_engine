@@ -108,6 +108,15 @@ mod tests {
         // this takes forever...
         // test_initial_board_at_depth(4);
     }
+
+    #[test]
+    fn bug_unwrap() {
+        // black to move
+        let fen = "r3k1r1/1b1p1p2/p3pp2/B1b4p/Pp2P3/1BN2P2/1PP4P/R2K1R2 b q - 10 20";
+        let board = make_board(fen);
+        let mut ai = ai::new(Color::Black);
+        ai.make_move(&board, Some(4));
+    }
 }
 
 pub enum AiSearch {

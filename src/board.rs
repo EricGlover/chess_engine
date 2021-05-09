@@ -105,7 +105,13 @@ impl BoardTrait for Board {
     // doesn't check legality of moves
     // fn make_move_mut(&mut self, m: &Move) {
     fn make_move_mut(&mut self, mov: &Move) {
-        let moving_piece = self.get_piece_at(&mov.from).unwrap().clone();
+        let mut moving_piece = self.remove_piece_at(&mov.from);
+        if moving_piece.is_none() {
+            println!("{:?}", mov);
+            panic!("trying to remove a piece that isn't there.");
+        }
+        let mut moving_piece = moving_piece.unwrap();
+
         // update white to move flag
         self.player_to_move = moving_piece.color.opposite();
 
@@ -129,13 +135,6 @@ impl BoardTrait for Board {
         }
 
         // get piece to move
-        let removed = self.remove_piece_at(&mov.from);
-        if removed.is_none() {
-            println!("{:?}", mov);
-            panic!("trying to remove a piece that isn't there.");
-        }
-        let mut moving_piece = removed.unwrap();
-
         match mov.move_type() {
             MoveType::Castling { rook_from, rook_to } => {
                 self.move_piece(rook_from, rook_to);
@@ -183,9 +182,12 @@ impl BoardTrait for Board {
     }
 
     fn unmake_move_mut(&mut self, mov: &Move) {
-        let moving_piece = self.get_piece_at(&mov.to).unwrap().clone();
-
-        self.move_piece(&mov.to, &mov.from);
+        let mut moving_piece = self.remove_piece_at(&mov.to);
+        if moving_piece.is_none() {
+            println!("{:?}", mov);
+            panic!("trying to remove a piece that isn't there.");
+        }
+        let mut moving_piece = moving_piece.unwrap();
 
         // replace captured piece
         // update 50 move rule draw counter @todo:::
@@ -212,8 +214,7 @@ impl BoardTrait for Board {
             }
             // if it gets promoted, then switch it's type
             MoveType::Promotion(_) => {
-                let mut piece = self.remove_piece(&moving_piece);
-                piece.piece_type = PieceType::Pawn;
+                moving_piece.piece_type = PieceType::Pawn;
             }
             MoveType::EnPassant => {}
             MoveType::Move => {}
@@ -247,6 +248,8 @@ impl BoardTrait for Board {
         if moving_piece.color == Color::Black {
             self.full_move_number = self.full_move_number - 1;
         }
+        // move the piece ( update the piece and square )
+        self.place_piece(moving_piece, &mov.from);
 
         // update white to move flag
         self.player_to_move = self.player_to_move.opposite();
