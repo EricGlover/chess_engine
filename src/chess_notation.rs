@@ -67,13 +67,13 @@ pub fn print_move(m: &Move, board: &dyn BoardTrait) -> String {
 // change this to result error ?
 // doesn't return illegal moves, return None if not possible
 pub fn parse_move(str: &str, board: &dyn BoardTrait, color: Color) -> Option<Move> {
-    // figure out what they're trying to move and where
-    let (piece_type, to) = read_move(str);
-
     // find what piece they're talking about by looking through the possible moves
+    let their_move = String::from(str);
     gen_legal_moves(board, color)
         .into_iter()
-        .find(|m| m.piece == piece_type && m.to == to)
+        .find(|m| {
+             their_move == print_move(m, board)
+        })
 }
 
 fn get_piece_specifier(m: &Move, board: &dyn BoardTrait) -> String {
