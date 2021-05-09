@@ -22,7 +22,7 @@ The chess programming wiki https://www.chessprogramming.org/Main_Page goes prett
 
 ### Project Current State
 The project is currently setup to play a chess game on the command line, you'll play against my AI which is quite bad.
-The AI uses a bounded depth first search (alpha-beta searching) over all possible legal moves to evaluate all board states 3 moves ahead (3 ply). 
+The AI uses a bounded depth first search (alpha-beta searching) over all possible legal moves to evaluate all board states 4 moves ahead (4 ply). 
 Ohh and unfortunately I haven't fully implemented algebraic move notation parsing so you'd have to look at the code to see 
 how to write moves that it can correctly parse.
 I do have a FEN reader that works that you can probably use btw, that thing is actually pretty handy.
