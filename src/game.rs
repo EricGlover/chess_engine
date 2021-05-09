@@ -36,10 +36,14 @@ pub struct Game {
 
 impl Game {
     pub fn new() -> Game {
+        let mut ai = ai::ai::new(Color::Black);
+        ai.default_search_depth = 4;
+        let mut ai2 = ai::ai::new(Color::White);
+        ai.default_search_depth = 4;
         Game {
             board: fen_reader::make_board(fen_reader::INITIAL_BOARD),
-            ai: ai::ai::new(Color::Black),
-            ai2: ai::ai::new(Color::White),
+            ai,
+            ai2,
             moves: vec![],
             start_time: Local::now().format("%Y-%m-%d_%H%M%S").to_string(),
             result: GameResult::InProgress,
@@ -93,19 +97,15 @@ impl Game {
     }
 
     fn ai1_make_move(&mut self) {
-        {
-            println!("{} to move", self.ai.color());
-            print_board(&self.board);
-        }
-        {
-            let m = self.ai.make_move(&self.board, None).unwrap();
-            // let log = print_move(&m, &self.board);
-            // println!("{} moves \n{}", self.ai.color(), log);
-            // self.moves.push(log);
-            {
-                self.board.make_move_mut(&m);
-            }
-        }
+        println!("{} to move", self.ai.color());
+        print_board(&self.board);
+
+        let m = self.ai.make_move(&self.board, None).unwrap();
+        let log = print_move(&m, &self.board);
+        println!("{} transposition table hits", self.ai.transposition_table_hits);
+        println!("{} moves \n{}", self.ai.color(), log);
+        self.moves.push(log);
+        self.board.make_move_mut(&m);
     }
     fn ai2_make_move(&mut self) {
         println!("{} to move", self.ai2.color());
@@ -113,6 +113,7 @@ impl Game {
 
         let m = self.ai2.make_move(&self.board, None).unwrap();
         let log = print_move(&m, &self.board);
+        println!("{} transposition table hits", self.ai2.transposition_table_hits);
         println!("{} moves \n{}", self.ai2.color(), log);
         self.moves.push(log);
         self.board.make_move_mut(&m);

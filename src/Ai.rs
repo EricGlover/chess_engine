@@ -10,6 +10,58 @@ use std::iter::Map;
 use std::time::{Duration, Instant};
 
 #[cfg(test)]
+mod bench {
+    use super::*;
+    use crate::chess_notation::fen_reader::{make_board, make_initial_board};
+    use ai;
+    use std::time::{Duration, Instant};
+    use test::Bencher;
+
+    #[bench]
+    fn alpha_beta_0(b:&mut Bencher) {
+        let board = make_initial_board();
+        let mut ai = ai::new_with_search(Color::White, AiSearch::AlphaBeta);
+        b.iter(|| {
+            ai.make_move(&board, Some(0));
+        })
+    }
+    #[bench]
+    fn alpha_beta_1(b:&mut Bencher) {
+        let board = make_initial_board();
+        let mut ai = ai::new_with_search(Color::White, AiSearch::AlphaBeta);
+        b.iter(|| {
+            ai.make_move(&board, Some(1));
+        })
+    }
+    #[bench]
+    fn alpha_beta_2(b:&mut Bencher) {
+        let board = make_initial_board();
+        let mut ai = ai::new_with_search(Color::White, AiSearch::AlphaBeta);
+        b.iter(|| {
+            ai.make_move(&board, Some(2));
+        })
+    }
+    #[bench]
+    fn alpha_beta_3(b:&mut Bencher) {
+        let board = make_initial_board();
+        let mut ai = ai::new_with_search(Color::White, AiSearch::AlphaBeta);
+        b.iter(|| {
+            ai.make_move(&board, Some(3));
+        })
+    }
+    // takes way to long
+    // #[bench]
+    // fn alpha_beta_4(b:&mut Bencher) {
+    //     let board = make_initial_board();
+    //     let mut ai = ai::new_with_search(Color::White, AiSearch::AlphaBeta);
+    //     b.iter(|| {
+    //         ai.make_move(&board, Some(4));
+    //     })
+    // }
+}
+
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::chess_notation::fen_reader::{make_board, make_initial_board};
@@ -73,13 +125,14 @@ struct SearchResultCache {
 pub struct ai {
     rng: ThreadRng,
     color: Color,
-    default_search_depth: u8,
+    pub default_search_depth: u8,
     started_at: Instant,
     time_elapsed_during_search: Option<Duration>,
     minimax_calls: i64,
     ai_search_function: AiSearch,
     hasher: Zobrist,
-    transposition_table: HashMap<u64, (evaluator::Evaluation, Option<Move>)>,
+    transposition_table: HashMap<u64, (u8, evaluator::Evaluation, Option<Move>)>, // <board hash => (depth, eval, best_move)
+    pub transposition_table_hits: u64,
 }
 
 impl ai {
@@ -94,6 +147,7 @@ impl ai {
             ai_search_function: AiSearch::AlphaBeta,
             hasher: Zobrist::new(),
             transposition_table: HashMap::new(),
+            transposition_table_hits: 0,
         }
     }
 
@@ -101,13 +155,14 @@ impl ai {
         ai {
             rng: rand::thread_rng(),
             color,
-            default_search_depth: 4,
+            default_search_depth: 6,
             started_at: Instant::now(),
             time_elapsed_during_search: None,
             minimax_calls: 0,
             ai_search_function: search_fn,
             hasher: Zobrist::new(),
             transposition_table: HashMap::new(),
+            transposition_table_hits: 0,
         }
     }
 
@@ -138,7 +193,11 @@ impl ai {
         // transposition table
         let hash = self.hasher.hash_board(board);
         if self.transposition_table.contains_key(&hash) {
-            return self.transposition_table.get(&hash).unwrap().clone();
+            let (depth, eval, best_move) = self.transposition_table.get(&hash).unwrap();
+            if *depth >= depth_to_go {
+                self.transposition_table_hits = self.transposition_table_hits + 1;
+                return (eval.clone(), best_move.clone());
+            }
         }
 
         // end of recursion, depth_to_go = 0 so eval the board
@@ -236,7 +295,15 @@ impl ai {
             }
         }
         let result = (best_eval.unwrap(), best_move);
-        self.transposition_table.insert(hash, result.clone());
+        if self.transposition_table.contains_key(&hash) {
+            let (depth, eval, best_move) = self.transposition_table.get(&hash).unwrap();
+            if *depth < depth_to_go {
+                self.transposition_table.insert(hash, (depth_to_go.clone(), result.0.clone(), result.1.clone()));
+            }
+        } else {
+            self.transposition_table.insert(hash, (depth_to_go.clone(), result.0.clone(), result.1.clone()));
+        }
+
         return result;
     }
 
@@ -323,7 +390,8 @@ impl ai {
     ) -> Option<(evaluator::Evaluation, Option<Move>)> {
         self.minimax_calls = 0;
         self.started_at = Instant::now();
-
+        self.transposition_table_hits = 0;
+        self.transposition_table = HashMap::new();
         let (eval, best_move): (Evaluation, Option<Move>) = match self.ai_search_function {
             AiSearch::AlphaBeta => self.alpha_beta(&mut *board.clone(), color, depth, None, None),
             AiSearch::Minimax => self.minimax(&mut *board.clone(), color, depth),
