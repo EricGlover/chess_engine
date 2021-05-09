@@ -1,21 +1,23 @@
+mod board_trait;
 mod castling_rights;
 mod color;
 mod coordinate;
 mod piece;
 mod piece_type;
 mod square;
-mod board_trait;
+mod iterators;
 
 use crate::board_console_printer::print_board;
 use crate::chess_notation::fen_reader;
 use crate::move_generator::{gen_pseudo_legal_moves, Move, MoveType};
+pub use board_trait::BoardTrait;
+pub use iterators::*;
 pub use castling_rights::CastlingRights;
 pub use color::Color;
 pub use coordinate::*;
 pub use piece::Piece;
 pub use piece_type::PieceType;
 pub use square::Square;
-pub use board_trait::BoardTrait;
 use std::fmt;
 use std::fmt::Formatter;
 use std::slice::Iter;
@@ -29,7 +31,6 @@ pub struct Board {
     half_move_clock: u32,
     full_move_number: u32,
     squares: [[Square; 8]; 8],
-    
 }
 
 impl BoardTrait for Board {
@@ -76,39 +77,22 @@ impl BoardTrait for Board {
         self.black_castling_rights.clone()
     }
 
-    fn squares_list(&self) -> Vec<&Square> {
-        self.squares
-            .iter()
-            .map(|vec| {
-                return vec.iter();
-            })
-            .flatten()
-            .collect()
+    fn squares_list(&self) -> SquareIterator {
+        SquareIterator::new(&self.squares)
     }
 
-    fn get_rank(&self, y: u8) -> Vec<&Square> {
-        if y < 1 || y > 8 {
-            panic!("invalid rank");
-        }
-        // self.squares.get((y - 1) as usize)
-        let rank = self.squares.get((y - 1) as usize).unwrap();
-        rank.iter().map(|square| square).collect()
+    fn get_rank(&self, y: u8) -> RankIterator {
+        RankIterator::new((y - 1) as usize, &self.squares)
+        // if y < 1 || y > 8 {
+        //     panic!("invalid rank");
+        // }
+        // // self.squares.get((y - 1) as usize)
+        // let rank = self.squares.get((y - 1) as usize).unwrap();
+        // rank.iter().map(|square| square).collect()
     }
 
-    fn get_files(&self) -> Vec<Vec<&Square>> {
-        let mut files = vec![];
-        {
-            let mut x = 0;
-            let row_length = self.squares.get(0).unwrap().len();
-            while x < row_length {
-                // for each row get square at x
-                let file: Vec<&Square> =
-                    self.squares.iter().map(|row| row.get(x).unwrap()).collect();
-                files.push(file);
-                x = x + 1;
-            }
-        }
-        files
+    fn get_files(&self) -> FilesIterator {
+        FilesIterator::new(&self.squares)
     }
 
     fn get_squares(&self) -> Vec<Vec<&Square>> {
@@ -336,7 +320,10 @@ impl BoardTrait for Board {
             None
         }
     }
-    fn get_castling_rights_changes_if_piece_is_captured(&self, piece: &Piece) -> Option<CastlingRights> {
+    fn get_castling_rights_changes_if_piece_is_captured(
+        &self,
+        piece: &Piece,
+    ) -> Option<CastlingRights> {
         self.get_castling_rights_changes_if_piece_moves(piece)
     }
 }
@@ -411,21 +398,15 @@ impl Board {
             .collect()
     }
 
+    fn squares_list_iter(&self) -> SquareIterator {
+        SquareIterator::new(&self.squares)
+    }
+
     fn get_square(&self, at: &Coordinate) -> &Square {
         &self.squares[(at.y() - 1) as usize][(at.x() - 1) as usize]
-        // self.squares
-        //     .get((at.y() - 1) as usize)
-        //     .unwrap()
-        //     .get((at.x() - 1) as usize)
-        //     .unwrap()
     }
     fn get_square_mut(&mut self, at: &Coordinate) -> &mut Square {
         &mut self.squares[(at.y() - 1) as usize][(at.x() - 1) as usize]
-        // self.squares
-        //     .get_mut((at.y() - 1) as usize)
-        //     .unwrap()
-        //     .get_mut((at.x() - 1) as usize)
-        //     .unwrap()
     }
     fn make_squares() -> [[Square; 8]; 8] {
         [
@@ -735,7 +716,7 @@ mod test {
     #[test]
     fn test_get_rank() {
         let board = fen_reader::make_initial_board();
-        let rank = board.get_rank(1);
+        let rank: Vec<&Square> = board.get_rank(1).collect();
         let square = rank.get(0);
         assert!(square.is_some(), "there is a square at 1 1 ");
         let at = Coordinate::new(1, 1);
@@ -763,8 +744,8 @@ mod test {
     fn test_get_files() {
         let board = fen_reader::make_board(fen_reader::INITIAL_BOARD);
         let files = board.get_files();
-        for (j, row) in files.iter().enumerate() {
-            for (i, s) in row.iter().enumerate() {
+        for (j, file) in files.enumerate() {
+            for (i, s) in file.enumerate() {
                 assert_eq!((i + 1) as u8, s.coordinate().y());
                 assert_eq!((j + 1) as u8, s.coordinate().x());
             }

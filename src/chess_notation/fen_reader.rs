@@ -61,7 +61,7 @@ fn make_fen_pieces(board: &dyn BoardTrait) -> String {
         .map(|i| {
             let mut pieces: Vec<String> = vec![];
             let mut empty = 0;
-            board.get_rank(i).iter().for_each(|&square| {
+            board.get_rank(i).for_each(|square| {
                 // insert empty
                 if empty > 0 && square.piece().is_some() {
                     pieces.push(empty.to_string());

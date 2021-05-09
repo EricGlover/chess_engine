@@ -102,8 +102,6 @@ mod tests {
     use crate::move_generator::chess_move::MoveType;
     use test::Bencher;
 
-
-
     #[test]
     fn test_gen_pseudo_legal_moves() {}
 
@@ -625,7 +623,6 @@ pub fn gen_attack_vectors(board: &dyn BoardTrait, color: Color) -> Vec<Move> {
 // does not check whether the player can legally do that move
 // for instance : no checking pins or checks , etc...
 pub fn gen_pseudo_legal_moves(board: &dyn BoardTrait, color: Color) -> Vec<Move> {
-
     board
         .get_all_pieces(color)
         .into_iter()

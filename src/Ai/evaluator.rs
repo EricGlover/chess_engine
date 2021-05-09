@@ -150,8 +150,8 @@ fn count_blocked_pawns(board: &dyn BoardTrait) -> (u8, u8) {
     let files = board.get_files();
     let mut white_blocked: u8 = 0;
     let mut black_blocked: u8 = 0;
-    files.iter().for_each(|file| {
-        file.iter().for_each(|square| {
+    files.for_each(|file| {
+        file.for_each(|square| {
             let piece = square.piece();
             if piece.is_none() {
                 return;
@@ -180,8 +180,8 @@ fn make_pawn_count_by_file(board: &dyn BoardTrait) -> (PawnCountByFile, PawnCoun
     let files = board.get_files();
     let mut white_p = PawnCountByFile { files: [0; 8] };
     let mut black_p = PawnCountByFile { files: [0; 8] };
-    files.iter().enumerate().for_each(|(x, file)| {
-        file.iter().for_each(|square| {
+    files.enumerate().for_each(|(x, file)| {
+        file.for_each(|square| {
             if square.piece().is_some() {
                 let piece = square.piece().unwrap();
                 if piece.piece_type == PieceType::Pawn {

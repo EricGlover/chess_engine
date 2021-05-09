@@ -81,7 +81,12 @@ impl Move {
         })
     }
 
-    fn make_castling_move(rook_from: Coordinate, rook_to: Coordinate, from: Coordinate, to: Coordinate) -> Move {
+    fn make_castling_move(
+        rook_from: Coordinate,
+        rook_to: Coordinate,
+        from: Coordinate,
+        to: Coordinate,
+    ) -> Move {
         Move {
             piece: PieceType::King,
             from,

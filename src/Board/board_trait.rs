@@ -15,9 +15,9 @@ pub trait BoardTrait {
     fn black_castling_rights(&self) -> CastlingRights;
 
     // getting squares
-    fn squares_list(&self) -> Vec<&Square>;
-    fn get_rank(&self, y: u8) -> Vec<&Square>;
-    fn get_files(&self) -> Vec<Vec<&Square>>;
+    fn squares_list(&self) -> SquareIterator;
+    fn get_rank(&self, y: u8) -> RankIterator;
+    fn get_files(&self) -> FilesIterator;
     fn get_squares(&self) -> Vec<Vec<&Square>>;
 
     // moves
@@ -36,5 +36,8 @@ pub trait BoardTrait {
     fn get_pieces(&self, color: Color, piece_type: PieceType) -> Vec<&Piece>;
     fn get_all_pieces(&self, color: Color) -> Vec<&Piece>;
     fn get_castling_rights_changes_if_piece_moves(&self, piece: &Piece) -> Option<CastlingRights>;
-    fn get_castling_rights_changes_if_piece_is_captured(&self, piece: &Piece) -> Option<CastlingRights>;
+    fn get_castling_rights_changes_if_piece_is_captured(
+        &self,
+        piece: &Piece,
+    ) -> Option<CastlingRights>;
 }

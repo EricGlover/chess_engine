@@ -150,7 +150,9 @@ fn make_move_to(
         move_type,
         captured.map(|p| p.piece_type.clone()),
         board.get_castling_rights_changes_if_piece_moves(piece),
-        captured.map_or(None, |p| board.get_castling_rights_changes_if_piece_moves(p)),
+        captured.map_or(None, |p| {
+            board.get_castling_rights_changes_if_piece_moves(p)
+        }),
     )
 }
 
@@ -334,7 +336,7 @@ mod move_generation {
                         &to,
                         &piece,
                         MoveType::Promotion(promotion_type.clone()),
-                        board
+                        board,
                     );
                     moves.push(m);
                 }
