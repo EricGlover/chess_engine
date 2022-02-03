@@ -77,18 +77,12 @@ impl BoardTrait for Board {
         self.black_castling_rights.clone()
     }
 
-    fn squares_list(&self) -> SquareIterator {
+    fn get_squares_iter(&self) -> SquareIterator {
         SquareIterator::new(&self.squares)
     }
 
     fn get_rank(&self, y: u8) -> RankIterator {
         RankIterator::new((y - 1) as usize, &self.squares)
-        // if y < 1 || y > 8 {
-        //     panic!("invalid rank");
-        // }
-        // // self.squares.get((y - 1) as usize)
-        // let rank = self.squares.get((y - 1) as usize).unwrap();
-        // rank.iter().map(|square| square).collect()
     }
 
     fn get_files(&self) -> FilesIterator {
@@ -269,9 +263,7 @@ impl BoardTrait for Board {
     fn has_piece(&self, at: &Coordinate) -> bool {
         self.get_piece_at(at).is_some()
     }
-    // fn get_pieces_in(&self, area: Vec<Coordinate>) -> Vec<(Coordinate, Option<&Piece>)> {
-    //
-    // }
+
     fn get_piece_at(&self, at: &Coordinate) -> Option<&Piece> {
         if !at.is_valid_coordinate() {
             return None;

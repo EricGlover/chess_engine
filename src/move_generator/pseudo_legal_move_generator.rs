@@ -237,6 +237,7 @@ mod move_generation {
                 }
             }
         }
+
         // castling king side
         if board.can_castle_king_side(king.color) && king.at().unwrap() == &king_castle_start {
             let rook_at = Move::king_side_castle_coordinates(king.color, PieceType::Rook).0;
@@ -390,6 +391,19 @@ mod move_generation {
         }
         moves
     }
+}
+
+// finds where pieces have vision of
+//
+// ie not where pieces can move to but where they can capture,
+//      or recapture if that square is captured by an enemy piece
+mod vision_generation {
+    use super::*;
+    // pub fn find_vision(
+    //     path: Vec<Coordinate>,
+    //     board: &dyn BoardTrait,
+    //     piece: &Piece,
+    // ) ->
 }
 
 mod vector_generation {

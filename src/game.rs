@@ -39,7 +39,7 @@ impl Game {
         let mut ai = ai::ai::new(Color::Black);
         ai.default_search_depth = 4;
         let mut ai2 = ai::ai::new(Color::White);
-        ai.default_search_depth = 4;
+        ai2.default_search_depth = 4;
         Game {
             board: fen_reader::make_board(fen_reader::INITIAL_BOARD),
             ai,
@@ -155,7 +155,7 @@ impl Game {
             let command = line.unwrap().clone();
             let m = parse_move(command.as_str(), &self.board, Color::White);
             if m.is_none() {
-                println!("That move is illegal!");
+                println!("That move is illegal! Try again.");
                 continue;
             }
             let m = m.unwrap();
@@ -185,9 +185,10 @@ impl Game {
             let eval = ai::evaluator::evaluate(&self.board, None, None);
             println!("eval {}", eval.score);
             println!(
-                "moves evaluated {}, time elapsed {:?}",
+                "moves evaluated {}, time elapsed {:?}, transposition table hits {}",
                 self.ai.minimax_calls(),
-                self.ai.time_elapsed().unwrap()
+                self.ai.time_elapsed().unwrap(),
+                self.ai.transposition_table_hits
             );
             if eval.is_checkmate() {
                 self.end_game(eval.mated_player.unwrap().opposite());

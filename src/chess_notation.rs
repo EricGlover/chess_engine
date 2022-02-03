@@ -3,6 +3,7 @@ pub mod pgn;
 
 use crate::board::*;
 use crate::move_generator::*;
+use crate::move_generator::get_path_to;
 
 /**
 <piece_specifier><piece_file | piece_rank | piece_file && piece_rank><captures><file><rank>
@@ -62,6 +63,10 @@ pub fn print_move(m: &Move, board: &dyn BoardTrait) -> String {
         "{}{}{}{}{}{}{}",
         piece, piece_specifier, captures, capture_file, capture_rank, pawn_promotion, check
     )
+}
+
+pub fn get_path(from : &str, to: &str) -> Option<Vec<Coordinate>> {
+    get_path_to(&Coordinate::from(from), &Coordinate::from(to))
 }
 
 // change this to result error ?

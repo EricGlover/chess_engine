@@ -77,16 +77,21 @@ Running the project require the rust nightly build because I'm using Bencher at 
 https://rust-lang.github.io/rustup/concepts/channels.html
 
 ### Plans
-- Try bit boards ?
+- Piece Lists (Minimal Replicable Issue Experiments)
+- Compile to WASM , add JS GUI
+- Improve Evaluator (Piece Tables)
+- https://www.chessprogramming.org/Simplified_Evaluation_Function
+- Implement draws
 - Threads for searching
-- Fully Implement algebraic notation parsing
+- DONE : Fully Implement algebraic notation parsing
 - Bit boards
 - DONE: Implement Alpha - Beta Searching
 - DONE: Transposition Tables
 
 ### Short Term Goals
+- Change Path stuff to yield SquareIterator
+- Change RankIterator , and other Iterator Structures to just be SquareIterator
 - Finish Chess Notation
-  - Parsing && Outputting moves with Algebraic notation
   - Game From PGN
 
 - benchmark board cloning

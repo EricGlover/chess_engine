@@ -19,7 +19,9 @@ impl Coordinate {
             self.y as i32 - other.y as i32,
         )
     }
-
+    pub fn at(&self) -> (u8, u8) {
+        (self.x, self.y)
+    }
     pub fn x(&self) -> u8 {
         self.x
     }

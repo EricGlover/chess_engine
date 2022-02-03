@@ -2,6 +2,46 @@ use crate::board::*;
 use crate::move_generator;
 use crate::move_generator::Move;
 
+
+#[cfg(test)]
+mod piece_count {
+    use super::*;
+    use crate::board_console_printer::print_board;
+    use crate::chess_notation::fen_reader;
+
+    #[test]
+    fn piece_count_initial_board() {
+        let board = fen_reader::make_initial_board();
+        let piece_count = PieceCount::new(&board);
+        let expected = PieceCount {
+             white_king: 1,
+             white_queen: 1,
+             white_bishop: 2,
+             white_knight: 2,
+             white_rook: 2,
+             white_pawn: 8,
+             black_king: 1,
+             black_queen: 1,
+             black_bishop: 2,
+             black_knight: 2,
+             black_rook: 2,
+             black_pawn: 8,
+        };
+        assert_eq!(expected.white_king, piece_count.white_king);
+        assert_eq!(expected.white_queen, piece_count.white_queen);
+        assert_eq!(expected.white_bishop, piece_count.white_bishop);
+        assert_eq!(expected.white_knight, piece_count.white_knight);
+        assert_eq!(expected.white_rook, piece_count.white_rook);
+        assert_eq!(expected.white_pawn, piece_count.white_pawn);
+        assert_eq!(expected.black_king, piece_count.black_king);
+        assert_eq!(expected.black_queen, piece_count.black_queen);
+        assert_eq!(expected.black_bishop, piece_count.black_bishop);
+        assert_eq!(expected.black_knight, piece_count.black_knight);
+        assert_eq!(expected.black_rook, piece_count.black_rook);
+        assert_eq!(expected.black_pawn, piece_count.black_pawn);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -83,7 +123,7 @@ impl PieceCount {
             black_rook: 0,
             black_pawn: 0,
         };
-        for square in board.squares_list() {
+        for square in board.get_squares_iter() {
             if square.piece().is_some() {
                 let piece = square.piece().unwrap();
                 match piece.piece_type {
@@ -239,6 +279,8 @@ impl Evaluation {
         self.mated_player.is_some()
     }
 }
+//@todo:  https://www.chessprogramming.org/Simplified_Evaluation_Function
+
 //
 // pub trait Evaluator {
 //     fn evaluate(board: &Board)-> Evaluation;
@@ -299,12 +341,12 @@ pub fn evaluate(
     black_moves_ref: Option<&Vec<Move>>,
 ) -> Evaluation {
     let c = PieceCount::new(board);
-    let k: i32 = 200 * (c.white_king as i32 - c.black_king as i32);
+    let k: i32 = 20 * (c.white_king as i32 - c.black_king as i32);
     let q: i32 = 9 * (c.white_queen as i32 - c.black_queen as i32);
     let r: i32 = 5 * (c.white_rook as i32 - c.black_rook as i32);
     let b: i32 = 3
-        * (c.white_bishop as i32 - c.black_bishop as i32 + c.white_knight as i32
-            - c.black_knight as i32);
+        * (c.white_bishop as i32 - c.black_bishop as i32);
+    let n: i32 = 3 * (c.white_knight as i32 - c.black_knight as i32);
     let p: i32 = 1 * (c.white_pawn as i32 - c.black_pawn as i32);
 
     // pawn structure evaluation
@@ -317,16 +359,16 @@ pub fn evaluate(
     let isolated: i32 = white_isolated_pawns as i32 - black_isolated_pawns as i32;
     let (white_blocked_pawns, black_blocked_pawns) = count_blocked_pawns(board);
     let blocked: i32 = (white_blocked_pawns as i32) - (black_blocked_pawns as i32);
-    let pawn_structure = 0.5 * (doubled + isolated + blocked) as f32;
+    let pawn_structure = 0.5 * ((doubled + isolated + blocked) as f32);
 
     // mobility
     let white_move_count: i32 = white_moves_ref.map_or_else(
-        || move_generator::gen_legal_moves(board, Color::White).len() as i32,
+        || move_generator::gen_pseudo_legal_moves(board, Color::White).len() as i32,
         // || 0,
         |moves| moves.len() as i32,
     );
     let black_move_count: i32 = black_moves_ref.map_or_else(
-        || move_generator::gen_legal_moves(board, Color::Black).len() as i32,
+        || move_generator::gen_pseudo_legal_moves(board, Color::Black).len() as i32,
         // || 0,
         |moves| moves.len() as i32,
     );
@@ -340,10 +382,10 @@ pub fn evaluate(
         None
     };
 
-    let mobility = 0.1 * (white_move_count - black_move_count) as f32;
+    let mobility = 0.1 * ((white_move_count - black_move_count) as f32);
 
     Evaluation {
-        score: (k + q + r + b + p) as f32 + mobility + pawn_structure,
+        score: (k + q + r + b + n + p) as f32 + mobility + pawn_structure,
         mated_player,
     }
 }
