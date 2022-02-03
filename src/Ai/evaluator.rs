@@ -2,7 +2,6 @@ use crate::board::*;
 use crate::move_generator;
 use crate::move_generator::Move;
 
-
 #[cfg(test)]
 mod piece_count {
     use super::*;
@@ -14,18 +13,18 @@ mod piece_count {
         let board = fen_reader::make_initial_board();
         let piece_count = PieceCount::new(&board);
         let expected = PieceCount {
-             white_king: 1,
-             white_queen: 1,
-             white_bishop: 2,
-             white_knight: 2,
-             white_rook: 2,
-             white_pawn: 8,
-             black_king: 1,
-             black_queen: 1,
-             black_bishop: 2,
-             black_knight: 2,
-             black_rook: 2,
-             black_pawn: 8,
+            white_king: 1,
+            white_queen: 1,
+            white_bishop: 2,
+            white_knight: 2,
+            white_rook: 2,
+            white_pawn: 8,
+            black_king: 1,
+            black_queen: 1,
+            black_bishop: 2,
+            black_knight: 2,
+            black_rook: 2,
+            black_pawn: 8,
         };
         assert_eq!(expected.white_king, piece_count.white_king);
         assert_eq!(expected.white_queen, piece_count.white_queen);
@@ -344,8 +343,7 @@ pub fn evaluate(
     let k: i32 = 20 * (c.white_king as i32 - c.black_king as i32);
     let q: i32 = 9 * (c.white_queen as i32 - c.black_queen as i32);
     let r: i32 = 5 * (c.white_rook as i32 - c.black_rook as i32);
-    let b: i32 = 3
-        * (c.white_bishop as i32 - c.black_bishop as i32);
+    let b: i32 = 3 * (c.white_bishop as i32 - c.black_bishop as i32);
     let n: i32 = 3 * (c.white_knight as i32 - c.black_knight as i32);
     let p: i32 = 1 * (c.white_pawn as i32 - c.black_pawn as i32);
 

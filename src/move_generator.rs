@@ -1,15 +1,15 @@
 // use test::Bencher;
 
+mod attack_map;
 mod chess_move;
 mod path;
-mod pseudo_legal_move_generator;
 mod pin;
-mod attack_map;
+mod pseudo_legal_move_generator;
 
-pub use chess_move::*;
-pub use pin::*;
 pub use attack_map::*;
+pub use chess_move::*;
 pub use path::*;
+pub use pin::*;
 
 use crate::board::*;
 use crate::board_console_printer::print_board;
@@ -17,7 +17,6 @@ use crate::move_generator::path::*;
 use crate::move_generator::pseudo_legal_move_generator::*;
 use std::fmt;
 use std::fmt::Formatter;
-
 
 #[cfg(test)]
 mod bench {
@@ -144,7 +143,6 @@ mod tests {
         let checks = get_checks(&board, Color::White, &potential_check_moves);
         assert!(checks.len() == 0, "white is not in check");
 
-
         let board = fen_reader::make_board(fen_reader::WHITE_IN_CHECK);
 
         let potential_check_moves = gen_pseudo_legal_moves(&board, Color::White);
@@ -235,7 +233,6 @@ mod tests {
         // println!("possible moves");
         // possible_moves.iter().for_each(|m| println!("{}", m));
 
-
         let found_moves = find_moves_to_resolve_check(&board, &checks, &possible_moves);
         println!("found moves");
         found_moves.iter().for_each(|m| println!("{}", m));
@@ -289,7 +286,6 @@ mod tests {
         );
         assert_eq!(piece.piece_type, PieceType::Bishop, "piece is a bishop");
     }
-
 
     #[test]
     fn test_get_checks() {
@@ -386,14 +382,22 @@ fn find_attacking_pieces<'a>(
 // @todo: piece lists for fast lookups
 
 // get checks against color
-pub fn get_checks(board: &dyn BoardTrait, color_being_checked: Color, potential_check_moves: &Vec<Move>) -> Vec<Move> {
+pub fn get_checks(
+    board: &dyn BoardTrait,
+    color_being_checked: Color,
+    potential_check_moves: &Vec<Move>,
+) -> Vec<Move> {
     let king_pieces = board.get_pieces(color_being_checked, PieceType::King);
     if king_pieces.len() == 0 {
         return vec![];
     }
     let king = king_pieces.get(0).unwrap();
     let at = king.at().unwrap();
-    potential_check_moves.into_iter().filter(|&m| &m.to == at).map(|m| m.clone()).collect()
+    potential_check_moves
+        .into_iter()
+        .filter(|&m| &m.to == at)
+        .map(|m| m.clone())
+        .collect()
 }
 
 fn find_checks_from_moves<'a>(
@@ -443,13 +447,19 @@ fn find_moves_to_resolve_check(
             // the move needs to resolve all the checks
             // @todo : rewrite this to optimize it a bit
             checks.iter().all(|check| {
+                println!("{:?}", m);
                 let piece = board.get_piece_at(&m.from).unwrap();
-                let path = path::get_path_to(&check.from, &check.to)
-                    .unwrap_or_else(|| panic!("illegal move"));
-                let interpose_path = &path[1..(path.len() - 1)];
-                if interpose_path.iter().any(|coordinate| coordinate == &m.to) {
-                    return true;
-                } else if check.from == m.to {
+                let path_option = path::get_path_to(&check.from, &check.to);
+                let is_interposable = path_option.is_some();
+                // the king itself can not interpose
+                if (is_interposable && m.piece != PieceType::King) {
+                    let path = path_option.unwrap();
+                    let interpose_path = &path[1..(path.len() - 1)];
+                    if interpose_path.iter().any(|coordinate| coordinate == &m.to) {
+                        return true;
+                    }
+                }
+                if check.from == m.to {
                     return true;
                 } else if king_safely_flees(board, &m) {
                     return true;
@@ -457,9 +467,7 @@ fn find_moves_to_resolve_check(
                 return false;
             })
         })
-        .map(|m| {
-            m.clone()
-        })
+        .map(|m| m.clone())
         .collect()
 }
 
@@ -481,7 +489,6 @@ pub fn gen_legal_moves(board: &dyn BoardTrait, color: Color) -> Vec<Move> {
     // let checks = find_checks_from_moves(board, &moves, color.opposite());
     let checks = get_checks(board, color, &potential_checks);
     if checks.len() > 0 {
-
         return find_moves_to_resolve_check(board, &checks, &moves);
 
         let mut new_board = board.clone();

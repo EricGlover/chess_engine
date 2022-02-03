@@ -18,7 +18,7 @@ mod bench {
     use test::Bencher;
 
     #[bench]
-    fn alpha_beta_0(b:&mut Bencher) {
+    fn alpha_beta_0(b: &mut Bencher) {
         let board = make_initial_board();
         let mut ai = ai::new_with_search(Color::White, AiSearch::AlphaBeta);
         b.iter(|| {
@@ -26,7 +26,7 @@ mod bench {
         })
     }
     #[bench]
-    fn alpha_beta_1(b:&mut Bencher) {
+    fn alpha_beta_1(b: &mut Bencher) {
         let board = make_initial_board();
         let mut ai = ai::new_with_search(Color::White, AiSearch::AlphaBeta);
         b.iter(|| {
@@ -34,7 +34,7 @@ mod bench {
         })
     }
     #[bench]
-    fn alpha_beta_2(b:&mut Bencher) {
+    fn alpha_beta_2(b: &mut Bencher) {
         let board = make_initial_board();
         let mut ai = ai::new_with_search(Color::White, AiSearch::AlphaBeta);
         b.iter(|| {
@@ -42,7 +42,7 @@ mod bench {
         })
     }
     #[bench]
-    fn alpha_beta_3(b:&mut Bencher) {
+    fn alpha_beta_3(b: &mut Bencher) {
         let board = make_initial_board();
         let mut ai = ai::new_with_search(Color::White, AiSearch::AlphaBeta);
         b.iter(|| {
@@ -59,7 +59,6 @@ mod bench {
     //     })
     // }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -307,10 +306,16 @@ impl ai {
         if self.transposition_table.contains_key(&hash) {
             let (depth, eval, best_move) = self.transposition_table.get(&hash).unwrap();
             if *depth < depth_to_go {
-                self.transposition_table.insert(hash, (depth_to_go.clone(), result.0.clone(), result.1.clone()));
+                self.transposition_table.insert(
+                    hash,
+                    (depth_to_go.clone(), result.0.clone(), result.1.clone()),
+                );
             }
         } else {
-            self.transposition_table.insert(hash, (depth_to_go.clone(), result.0.clone(), result.1.clone()));
+            self.transposition_table.insert(
+                hash,
+                (depth_to_go.clone(), result.0.clone(), result.1.clone()),
+            );
         }
 
         return result;

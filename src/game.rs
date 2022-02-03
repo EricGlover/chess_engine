@@ -102,7 +102,10 @@ impl Game {
 
         let m = self.ai.make_move(&self.board, None).unwrap();
         let log = print_move(&m, &self.board);
-        println!("{} transposition table hits", self.ai.transposition_table_hits);
+        println!(
+            "{} transposition table hits",
+            self.ai.transposition_table_hits
+        );
         println!("{} moves \n{}", self.ai.color(), log);
         self.moves.push(log);
         self.board.make_move_mut(&m);
@@ -113,7 +116,10 @@ impl Game {
 
         let m = self.ai2.make_move(&self.board, None).unwrap();
         let log = print_move(&m, &self.board);
-        println!("{} transposition table hits", self.ai2.transposition_table_hits);
+        println!(
+            "{} transposition table hits",
+            self.ai2.transposition_table_hits
+        );
         println!("{} moves \n{}", self.ai2.color(), log);
         self.moves.push(log);
         self.board.make_move_mut(&m);

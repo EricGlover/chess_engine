@@ -2,8 +2,8 @@ pub mod fen_reader;
 pub mod pgn;
 
 use crate::board::*;
-use crate::move_generator::*;
 use crate::move_generator::get_path_to;
+use crate::move_generator::*;
 
 /**
 <piece_specifier><piece_file | piece_rank | piece_file && piece_rank><captures><file><rank>
@@ -65,7 +65,7 @@ pub fn print_move(m: &Move, board: &dyn BoardTrait) -> String {
     )
 }
 
-pub fn get_path(from : &str, to: &str) -> Option<Vec<Coordinate>> {
+pub fn get_path(from: &str, to: &str) -> Option<Vec<Coordinate>> {
     get_path_to(&Coordinate::from(from), &Coordinate::from(to))
 }
 
@@ -76,9 +76,7 @@ pub fn parse_move(str: &str, board: &dyn BoardTrait, color: Color) -> Option<Mov
     let their_move = String::from(str);
     gen_legal_moves(board, color)
         .into_iter()
-        .find(|m| {
-             their_move == print_move(m, board)
-        })
+        .find(|m| their_move == print_move(m, board))
 }
 
 fn get_piece_specifier(m: &Move, board: &dyn BoardTrait) -> String {

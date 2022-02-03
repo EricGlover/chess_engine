@@ -1,6 +1,6 @@
-use crate::board::Piece;
-use crate::board::Coordinate;
 use super::*;
+use crate::board::Coordinate;
+use crate::board::Piece;
 
 #[derive(Eq, PartialEq, Debug)]
 pub struct Pin<'a> {
@@ -9,7 +9,6 @@ pub struct Pin<'a> {
     pub pinned_to: &'a Piece,
     pub can_move_to: Vec<Coordinate>,
 }
-
 
 pub fn find_pinned_pieces(board: &dyn BoardTrait, defender_color: Color) -> Vec<Pin> {
     let attacker_color = defender_color.opposite();
@@ -79,7 +78,6 @@ pub fn find_pinned_pieces(board: &dyn BoardTrait, defender_color: Color) -> Vec<
     pins
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -126,5 +124,4 @@ mod tests {
         let pinned_piece_attacks_kings =
             "rnb1k1nr/ppp2qpp/8/B1b1p2Q/3p4/1K2P2P/PPP2PP1/RN3B1R w kq - 0 17";
     }
-
 }
