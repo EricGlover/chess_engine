@@ -148,7 +148,7 @@ impl ai {
         ai {
             rng: rand::thread_rng(),
             color,
-            default_search_depth: 4,
+            default_search_depth: 8,
             started_at: Instant::now(),
             time_elapsed_during_search: None,
             minimax_calls: 0,

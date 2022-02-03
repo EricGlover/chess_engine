@@ -447,11 +447,13 @@ fn find_moves_to_resolve_check(
             // the move needs to resolve all the checks
             // @todo : rewrite this to optimize it a bit
             checks.iter().all(|check| {
-                println!("{:?}", m);
                 let piece = board.get_piece_at(&m.from).unwrap();
                 let path_option = path::get_path_to(&check.from, &check.to);
                 let is_interposable = path_option.is_some();
                 // the king itself can not interpose
+                if(m.piece == PieceType::King) {
+                    return king_safely_flees(board, &m);
+                }
                 if (is_interposable && m.piece != PieceType::King) {
                     let path = path_option.unwrap();
                     let interpose_path = &path[1..(path.len() - 1)];
@@ -461,9 +463,7 @@ fn find_moves_to_resolve_check(
                 }
                 if check.from == m.to {
                     return true;
-                } else if king_safely_flees(board, &m) {
-                    return true;
-                }
+                } 
                 return false;
             })
         })
