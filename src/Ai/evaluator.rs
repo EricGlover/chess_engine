@@ -293,7 +293,7 @@ impl Evaluation {
 //     pub fn evaluate(board: &Board) -> Evaluation {
 //         let c = PieceCount::new(board);
 //         let k: i32 = 200 * (c.white_king as i32 - c.black_king as i32);
-//         let q: i32 = 9 * (c.white_queen as i32 - c.black_queen as i32);
+//         let q: i32 = 9 * (c.white_queen as i32 - c.black_queen as i32);z
 //         let r: i32 = 5 * (c.white_rook as i32 - c.black_rook as i32);
 //         let b: i32 = 3
 //             * (c.white_bishop as i32 - c.black_bishop as i32 + c.white_knight as i32
