@@ -451,7 +451,7 @@ fn find_moves_to_resolve_check(
                 let path_option = path::get_path_to(&check.from, &check.to);
                 let is_interposable = path_option.is_some();
                 // the king itself can not interpose
-                if(m.piece == PieceType::King) {
+                if (m.piece == PieceType::King) {
                     return king_safely_flees(board, &m);
                 }
                 if (is_interposable && m.piece != PieceType::King) {
@@ -463,7 +463,7 @@ fn find_moves_to_resolve_check(
                 }
                 if check.from == m.to {
                     return true;
-                } 
+                }
                 return false;
             })
         })

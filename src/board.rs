@@ -112,10 +112,10 @@ impl BoardTrait for Board {
         let enemy_piece = self.remove_piece_at(&mov.to);
 
         // update 50 move rule draw counter
-        if mov.captured.is_none() || moving_piece.piece_type != PieceType::Pawn {
-            self.half_move_clock = self.half_move_clock + 1;
-        } else {
+        if mov.captured.is_some() || moving_piece.piece_type == PieceType::Pawn {
             self.half_move_clock = 0;
+        } else {
+            self.half_move_clock = self.half_move_clock + 1;
         }
 
         // is this a capture

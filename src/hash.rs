@@ -156,7 +156,7 @@ impl Zobrist {
             hash ^= self.white_queen_side_castle;
         }
         if board.can_castle_queen_side(Color::Black) {
-            hash ^= self.black_king_side_castle;
+            hash ^= self.black_queen_side_castle;
         }
         // en passant file
         if board.en_passant_target().is_some() {
