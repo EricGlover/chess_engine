@@ -12,6 +12,7 @@ pub use path::*;
 pub use pin::*;
 
 use crate::board::*;
+use crate::board::{BoardTrait, Color, Coordinate, Piece, Square};
 use crate::board_console_printer::print_board;
 use crate::move_generator::path::*;
 use crate::move_generator::pseudo_legal_move_generator::*;

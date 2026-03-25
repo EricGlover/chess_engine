@@ -1,4 +1,5 @@
 use crate::board::*;
+use crate::board::{BoardTrait, Color, Coordinate, Piece, Square};
 use crate::chess_notation::fen_reader::make_board;
 #[cfg(test)]
 use crate::chess_notation::fen_reader::make_initial_board;

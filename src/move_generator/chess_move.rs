@@ -1,4 +1,6 @@
 use crate::move_generator::*;
+use crate::board::{BoardTrait, Color, Coordinate, Piece, Square};
+
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub enum MoveType {
