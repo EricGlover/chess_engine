@@ -1,6 +1,8 @@
 pub mod fen_reader;
 pub mod pgn;
 
+use regex::Regex;
+
 use crate::board::*;
 use crate::move_generator::*;
 
@@ -71,9 +73,7 @@ pub fn parse_move(str: &str, board: &dyn BoardTrait, color: Color) -> Option<Mov
     let their_move = String::from(str);
     gen_legal_moves(board, color)
         .into_iter()
-        .find(|m| {
-             their_move == print_move(m, board)
-        })
+        .find(|m| their_move == print_move(m, board))
 }
 
 fn get_piece_specifier(m: &Move, board: &dyn BoardTrait) -> String {
@@ -128,22 +128,97 @@ fn get_piece_specifier(m: &Move, board: &dyn BoardTrait) -> String {
 }
 
 // algebraic moves and move generator moves are different because they're board dependent
-fn read_move(str: &str) -> (PieceType, Coordinate) {
-    // need to generate moves to determine which piece can move there
-    // piece specifier is uppercase
-    let mut chars = str.chars().collect::<Vec<char>>();
-    let first = chars.get(0).unwrap();
+// bools are for short and long castles 
+pub enum ParsedMoveType {
+    Move,
+    ShortCastles,
+    LongCastles,
+    Promotion
+}
 
-    let piece_type: PieceType = if first.to_lowercase().to_string() != first.to_string() {
-        let t = PieceType::from(first.to_lowercase().to_string().as_str()).unwrap();
-        chars.remove(0);
-        t
+fn read_piece(str: &str) -> Option<PieceType> {
+     let piece_identifier_matcher = Regex::new(r"^\s?[R,K,Q,N,B]").unwrap();
+    if piece_identifier_matcher.is_match(str) {
+        let _p = piece_identifier_matcher.find(str).unwrap().as_str();
+        let mut piece = PieceType::Rook;
+        if _p == "K" {
+            piece = PieceType::King;
+        } else if _p == "Q" {
+            piece = PieceType::Queen;
+        } else if _p == "N" {
+            piece = PieceType::Knight;
+        } else if _p == "B" {
+            piece = PieceType::Bishop;
+        }
+        return Some(piece);
     } else {
-        PieceType::Pawn
-    };
-    let s: String = chars.splice(0..2, std::iter::empty()).collect();
-    let to = Coordinate::from(s.as_str());
-    (piece_type, to)
+        return None;
+    }
+}
+
+// @todo : row and column specifiers 
+pub fn read_move(str: &str) -> Option<(PieceType, Option<Coordinate>, ParsedMoveType, Option<PieceType>)> {
+    // println!("reading {}", str);
+    // is $1, $2 blah whatevers
+    let crap_matcher = Regex::new(r"\$\d").unwrap();
+    if crap_matcher.is_match(str) {
+        println!("found crap");
+        return None;
+    }
+    //is castles ?
+    let long_castles_matcher = Regex::new(r"^\s?O\-O\-O").unwrap();
+    if long_castles_matcher.is_match(str) {
+        return Some((PieceType::King, None, ParsedMoveType::LongCastles, None));
+    }
+    let short_castles_matcher = Regex::new(r"^\s?O\-O").unwrap();
+    if long_castles_matcher.is_match(str) {
+        return Some((PieceType::King, None, ParsedMoveType::ShortCastles, None));
+    }
+
+    // pawn promotion todo::
+    let end_with_piece_matcher = Regex::new(r"^\s[R,K,Q,N,B]$").unwrap();
+    let mut pawn_promotion: Option<PieceType> = None;
+    if end_with_piece_matcher.is_match(str) {
+        pawn_promotion = read_piece(str);
+    }
+    let is_capture_specifier = Regex::new(r"[x]").unwrap();
+    let piece_identifier_matcher = Regex::new(r"^\s?[R,K,Q,N,B]").unwrap();
+    let coordinate_matcher = Regex::new(r"[a-h][1-8]").unwrap();
+    let is_only_coordinate_matcher = Regex::new(r"^\s?[a-h][1-8]\s?$").unwrap();
+
+    // pawn captures , no promotion 
+    if is_capture_specifier.is_match(str) && !piece_identifier_matcher.is_match(str) {
+         let c = Coordinate::from(coordinate_matcher.find(str).unwrap().as_str());
+         return Some((PieceType::Pawn, Some(c), ParsedMoveType::Move, pawn_promotion));
+    }
+
+    // regular non-capture pawn moves
+    if is_only_coordinate_matcher.is_match(str) {
+        let c = Coordinate::from(str);
+        return Some((PieceType::Pawn, Some(c), ParsedMoveType::Move, None));
+    }
+
+    // if coordinate_matcher.is_match(str) {
+    //     let c = coordinate_matcher.find(str).unwrap().as_str();
+    // }
+
+    // can't be a pawn move , can have column & row specified & will have a target square
+    if piece_identifier_matcher.is_match(str) {
+        let piece = read_piece(str).unwrap();
+        let c = Coordinate::from(coordinate_matcher.find(str).unwrap().as_str());
+        return Some((piece, Some(c), ParsedMoveType::Move, None));
+    }
+     // "fxe8N"
+    // don't forget pawn capture specifiers
+
+    
+    //remove any captures 
+    //remove any checks or checkmates
+    //is just coordinate ?
+    // else 
+    //is piece identifier 
+    ////is row / column included 
+    return None;
 }
 
 #[cfg(test)]
@@ -406,6 +481,17 @@ mod tests {
     use super::*;
     use crate::board::CastlingRights;
     use crate::chess_notation::fen_reader::*;
+
+    #[test]
+    fn read_move_test1() {
+        let test_strs_pass: Vec<&str> = Vec::from([
+            "e4", "e5", "Nf3", "d6", "d4", "Bg4", "dxe5", "Bxf3", "Qxf3", "dxe5", "Bc4", "Nf6",
+            "Qb3", "Qe7", "Nc3", "c6", "Bg5", "b5", "Nxb5", "$1", "cxb5", "Bxb5+", "Nbd7", "O-O-O",
+            "Rd8", "Rxd7", "$1", "Rxd7", "Rd1", "Qe6", "Bxd7+", "Nxd7", "Qb8+", "$3", "Nxb8",
+            "Rd8#", "1-0",
+        ]);
+        let test_strs_fail: Vec<&str> = Vec::from(["$1", "$1", "$3", "1-0"]);
+    }
 
     #[test]
     fn read_move_test() {

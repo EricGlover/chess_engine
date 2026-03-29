@@ -1,0 +1,10 @@
+[Event ""]
+[Site ""]
+[Date ""]
+[Round ""]
+[White ""]
+[Black ""]
+[Result ""]
+
+1. e4 e6 2. d4 Qh4  *
+rnb1kbnr/pppp1ppp/4p3/8/3PP2q/8/PPP2PPP/RNBQKBNR w KQkq - 4 3

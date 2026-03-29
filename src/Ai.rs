@@ -6,21 +6,21 @@ use crate::move_generator::*;
 use rand::prelude::ThreadRng;
 use rand::Rng;
 use std::collections::HashMap;
-use std::iter::Map;
+// use std::iter::Map;
 use std::time::{Duration, Instant};
 
 #[cfg(test)]
 mod bench {
     use super::*;
     use crate::chess_notation::fen_reader::{make_board, make_initial_board};
-    use ai;
+    use Ai;
     use std::time::{Duration, Instant};
     use test::Bencher;
 
     #[bench]
     fn alpha_beta_0(b:&mut Bencher) {
         let board = make_initial_board();
-        let mut ai = ai::new_with_search(Color::White, AiSearch::AlphaBeta);
+        let mut ai = Ai::new_with_search(Color::White, AiSearch::AlphaBeta);
         b.iter(|| {
             ai.make_move(&board, Some(0));
         })
@@ -28,7 +28,7 @@ mod bench {
     #[bench]
     fn alpha_beta_1(b:&mut Bencher) {
         let board = make_initial_board();
-        let mut ai = ai::new_with_search(Color::White, AiSearch::AlphaBeta);
+        let mut ai = Ai::new_with_search(Color::White, AiSearch::AlphaBeta);
         b.iter(|| {
             ai.make_move(&board, Some(1));
         })
@@ -36,7 +36,7 @@ mod bench {
     #[bench]
     fn alpha_beta_2(b:&mut Bencher) {
         let board = make_initial_board();
-        let mut ai = ai::new_with_search(Color::White, AiSearch::AlphaBeta);
+        let mut ai = Ai::new_with_search(Color::White, AiSearch::AlphaBeta);
         b.iter(|| {
             ai.make_move(&board, Some(2));
         })
@@ -44,7 +44,7 @@ mod bench {
     #[bench]
     fn alpha_beta_3(b:&mut Bencher) {
         let board = make_initial_board();
-        let mut ai = ai::new_with_search(Color::White, AiSearch::AlphaBeta);
+        let mut ai = Ai::new_with_search(Color::White, AiSearch::AlphaBeta);
         b.iter(|| {
             ai.make_move(&board, Some(3));
         })
@@ -65,14 +65,14 @@ mod bench {
 mod tests {
     use super::*;
     use crate::chess_notation::fen_reader::{make_board, make_initial_board};
-    use ai;
+    use Ai;
     use std::time::{Duration, Instant};
 
     #[test]
     fn bug_alpha_beta() {
         let fen = "rnb1kbnr/pppp1p1p/4pp2/8/8/3BP3/PPPP1PPP/RNB1K1NR b KQkq - 3 4";
         let board = make_board(fen);
-        let mut ai = ai::new(Color::Black);
+        let mut ai = Ai::new(Color::Black);
         ai.make_move(&board, Some(4));
     }
 
@@ -85,7 +85,7 @@ mod tests {
     fn test_alpha_beta() {
         //@todo : test more boards.... use pgn ????
         fn test_initial_board_at_depth(depth: u8) {
-            let mut ai = ai::new(Color::White);
+            let mut ai = Ai::new(Color::White);
             let mut board = make_initial_board();
             let (eval, best_move) =
                 ai.alpha_beta(&mut *board.clone(), Color::White, depth, None, None);
@@ -114,7 +114,7 @@ mod tests {
         // black to move
         let fen = "r3k1r1/1b1p1p2/p3pp2/B1b4p/Pp2P3/1BN2P2/1PP4P/R2K1R2 b q - 10 20";
         let board = make_board(fen);
-        let mut ai = ai::new(Color::Black);
+        let mut ai = Ai::new(Color::Black);
         ai.make_move(&board, Some(4));
     }
 }
@@ -131,7 +131,7 @@ struct SearchResultCache {
 
 //@todo : pass in an Evaluator struct, or Evaluation function
 // need to understand Box<> or something first
-pub struct ai {
+pub struct Ai {
     rng: ThreadRng,
     color: Color,
     pub default_search_depth: u8,
@@ -144,9 +144,9 @@ pub struct ai {
     pub transposition_table_hits: u64,
 }
 
-impl ai {
-    pub fn new(color: Color) -> ai {
-        ai {
+impl Ai {
+    pub fn new(color: Color) -> Ai {
+        Ai {
             rng: rand::thread_rng(),
             color,
             default_search_depth: 4,
@@ -160,8 +160,8 @@ impl ai {
         }
     }
 
-    pub fn new_with_search(color: Color, search_fn: AiSearch) -> ai {
-        ai {
+    pub fn new_with_search(color: Color, search_fn: AiSearch) -> Ai {
+        Ai {
             rng: rand::thread_rng(),
             color,
             default_search_depth: 6,

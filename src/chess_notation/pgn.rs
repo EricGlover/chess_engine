@@ -1,6 +1,9 @@
-use crate::board::{BoardTrait, Color, Coordinate, PieceType};
+use regex::Regex;
+
+use crate::board::{Board, BoardTrait, Color, Coordinate, PieceType};
 use crate::chess_notation::fen_reader;
 use crate::chess_notation::fen_reader::make_board;
+use crate::chess_notation::read_move;
 use crate::game::Game as chess_game;
 use crate::move_generator::{gen_legal_moves, Move, MoveType};
 use std::fmt;
@@ -72,6 +75,84 @@ impl fmt::Display for Mode {
 //     Move::castle_king_side(Color::White)
 // }
 
+pub fn moves_from_pgn(pgn: String) -> Vec<Move> {
+    let moves: Vec<Move> = Vec::new();
+    // reading from a pgn time
+    let scrap_board = Board::new();
+    // for the moment were skipping the informational section
+    // break pgn into lines then grab all the lines with move text in them
+    let lines: Vec<&str> = pgn.split('\n').collect();
+    let info_line_matcher = Regex::new(r"\[.*\]$").unwrap();
+    let mut move_lines: Vec<&str> = Vec::new();
+    let mut info_section = true;
+    let mut move_section = false;
+    for _s in pgn.split('\n').into_iter() {
+        // println!("{} \n is match {} \n is empty {} ", _s, info_line_matcher.is_match(_s), _s.is_empty());
+        if move_section {
+            move_lines.push(_s);
+        }
+        if !info_line_matcher.is_match(_s) && _s.is_empty() {
+            move_section = true;
+        }
+    }
+
+    // put all move text in a string
+    let mut move_text: String = String::new();
+    for _s in move_lines.into_iter() {
+        println!("{}", _s);
+        move_text.push_str(_s);
+    }
+
+    // remove the comments
+    let comment_matcher = Regex::new(r"(\{[^*\}]*\})").unwrap();
+    let stuff: Vec<&str> = comment_matcher.split(&move_text).collect();
+
+    // put it in a string again
+    let mut move_text_2 = String::new();
+    for _s in stuff {
+        println!("{}", _s);
+        move_text_2.push_str(_s);
+    }
+
+    // take out all move turn stuff (eg. 1. 2. 3. )
+    let turn_matcher = Regex::new(r"(\d+\.)").unwrap();
+    let mut t = String::new();
+    let stuff: Vec<&str> = turn_matcher.split(move_text_2.as_str()).collect();
+    for _s in stuff {
+        println!("{}", _s);
+        t.push_str(_s);
+    }
+
+    //now we have mostly just move text and some $1, $2 stuff && empty lines
+    let move_candidates: Vec<&str> = t.split(' ').collect();
+    for _m in move_candidates {
+        // skip empty
+        if _m.is_empty() {
+            continue;
+        }
+        // if is valid move
+        // do stuff
+        println!("{}", _m);
+        let res = read_move(_m);
+        if res.is_none() {
+            println!("MOVE NOT FOUND");
+        } else {
+            let (piece_type, coordinate, parsed_move, promotion_type) = res.unwrap();
+            println!(
+                "{} {} {} ",
+                piece_type,
+                coordinate.unwrap_or(Coordinate::new(0, 0)),
+                promotion_type.unwrap_or(PieceType::Pawn)
+            );
+
+            //@todo :::: make moves 
+            
+        }
+    }
+
+    return moves;
+}
+
 pub struct Game {
     pub event: String,
     pub site: String,
@@ -84,6 +165,78 @@ pub struct Game {
 }
 
 impl Game {
+    pub fn new_from_pgn(pgn: String) -> chess_game {
+        // reading from a pgn time
+
+        // for the moment were skipping the informational section
+        // break pgn into lines then grab all the lines with move text in them
+        let lines: Vec<&str> = pgn.split('\n').collect();
+        let info_line_matcher = Regex::new(r"\[.*\]$").unwrap();
+        let mut move_lines: Vec<&str> = Vec::new();
+        let mut info_section = true;
+        let mut move_section = false;
+        for _s in pgn.split('\n').into_iter() {
+            // println!("{} \n is match {} \n is empty {} ", _s, info_line_matcher.is_match(_s), _s.is_empty());
+            if move_section {
+                move_lines.push(_s);
+            }
+            if !info_line_matcher.is_match(_s) && _s.is_empty() {
+                move_section = true;
+            }
+        }
+
+        // put all move text in a string
+        let mut move_text: String = String::new();
+        for _s in move_lines.into_iter() {
+            println!("{}", _s);
+            move_text.push_str(_s);
+        }
+
+        // remove the comments
+        let comment_matcher = Regex::new(r"(\{[^*\}]*\})").unwrap();
+        let stuff: Vec<&str> = comment_matcher.split(&move_text).collect();
+
+        // put it in a string again
+        let mut move_text_2 = String::new();
+        for _s in stuff {
+            println!("{}", _s);
+            move_text_2.push_str(_s);
+        }
+
+        // take out all move turn stuff (eg. 1. 2. 3. )
+        let turn_matcher = Regex::new(r"(\d+\.)").unwrap();
+        let mut t = String::new();
+        let stuff: Vec<&str> = turn_matcher.split(move_text_2.as_str()).collect();
+        for _s in stuff {
+            println!("{}", _s);
+            t.push_str(_s);
+        }
+
+        //now we have mostly just move text and some $1, $2 stuff && empty lines
+        let move_candidates: Vec<&str> = t.split(' ').collect();
+        for _m in move_candidates {
+            // skip empty
+            if _m.is_empty() {
+                continue;
+            }
+            // if is valid move
+            // do stuff
+            println!("{}", _m);
+            let res = read_move(_m);
+            if res.is_none() {
+                println!("MOVE NOT FOUND");
+            } else {
+                let (piece_type, coordinate, parsed_move, promotion_type) = res.unwrap();
+                println!(
+                    "{} {} {} ",
+                    piece_type,
+                    coordinate.unwrap_or(Coordinate::new(0, 0)),
+                    promotion_type.unwrap_or(PieceType::Pawn)
+                );
+            }
+        }
+        return chess_game::new();
+    }
     pub fn new_from_game(game: &chess_game) -> Game {
         // partition and step_by work here ?
         // try step_by and zip

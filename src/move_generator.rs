@@ -21,7 +21,7 @@ use std::fmt::Formatter;
 #[cfg(test)]
 mod bench {
     use super::*;
-    use crate::ai::{ai, AiSearch};
+    use crate::ai::{Ai, AiSearch};
     use crate::chess_notation::fen_reader;
     use crate::chess_notation::fen_reader::*;
     use crate::move_generator::chess_move::MoveType;
@@ -29,7 +29,7 @@ mod bench {
     #[bench]
     fn bench_perft(b: &mut Bencher) {
         let board = fen_reader::make_initial_board();
-        let mut ai = ai::new_with_search(Color::White, AiSearch::Minimax);
+        let mut ai = Ai::new_with_search(Color::White, AiSearch::Minimax);
         b.iter(|| {
             // ai.make_move(&board, Some(0));
             // ai.make_move(&board, Some(1));
@@ -96,7 +96,7 @@ mod bench {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ai::{ai, AiSearch};
+    use crate::ai::{Ai, AiSearch};
     use crate::chess_notation::fen_reader;
     use crate::chess_notation::fen_reader::*;
     use crate::move_generator::chess_move::MoveType;
@@ -108,7 +108,7 @@ mod tests {
     #[test]
     fn perft_initial_position() {
         let board = fen_reader::make_initial_board();
-        let mut ai = ai::new_with_search(Color::White, AiSearch::Minimax);
+        let mut ai = Ai::new_with_search(Color::White, AiSearch::Minimax);
         ai.make_move(&board, Some(0));
         assert_eq!(ai.minimax_calls(), 1, "1 node visited at depth 0");
         ai.make_move(&board, Some(1));

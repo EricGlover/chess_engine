@@ -7,7 +7,7 @@ use crate::chess_notation::pgn::Game as PgnGame;
 use crate::chess_notation::{fen_reader, parse_move, print_move};
 use crate::move_generator::Move;
 use chrono::{DateTime, Local};
-use std::fs::File;
+use std::fs::{self, File, Metadata};
 use std::io;
 use std::io::prelude::*;
 use std::path::Path;
@@ -28,17 +28,18 @@ pub enum GameResult {
 pub struct Game {
     board: Board,
     moves: Vec<String>,
-    ai: ai::ai,
-    ai2: ai::ai,
+    ai: ai::Ai,
+    ai2: ai::Ai,
     start_time: String,
     result: GameResult,
+    enable_logging: bool,
 }
 
 impl Game {
     pub fn new() -> Game {
-        let mut ai = ai::ai::new(Color::Black);
+        let mut ai = ai::Ai::new(Color::Black);
         ai.default_search_depth = 4;
-        let mut ai2 = ai::ai::new(Color::White);
+        let mut ai2 = ai::Ai::new(Color::White);
         ai.default_search_depth = 4;
         Game {
             board: fen_reader::make_board(fen_reader::INITIAL_BOARD),
@@ -47,6 +48,7 @@ impl Game {
             moves: vec![],
             start_time: Local::now().format("%Y-%m-%d_%H%M%S").to_string(),
             result: GameResult::InProgress,
+            enable_logging: false,
         }
     }
 
@@ -75,6 +77,17 @@ impl Game {
     }
 
     fn write_log(&self) {
+        if (!self.enable_logging) {
+            return;
+        }
+
+        //check for GameLogs directory
+        let res = fs::metadata("./GameLogs");
+        let is_dir: bool = match res {
+            Ok(f) => f.is_dir(),
+            Err(err) => false,
+        };
+
         let path_str = format!("./GameLogs/{}-output.txt", self.start_time);
         let path = Path::new(path_str.as_str());
         let display = path.display();
@@ -96,13 +109,28 @@ impl Game {
         }
     }
 
+    fn ai_make_move(&mut self, ai: &mut ai::Ai) {
+        println!("{} to move", ai.color());
+        print_board(&self.board);
+
+        let m = ai.make_move(&self.board, None).unwrap();
+        let log = print_move(&m, &self.board);
+        println!("{} transposition table hits", ai.transposition_table_hits);
+        println!("{} moves \n{}", ai.color(), log);
+        self.moves.push(log);
+        self.board.make_move_mut(&m);
+    }
+
     fn ai1_make_move(&mut self) {
         println!("{} to move", self.ai.color());
         print_board(&self.board);
 
         let m = self.ai.make_move(&self.board, None).unwrap();
         let log = print_move(&m, &self.board);
-        println!("{} transposition table hits", self.ai.transposition_table_hits);
+        println!(
+            "{} transposition table hits",
+            self.ai.transposition_table_hits
+        );
         println!("{} moves \n{}", self.ai.color(), log);
         self.moves.push(log);
         self.board.make_move_mut(&m);
@@ -113,7 +141,10 @@ impl Game {
 
         let m = self.ai2.make_move(&self.board, None).unwrap();
         let log = print_move(&m, &self.board);
-        println!("{} transposition table hits", self.ai2.transposition_table_hits);
+        println!(
+            "{} transposition table hits",
+            self.ai2.transposition_table_hits
+        );
         println!("{} moves \n{}", self.ai2.color(), log);
         self.moves.push(log);
         self.board.make_move_mut(&m);
@@ -126,6 +157,54 @@ impl Game {
         print_board(&self.board);
         self.write_log();
         println!("{} wins", winner);
+    }
+
+    pub fn run_sim_game(mut self, moves: Vec<Move>) {
+        let mut white_to_move = true;
+        for _move in moves {
+            if (white_to_move) {
+                //PLAYER 1'S TURN
+                println!("{} to move", self.ai.color());
+                print_board(&self.board);
+                // let evaluation = evaluate(&self.board, None, None);
+
+                let m = self.ai.make_move(&self.board, None).unwrap();
+                let log = print_move(&m, &self.board);
+                println!(
+                    "{} transposition table hits",
+                    self.ai.transposition_table_hits
+                );
+                println!("{} AI moves \n{}", self.ai.color(), log);
+
+                let log = print_move(&_move, &self.board);
+                println!("{} player choose move \n{}", self.ai.color(), log);
+                self.moves.push(log);
+                self.board.make_move_mut(&_move);
+                white_to_move = false;
+            } else {
+                //PLAYER 2'S TURN
+                println!("{} to move", self.ai2.color());
+                print_board(&self.board);
+                
+                let m = self.ai2.make_move(&self.board, None).unwrap();
+                let log = print_move(&m, &self.board);
+                println!(
+                    "{} transposition table hits",
+                    self.ai2.transposition_table_hits
+                );
+                println!("{} AI moves \n{}", self.ai2.color(), log);
+                let log = print_move(&_move, &self.board);
+                println!("{} player choose move \n{}", self.ai2.color(), log);
+                self.moves.push(log);
+                self.board.make_move_mut(&_move);
+
+                // if evaluation.is_checkmate() {
+                //     self.end_game(evaluation.mated_player.unwrap().opposite());
+                // }
+                white_to_move = true;
+            }
+        }
+         print!("The game ended here ");
     }
 
     pub fn run_ai_versus_ai(mut self) {

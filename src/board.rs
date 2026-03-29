@@ -7,9 +7,9 @@ mod piece;
 mod piece_type;
 mod square;
 
-use crate::board_console_printer::print_board;
-use crate::chess_notation::fen_reader;
-use crate::move_generator::{gen_pseudo_legal_moves, Move, MoveType};
+// use crate::board_console_printer::print_board;
+// use crate::chess_notation::fen_reader;
+use crate::move_generator::{ Move, MoveType};
 pub use board_trait::BoardTrait;
 pub use castling_rights::CastlingRights;
 pub use color::Color;
@@ -18,9 +18,9 @@ pub use iterators::*;
 pub use piece::Piece;
 pub use piece_type::PieceType;
 pub use square::Square;
-use std::fmt;
-use std::fmt::Formatter;
-use std::slice::Iter;
+// use std::fmt;
+// use std::fmt::Formatter;
+// use std::slice::Iter;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Board {
