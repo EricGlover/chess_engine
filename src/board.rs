@@ -9,7 +9,7 @@ mod square;
 
 // use crate::board_console_printer::print_board;
 // use crate::chess_notation::fen_reader;
-use crate::move_generator::{ Move, MoveType};
+use crate::move_generator::{gen_legal_moves, Move, MoveType};
 pub use board_trait::BoardTrait;
 pub use castling_rights::CastlingRights;
 pub use color::Color;
@@ -323,6 +323,7 @@ impl BoardTrait for Board {
             None
         }
     }
+
     fn get_castling_rights_changes_if_piece_is_captured(
         &self,
         piece: &Piece,
@@ -368,6 +369,42 @@ impl Board {
             full_move_number: 0,
             squares: Board::make_squares(),
         }
+    }
+
+    pub fn find_pieces_can_move_to_square(
+        &self,
+        color: Color,
+        piece_type: PieceType,
+        to: Coordinate,
+    ) -> Vec<&Piece> {
+        // println!("generating moves");
+        // println!("{:?} {:?} {:?}", color, piece_type, to);
+        let moves = gen_legal_moves(self, color);
+        // println!("moves length {}", moves.len());
+        // for _m in moves.iter() {
+        //     println!("{:?}", _m)
+        // }
+        let pieces = self.get_pieces(color, piece_type);
+
+        return self.find_pieces(|&square| {
+            
+            square.piece().map_or(false, |piece| {
+                if piece.piece_type == piece_type && piece.color == color {
+                    let a = piece.at();
+                    if a.is_none() {
+                        return false;
+                    }
+                    let at = piece.at().unwrap();
+                    //find move
+                    return moves.iter().any(|&m| {
+                        return (m.from.x() == at.x() && m.from.y() == at.y())
+                            && (m.to.x() == to.x() && m.to.y() == to.y());
+                    });
+                } else {
+                    return false;
+                }
+            })
+        });
     }
 
     fn move_piece(&mut self, at: &Coordinate, to: &Coordinate) {

@@ -11,6 +11,7 @@ use std::fs::{self, File, Metadata};
 use std::io;
 use std::io::prelude::*;
 use std::path::Path;
+use std::time::{Duration, Instant};
 
 pub struct Player {
     time_used: u16,      // milliseconds
@@ -33,6 +34,7 @@ pub struct Game {
     start_time: String,
     result: GameResult,
     enable_logging: bool,
+    game_start: Instant
 }
 
 impl Game {
@@ -49,7 +51,16 @@ impl Game {
             start_time: Local::now().format("%Y-%m-%d_%H%M%S").to_string(),
             result: GameResult::InProgress,
             enable_logging: false,
+            game_start: Instant::now()
         }
+    }
+
+    pub fn get_turn(&self) -> u32 {
+        return (self.moves.len() as u32 / 2 ) + 1
+    }
+
+    pub fn get_time_elapsed(&self) -> Duration {
+        self.game_start.elapsed()
     }
 
     pub fn result(&self) -> GameResult {
@@ -76,6 +87,8 @@ impl Game {
         }
     }
 
+    // write the current game as a pgn file with a FEN of the ending position
+    // at the end of the file
     fn write_log(&self) {
         if (!self.enable_logging) {
             return;
@@ -159,42 +172,49 @@ impl Game {
         println!("{} wins", winner);
     }
 
+    pub fn print_ai_stats_for_last_move(&self, ai: &ai::Ai) {
+        println!(
+            "{} transposition table hits",
+            ai.transposition_table_hits
+        );
+        println!(
+            "moves evaluated {}, time elapsed {:?}",
+            ai.minimax_calls(),
+            ai.time_elapsed().unwrap()
+        );
+    }
+
     pub fn run_sim_game(mut self, moves: Vec<Move>) {
         let mut white_to_move = true;
         for _move in moves {
+            println!("Game time elasped : {:?}", self.get_time_elapsed());
             if (white_to_move) {
                 //PLAYER 1'S TURN
-                println!("{} to move", self.ai.color());
+                println!("{} to move", self.ai2.color());
                 print_board(&self.board);
                 // let evaluation = evaluate(&self.board, None, None);
 
-                let m = self.ai.make_move(&self.board, None).unwrap();
+                let m = self.ai2.make_move(&self.board, None).unwrap();
                 let log = print_move(&m, &self.board);
-                println!(
-                    "{} transposition table hits",
-                    self.ai.transposition_table_hits
-                );
-                println!("{} AI moves \n{}", self.ai.color(), log);
+                self.print_ai_stats_for_last_move(&self.ai2);
+                println!("{} AI moves \n{}", self.ai2.color(), log);
 
                 let log = print_move(&_move, &self.board);
-                println!("{} player choose move \n{}", self.ai.color(), log);
+                println!("{} player choose move \n{}", self.ai2.color(), log);
                 self.moves.push(log);
                 self.board.make_move_mut(&_move);
                 white_to_move = false;
             } else {
                 //PLAYER 2'S TURN
-                println!("{} to move", self.ai2.color());
+                println!("{} to move", self.ai.color());
                 print_board(&self.board);
-                
-                let m = self.ai2.make_move(&self.board, None).unwrap();
+
+                let m = self.ai.make_move(&self.board, None).unwrap();
                 let log = print_move(&m, &self.board);
-                println!(
-                    "{} transposition table hits",
-                    self.ai2.transposition_table_hits
-                );
-                println!("{} AI moves \n{}", self.ai2.color(), log);
+                self.print_ai_stats_for_last_move(&self.ai);
+                println!("{} AI moves \n{}", self.ai.color(), log);
                 let log = print_move(&_move, &self.board);
-                println!("{} player choose move \n{}", self.ai2.color(), log);
+                println!("{} player choose move \n{}", self.ai.color(), log);
                 self.moves.push(log);
                 self.board.make_move_mut(&_move);
 
@@ -204,7 +224,26 @@ impl Game {
                 white_to_move = true;
             }
         }
-         print!("The game ended here ");
+        println!("The game ended here ");
+        let t1 = match  self.ai.total_time_elapsed_during_search() {
+            Some(duration) => duration.as_secs(),
+            None => 0
+        };
+        let t2 = match  self.ai2.total_time_elapsed_during_search() {
+            Some(duration) => duration.as_secs(),
+            None => 0
+        };
+        if t1 > 0 {
+            println!("AI searched {} moves, over {} seconds, at a rate of {} moves / second ", self.ai.total_minimax_calls(), t1, self.ai.total_minimax_calls() / t1 as u128);
+        } else {
+            println!("AI searched {} moves, over {} seconds", self.ai.total_minimax_calls(), t1);
+        }
+        if t2 > 0 {
+            println!("AI searched {} moves, over {} seconds, at a rate of {} moves / second ", self.ai2.total_minimax_calls(), t2, self.ai2.total_minimax_calls() / t2 as u128);
+        } else {
+            println!("AI searched {} moves, over {} seconds", self.ai2.total_minimax_calls(), t2);
+        }
+        
     }
 
     pub fn run_ai_versus_ai(mut self) {
@@ -263,11 +302,7 @@ impl Game {
             println!("Black moves... {}", m);
             let eval = ai::evaluator::evaluate(&self.board, None, None);
             println!("eval {}", eval.score);
-            println!(
-                "moves evaluated {}, time elapsed {:?}",
-                self.ai.minimax_calls(),
-                self.ai.time_elapsed().unwrap()
-            );
+            self.print_ai_stats_for_last_move(&self.ai);
             if eval.is_checkmate() {
                 self.end_game(eval.mated_player.unwrap().opposite());
                 break;

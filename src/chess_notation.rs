@@ -129,6 +129,7 @@ fn get_piece_specifier(m: &Move, board: &dyn BoardTrait) -> String {
 
 // algebraic moves and move generator moves are different because they're board dependent
 // bools are for short and long castles 
+#[derive(Debug, Eq, PartialEq)]
 pub enum ParsedMoveType {
     Move,
     ShortCastles,

@@ -135,7 +135,7 @@ pub fn gen_vectors_for(board: &dyn BoardTrait, piece: &Piece) -> Vec<Move> {
     return moves;
 }
 
-fn make_move_to(
+pub fn make_move_to(
     from: &Coordinate,
     to: &Coordinate,
     piece: &Piece,

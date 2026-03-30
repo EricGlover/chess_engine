@@ -6,6 +6,7 @@ use crate::move_generator::*;
 use rand::prelude::ThreadRng;
 use rand::Rng;
 use std::collections::HashMap;
+use std::ops::Add;
 // use std::iter::Map;
 use std::time::{Duration, Instant};
 
@@ -137,7 +138,9 @@ pub struct Ai {
     pub default_search_depth: u8,
     started_at: Instant,
     time_elapsed_during_search: Option<Duration>,
+    total_time_elapsed_during_search: Option<Duration>,
     minimax_calls: i64,
+    total_minimax_calls: u128,
     ai_search_function: AiSearch,
     hasher: Zobrist,
     transposition_table: HashMap<u64, (u8, evaluator::Evaluation, Option<Move>)>, // <board hash => (depth, eval, best_move)
@@ -152,7 +155,9 @@ impl Ai {
             default_search_depth: 4,
             started_at: Instant::now(),
             time_elapsed_during_search: None,
+            total_time_elapsed_during_search: None,
             minimax_calls: 0,
+            total_minimax_calls: 0,
             ai_search_function: AiSearch::AlphaBeta,
             hasher: Zobrist::new(),
             transposition_table: HashMap::new(),
@@ -167,7 +172,9 @@ impl Ai {
             default_search_depth: 6,
             started_at: Instant::now(),
             time_elapsed_during_search: None,
+            total_time_elapsed_during_search: None,
             minimax_calls: 0,
+            total_minimax_calls: 0,
             ai_search_function: search_fn,
             hasher: Zobrist::new(),
             transposition_table: HashMap::new(),
@@ -177,6 +184,14 @@ impl Ai {
 
     pub fn minimax_calls(&self) -> i64 {
         self.minimax_calls
+    }
+
+    pub fn total_minimax_calls(&self) -> u128 {
+        self.total_minimax_calls
+    }
+
+    pub fn total_time_elapsed_during_search(&self) -> Option<Duration> {
+        self.total_time_elapsed_during_search
     }
 
     pub fn color(&self) -> Color {
@@ -426,7 +441,13 @@ impl Ai {
         // }
 
         // print stuff here
-        self.time_elapsed_during_search = Some(self.started_at.elapsed());
+        let elapsed = self.started_at.elapsed();
+        self.time_elapsed_during_search = Some(elapsed);
+        self.total_minimax_calls += self.minimax_calls as u128;
+        self.total_time_elapsed_during_search = match self.total_time_elapsed_during_search {
+            None => Some(elapsed),
+            Some(time) => Some(time.add(elapsed)),
+        };
         return Some((eval, best_move));
     }
 

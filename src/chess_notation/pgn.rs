@@ -1,11 +1,13 @@
 use regex::Regex;
 
 use crate::board::{Board, BoardTrait, Color, Coordinate, PieceType};
-use crate::chess_notation::fen_reader;
 use crate::chess_notation::fen_reader::make_board;
 use crate::chess_notation::read_move;
+use crate::chess_notation::{fen_reader, ParsedMoveType};
 use crate::game::Game as chess_game;
-use crate::move_generator::{gen_legal_moves, Move, MoveType};
+use crate::move_generator::{
+    self, gen_legal_moves, pseudo_legal_move_generator as p_gen, Move, MoveType,
+};
 use std::fmt;
 use std::fmt::Formatter;
 
@@ -75,33 +77,58 @@ impl fmt::Display for Mode {
 //     Move::castle_king_side(Color::White)
 // }
 
-pub fn moves_from_pgn(pgn: String) -> Vec<Move> {
-    let moves: Vec<Move> = Vec::new();
+pub fn moves_from_pgn(pgn: &str) -> Vec<Move> {
     // reading from a pgn time
-    let scrap_board = Board::new();
+    let mut moves: Vec<Move> = Vec::new();
+    let mut scrap_board = fen_reader::make_board(fen_reader::INITIAL_BOARD);
+
     // for the moment were skipping the informational section
     // break pgn into lines then grab all the lines with move text in them
-    let lines: Vec<&str> = pgn.split('\n').collect();
-    let info_line_matcher = Regex::new(r"\[.*\]$").unwrap();
+    // let lines: Vec<&str> = pgn.split('\n').collect();
+
+    let info_line_matcher = Regex::new(r"\s?\[.*\]\s?$").unwrap();
+    let empty_space_matcher = Regex::new(r"^\s$").unwrap();
     let mut move_lines: Vec<&str> = Vec::new();
-    let mut info_section = true;
-    let mut move_section = false;
-    for _s in pgn.split('\n').into_iter() {
-        // println!("{} \n is match {} \n is empty {} ", _s, info_line_matcher.is_match(_s), _s.is_empty());
-        if move_section {
+    // let mut info_section = true;
+    // let mut move_section = false;
+    for _s in pgn.split("\n").into_iter() {
+        // println!("=======");
+        // println!("{}", _s);
+        // println!("=======");
+        if info_line_matcher.is_match(_s) {
+            // println!("===INFO TEXT====");
+            // println!("{}", _s);
+            // println!("===INFO TEXT====");
+            continue;
+        } else if _s.is_empty() || empty_space_matcher.is_match(_s) {
+            // println!("===EMPTY====");
+            // println!("===EMPTY====");
+            continue;
+        } else {
+            // println!("===MOVE TEXT====");
+            // println!("{}", _s);
+            // println!("===MOVE TEXT====");
             move_lines.push(_s);
-        }
-        if !info_line_matcher.is_match(_s) && _s.is_empty() {
-            move_section = true;
         }
     }
 
+    let mut move_text = move_lines.join("");
+    // let mut move_text = String::new();
+    // for _s in move_lines.into_iter() {
+    //     println!("{}", _s);
+    //     move_text.push_str(_s.clone().as_str());
+    // }
     // put all move text in a string
-    let mut move_text: String = String::new();
-    for _s in move_lines.into_iter() {
-        println!("{}", _s);
-        move_text.push_str(_s);
-    }
+    // let mut move_text: String = move_lines.into_iter().collect();
+    // let mut move_text: String = String::new();
+    // println!("RUNNING MOVE LINES");
+    // for _s in move_lines {
+    //     println!("{}", _s);
+    //     move_text.push_str(_s);
+    // }
+    println!("MOVE TEXT =====");
+    println!("{}", move_text);
+    println!("MOVE TEXT =====");
 
     // remove the comments
     let comment_matcher = Regex::new(r"(\{[^*\}]*\})").unwrap();
@@ -113,29 +140,34 @@ pub fn moves_from_pgn(pgn: String) -> Vec<Move> {
         println!("{}", _s);
         move_text_2.push_str(_s);
     }
+    // println!("move text2 = {} ", move_text_2);
 
     // take out all move turn stuff (eg. 1. 2. 3. )
     let turn_matcher = Regex::new(r"(\d+\.)").unwrap();
     let mut t = String::new();
     let stuff: Vec<&str> = turn_matcher.split(move_text_2.as_str()).collect();
     for _s in stuff {
-        println!("{}", _s);
+        // println!("{}", _s);
         t.push_str(_s);
     }
 
     //now we have mostly just move text and some $1, $2 stuff && empty lines
     let move_candidates: Vec<&str> = t.split(' ').collect();
+    let mut color_to_move = Color::White;
+
+    // println!(" found {} move candidates ", move_candidates.len());
     for _m in move_candidates {
+        // println!("considering candidate {}", _m);
         // skip empty
         if _m.is_empty() {
             continue;
         }
         // if is valid move
-        // do stuff
-        println!("{}", _m);
+
         let res = read_move(_m);
         if res.is_none() {
-            println!("MOVE NOT FOUND");
+            // println!("MOVE NOT FOUND");
+            continue;
         } else {
             let (piece_type, coordinate, parsed_move, promotion_type) = res.unwrap();
             println!(
@@ -145,9 +177,68 @@ pub fn moves_from_pgn(pgn: String) -> Vec<Move> {
                 promotion_type.unwrap_or(PieceType::Pawn)
             );
 
-            //@todo :::: make moves 
-            
+            if coordinate.is_none()
+                && (ParsedMoveType::LongCastles == parsed_move
+                    || ParsedMoveType::ShortCastles == parsed_move)
+            {
+                // @todo :: handle castles
+                // println!("Castles move found ");
+                let new_move = match parsed_move {
+                    ParsedMoveType::LongCastles => Move::castle_queen_side(color_to_move),
+                    ParsedMoveType::ShortCastles => Move::castle_king_side(color_to_move),
+                    ParsedMoveType::Promotion => break,
+                    ParsedMoveType::Move => break,
+                };
+                moves.push(new_move);
+                scrap_board.make_move_mut(&new_move);
+                color_to_move = match color_to_move {
+                    Color::White => Color::Black,
+                    Color::Black => Color::White,
+                };
+                continue;
+            }
+
+            if promotion_type.is_some() {
+                //@todo
+            } else {
+            }
+
+            let to = coordinate.unwrap();
+            // //@todo :::: make moves
+            let mut found_pieces =
+                scrap_board.find_pieces_can_move_to_square(color_to_move, piece_type, to);
+            if found_pieces.is_empty() {
+                // println!("MOVE NOT FOUND X");
+                break;
+            }
+            let found_piece = found_pieces.pop().unwrap();
+            if found_piece.at().is_none() {
+                // println!("PIECE MISSING");
+                break;
+            }
+            let from = found_piece.at().unwrap();
+            let move_type = match parsed_move {
+                ParsedMoveType::LongCastles => break,
+                ParsedMoveType::ShortCastles => break,
+                ParsedMoveType::Promotion => MoveType::Promotion(promotion_type.unwrap()),
+                ParsedMoveType::Move => MoveType::Move,
+            };
+            let mut new_move = p_gen::make_move_to(from, &to, found_piece, move_type, &scrap_board);
+            moves.push(new_move);
+            scrap_board.make_move_mut(&new_move);
+
+            // let new_move = Move::new(*from, to, piece, move_type, captured, castling_rights_removed, castling_rights_removed_opponent)
+
+            //@todo :: this roughly works
+
+            // flip color to move
+            color_to_move = match color_to_move {
+                Color::White => Color::Black,
+                Color::Black => Color::White,
+            };
         }
+
+        // for (piece_type, coordinate, parsed_move, promotion_type, color_to_move) in move_results {}
     }
 
     return moves;

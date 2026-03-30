@@ -2,7 +2,7 @@
 
 mod chess_move;
 mod path;
-mod pseudo_legal_move_generator;
+pub mod pseudo_legal_move_generator;
 
 pub use chess_move::*;
 
@@ -630,6 +630,15 @@ pub fn gen_pseudo_legal_moves(board: &dyn BoardTrait, color: Color) -> Vec<Move>
         .flatten()
         .collect()
 }
+
+// pub fn make_short_castles(board: &dyn BoardTrait, color: Color) -> Move {
+//     let kings = board.get_kings();
+//     let &king = kings.iter().find(|&&k|  k.color == color).unwrap();
+//     return Move::new(from, to, piece, move_type, captured, castling_rights_removed, castling_rights_removed_opponent)
+// }
+// pub fn make_long_castles(board: &dyn BoardTrait, color: Color) ->Move {
+
+// }
 
 // //@todo:: this would be so cool
 // fn generate_path(starting_at: Coordinate, x: i32, y: i32) -> Iterator {
