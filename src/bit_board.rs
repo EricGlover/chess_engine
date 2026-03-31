@@ -1,5 +1,6 @@
 use crate::board::{Color, Coordinate, Piece, PieceType};
 use crate::board_console_printer::print_board;
+use crate::move_generator::plmg;
 use std::fmt;
 use std::fmt::{Error, Formatter};
 
@@ -24,13 +25,36 @@ const a5: u64 = 1 << 32;
 const a6: u64 = 1 << 40;
 const a7: u64 = 1 << 48;
 const a8: u64 = 1 << 56;
+pub const A_FILE: u64 = 72340172838076673;
+pub const B_FILE: u64 = 144680345676153346;
+pub const C_FILE: u64 = 289360691352306692;
+pub const D_FILE: u64 = 578721382704613384;
+pub const E_FILE: u64 = 1157442765409226768;
+pub const F_FILE: u64 = 2314885530818453536;
+pub const G_FILE: u64 = 4629771061636907072;
+pub const H_FILE: u64 = 9259542123273814144;
+pub const ROW_1: u64 = 255;
+pub const ROW_2: u64 = 65280;
+pub const ROW_3: u64 = 16711680;
+pub const ROW_4: u64 = 4278190080;
+pub const ROW_5: u64 = 1095216660480;
+pub const ROW_6: u64 = 280375465082880;
+pub const ROW_7: u64 = 71776119061217280;
+pub const ROW_8: u64 = 18374686479671623680;
 
 impl BitBoard {
     pub fn new() -> BitBoard {
         return BitBoard::init_pieces();
     }
+
+    pub fn on_row(bit_board: u64, row_board: u64) -> bool {
+        return (bit_board & row_board) != 0u64;
+    }
+    pub fn on_file(bit_board: u64, file_board: u64) -> bool {
+        return (bit_board & file_board) != 0u64;
+    }
     // idx 1..64
-    fn get_bit(bit_board: u64, idx: u64) -> bool {
+    pub fn get_bit(bit_board: u64, idx: u64) -> bool {
         // idx 1..8 => row_idx 1
         // idx 9..18 => row_idx 2
         // get row
@@ -56,7 +80,7 @@ impl BitBoard {
         return (mask & bit_board) > 0;
     }
 
-    fn set_bit_to(bit_board: u64, idx: u64, bit: bool) -> u64 {
+    pub fn set_bit_to(bit_board: u64, idx: u64, bit: bool) -> u64 {
         if bit {
             return BitBoard::set_bit(bit_board, idx);
         } else {
@@ -64,7 +88,7 @@ impl BitBoard {
         }
     }
 
-    fn set_bit(bit_board: u64, idx: u64) -> u64 {
+    pub fn set_bit(bit_board: u64, idx: u64) -> u64 {
         let row_idx = ((idx - 1) / 8) + 1;
         let row = match row_idx {
             1 => a1,
@@ -85,7 +109,7 @@ impl BitBoard {
         return mask | bit_board;
     }
 
-    fn unset_bit(bit_board: u64, idx: u64) -> u64 {
+    pub fn unset_bit(bit_board: u64, idx: u64) -> u64 {
         let row_idx = ((idx - 1) / 8) + 1;
         let row = match row_idx {
             1 => a1,
@@ -399,6 +423,8 @@ fn print_bitboard_indices() {
 }
 
 pub fn test() {
+    plmg::test();
+    return;
     let t: u64 = 0;
     let mut t2 = 1u64;
     // let a1:u64 = 1;
@@ -440,4 +466,88 @@ pub fn test() {
     BitBoard::print_bitboard(a8);
 
     return;
+}
+
+/** INITIAL GENERATOR FUNCTIONS */
+
+fn init_gen_file_boards() {
+    let mut row1 = 0u64;
+    for idx in (1u64..=8u64) {
+        row1 = BitBoard::set_bit(row1, idx);
+    }
+    println!("{}", row1);
+    BitBoard::print_bitboard(row1);
+
+    let mut row2 = row1 << 8;
+    println!("{}", row2);
+    BitBoard::print_bitboard(row2);
+
+    let mut row3 = row1 << 16;
+    println!("{}", row3);
+    BitBoard::print_bitboard(row3);
+
+    let mut row4 = row1 << 24;
+    println!("{}", row4);
+    BitBoard::print_bitboard(row4);
+
+    let mut row5 = row1 << 32;
+    println!("{}", row5);
+    BitBoard::print_bitboard(row5);
+
+    let mut row6 = row1 << 40;
+    println!("{}", row6);
+    BitBoard::print_bitboard(row6);
+
+    let mut row7 = row1 << 48;
+    println!("{}", row7);
+    BitBoard::print_bitboard(row7);
+
+    let mut row8 = row1 << 56;
+    println!("{}", row8);
+    BitBoard::print_bitboard(row8);
+
+    let mut a_file = 0u64;
+    for idx in (1u64..=8u64) {
+        a_file = BitBoard::set_bit(a_file, 1 + ((idx - 1) * 8));
+    }
+    println!("{}", a_file);
+    BitBoard::print_bitboard(a_file);
+
+    let b_file = a_file << 1;
+    println!("{}", b_file);
+    BitBoard::print_bitboard(b_file);
+
+    let c_file = a_file << 2;
+    println!("{}", c_file);
+    BitBoard::print_bitboard(c_file);
+
+    let d_file = a_file << 3;
+    println!("{}", d_file);
+    BitBoard::print_bitboard(d_file);
+
+    let e_file = a_file << 4;
+    println!("{}", e_file);
+    BitBoard::print_bitboard(e_file);
+
+    let f_file = a_file << 5;
+    println!("{}", f_file);
+    BitBoard::print_bitboard(f_file);
+
+    let g_file = a_file << 6;
+    println!("{}", g_file);
+    BitBoard::print_bitboard(g_file);
+
+    let h_file = a_file << 7;
+    println!("{}", h_file);
+    BitBoard::print_bitboard(h_file);
+
+    println!("================FILES================");
+    BitBoard::print_bitboard(A_FILE);
+    BitBoard::print_bitboard(B_FILE);
+    BitBoard::print_bitboard(C_FILE);
+    BitBoard::print_bitboard(D_FILE);
+    BitBoard::print_bitboard(E_FILE);
+    BitBoard::print_bitboard(F_FILE);
+    BitBoard::print_bitboard(G_FILE);
+    BitBoard::print_bitboard(H_FILE);
 }
