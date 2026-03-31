@@ -10,4 +10,5 @@ pub mod chess_notation;
 pub mod game;
 pub mod hash;
 pub mod move_generator;
+pub mod bit_board;
 mod tests;

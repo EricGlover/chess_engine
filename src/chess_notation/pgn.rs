@@ -69,14 +69,6 @@ impl fmt::Display for Mode {
     }
 }
 
-// pub fn make_move(move_string: &String, board: &dyn BoardTrait) -> Move {
-//     unimplemented!("");
-//     if move_string == &String::from("O-O") {
-//     } else if move_string == &String::from("O-O-O") {
-//     }
-//     Move::castle_king_side(Color::White)
-// }
-
 pub fn moves_from_pgn(pgn: &str) -> Vec<Move> {
     // reading from a pgn time
     let mut moves: Vec<Move> = Vec::new();
@@ -226,9 +218,6 @@ pub fn moves_from_pgn(pgn: &str) -> Vec<Move> {
             let mut new_move = p_gen::make_move_to(from, &to, found_piece, move_type, &scrap_board);
             moves.push(new_move);
             scrap_board.make_move_mut(&new_move);
-
-            // let new_move = Move::new(*from, to, piece, move_type, captured, castling_rights_removed, castling_rights_removed_opponent)
-
             //@todo :: this roughly works
 
             // flip color to move
@@ -237,8 +226,6 @@ pub fn moves_from_pgn(pgn: &str) -> Vec<Move> {
                 Color::Black => Color::White,
             };
         }
-
-        // for (piece_type, coordinate, parsed_move, promotion_type, color_to_move) in move_results {}
     }
 
     return moves;

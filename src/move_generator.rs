@@ -2,6 +2,7 @@
 
 mod chess_move;
 mod path;
+pub mod plmg;
 pub mod pseudo_legal_move_generator;
 
 pub use chess_move::*;

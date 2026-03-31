@@ -9,7 +9,7 @@ use std::{env, path};
 use std::fs::{self, File, Metadata};
 use std::path::Path;
 use regex::*;
-
+use chess_engine::bit_board;
 use pgn::Game as notated_game;
 
 
@@ -21,6 +21,17 @@ fn print_help_menu() {
 }
 
 fn main() {
+    // testing bit boards 
+    bit_board::test();
+    return;
+
+
+
+
+
+
+
+
     //@todo:  use get opts for choosing the game modes and stuff
     let args: Vec<String> = env::args().collect();
     let mut opts = Options::new();
@@ -57,7 +68,7 @@ fn main() {
         };
         if is_dir {
             let mut path_str = format!("./Games/");
-            path_str.push_str("1.txt");
+            path_str.push_str("1.pgn");
             let path = Path::new(path_str.as_str());
             let display = path.display();
             let mut contents:String = match std::fs::read_to_string(&path) {
