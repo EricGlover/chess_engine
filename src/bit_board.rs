@@ -1,3 +1,4 @@
+use crate::bit_board;
 use crate::board::{Color, Coordinate, Piece, PieceType};
 use crate::board_console_printer::print_board;
 use crate::move_generator::plmg;
@@ -41,10 +42,132 @@ pub const ROW_5: u64 = 1095216660480;
 pub const ROW_6: u64 = 280375465082880;
 pub const ROW_7: u64 = 71776119061217280;
 pub const ROW_8: u64 = 18374686479671623680;
+pub const LIGHT_SQUARES: u64 = 6172840429334713770;
+pub const DARK_SQUARES: u64 = 12273903644374837845;
+// dark diagonals 6, down right to up left
+// dark diagonals 7, down left to up right
+// all dark squares = sum of diagonals
 
 impl BitBoard {
     pub fn new() -> BitBoard {
         return BitBoard::init_pieces();
+    }
+
+    pub fn get_file_for_bit(bit: u64) -> u64 {
+        if BitBoard::bit_on_bit_board(bit, A_FILE) {
+            return A_FILE;
+        }
+        if BitBoard::bit_on_bit_board(bit, B_FILE) {
+            return B_FILE;
+        }
+        if BitBoard::bit_on_bit_board(bit, C_FILE) {
+            return C_FILE;
+        }
+        if BitBoard::bit_on_bit_board(bit, D_FILE) {
+            return D_FILE;
+        }
+        if BitBoard::bit_on_bit_board(bit, E_FILE) {
+            return E_FILE;
+        }
+        if BitBoard::bit_on_bit_board(bit, F_FILE) {
+            return F_FILE;
+        }
+        if BitBoard::bit_on_bit_board(bit, G_FILE) {
+            return G_FILE;
+        }
+        if BitBoard::bit_on_bit_board(bit, H_FILE) {
+            return H_FILE;
+        }
+        return 0;
+    }
+
+    pub fn get_row_for_bit(bit: u64) -> u64 {
+        if BitBoard::bit_on_bit_board(bit, ROW_1) {
+            return ROW_1;
+        }
+        if BitBoard::bit_on_bit_board(bit, ROW_2) {
+            return ROW_2;
+        }
+        if BitBoard::bit_on_bit_board(bit, ROW_3) {
+            return ROW_3;
+        }
+        if BitBoard::bit_on_bit_board(bit, ROW_4) {
+            return ROW_4;
+        }
+        if BitBoard::bit_on_bit_board(bit, ROW_5) {
+            return ROW_5;
+        }
+        if BitBoard::bit_on_bit_board(bit, ROW_6) {
+            return ROW_6;
+        }
+        if BitBoard::bit_on_bit_board(bit, ROW_7) {
+            return ROW_7;
+        }
+        if BitBoard::bit_on_bit_board(bit, ROW_8) {
+            return ROW_8;
+        }
+        return 0;
+    }
+
+    //@todo: test
+    pub fn get_piece_count(&self) -> u64 {
+        u64::count_ones(self.pieces) as u64
+    }
+
+    //@todo: test
+    pub fn get_white_piece_count(&self) -> u64 {
+        u64::count_ones(self.white_pieces) as u64
+    }
+
+    //@todo: test
+    pub fn get_black_piece_count(&self) -> u64 {
+        u64::count_ones(self.black_pieces) as u64
+    }
+
+    //@todo: test
+    pub fn get_piece_type_count(&self, piece_type: PieceType, color: Color) -> u64 {
+        let color_board = match color {
+            Color::White => self.white_pieces,
+            Color::Black => self.black_pieces,
+        };
+        let piece_type_board = match piece_type {
+            PieceType::King => self.kings,
+            PieceType::Queen => self.queens,
+            PieceType::Bishop => self.bishops,
+            PieceType::Knight => self.knights,
+            PieceType::Rook => self.rooks,
+            PieceType::Pawn => self.pawns,
+        };
+        return color_board & piece_type_board;
+    }
+
+    fn compliment(bit_board: u64) -> u64 {
+        !bit_board + 1
+    }
+
+    //@todo ::
+    fn lsb(bit_board: u64) -> u64 {
+        bit_board & (!bit_board + 1)
+    }
+
+    //@todo : get idx of bit
+    pub fn get_index_of_bit(bit: u64) -> u64 {
+        return (u64::trailing_zeros(bit) + 1) as u64;
+    }
+
+    // for some bit board, give me the lsb and remove it
+    //@todo ::
+    pub fn pop_bit(bit_board: &mut u64) -> Option<u64> {
+        let lsb = BitBoard::lsb(*bit_board);
+        if lsb == 0 {
+            return None;
+        }
+
+        return None;
+    }
+
+    pub fn bit_on_bit_board(bit: u64, bit_board: u64) -> bool {
+        return (bit_board & bit) != 0u64;
     }
 
     pub fn on_row(bit_board: u64, row_board: u64) -> bool {
@@ -423,6 +546,16 @@ fn print_bitboard_indices() {
 }
 
 pub fn test() {
+    // let mut bit_board = 1u64 << 1;
+
+    // println!("{}", u64::count_ones(bit_board));
+    // println!("{}", u64::count_zeros(bit_board));
+
+    // BitBoard::print_bitboard(bit_board | 1u64 << 8);
+    // BitBoard::print_bitboard(BitBoard::lsb(bit_board));
+    // return;
+    // init_gen_file_boards();
+    // return;
     plmg::test();
     return;
     let t: u64 = 0;
@@ -471,6 +604,47 @@ pub fn test() {
 /** INITIAL GENERATOR FUNCTIONS */
 
 fn init_gen_file_boards() {
+    /**   DIAGONALS  */
+    // ON ROW 1 , GOING UP RIGHT ON DARK SQUARES
+    // ON A_FILE , GOING UP RIGHT ON DARK SQUARES
+    // ON ROW 1 , GOING UP LEFT ON DARK SQUARES
+    // ON H_FILE , GOING UP LEFT ON DARK SQUARES
+    //b8
+    //d8
+    //
+
+    /**         SQUARE COLORS        */
+    //light squares
+    let mut light_squares = 0u64;
+    let mut dark_squares = 0u64;
+    // odd rows then even cols
+    // even rows then odd cols
+    for i in (1..=64) {
+        let row = ((i - 1) / 8) + 1;
+        let col = ((i - 1) % 8) + 1;
+        println!("{} {}", row, col);
+        if row % 2 == 0 {
+            //even row
+            if col % 2 != 0 {
+                light_squares = light_squares | BitBoard::set_bit(0u64, i as u64);
+            } else {
+                dark_squares = dark_squares | BitBoard::set_bit(0u64, i as u64)
+            }
+        } else {
+            // odd row
+            if col % 2 == 0 {
+                light_squares = light_squares | BitBoard::set_bit(0u64, i as u64);
+            } else {
+                dark_squares = dark_squares | BitBoard::set_bit(0u64, i as u64)
+            }
+        }
+    }
+    println!("{}", light_squares);
+    BitBoard::print_bitboard(light_squares);
+    println!("{}", dark_squares);
+    BitBoard::print_bitboard(dark_squares);
+
+    /**   ROWS  */
     let mut row1 = 0u64;
     for idx in (1u64..=8u64) {
         row1 = BitBoard::set_bit(row1, idx);
@@ -506,6 +680,7 @@ fn init_gen_file_boards() {
     println!("{}", row8);
     BitBoard::print_bitboard(row8);
 
+    /**   FILES  */
     let mut a_file = 0u64;
     for idx in (1u64..=8u64) {
         a_file = BitBoard::set_bit(a_file, 1 + ((idx - 1) * 8));
