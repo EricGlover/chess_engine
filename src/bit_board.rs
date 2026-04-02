@@ -44,6 +44,77 @@ pub const ROW_7: u64 = 71776119061217280;
 pub const ROW_8: u64 = 18374686479671623680;
 pub const LIGHT_SQUARES: u64 = 6172840429334713770;
 pub const DARK_SQUARES: u64 = 12273903644374837845;
+pub const ALL_SQUARES: u64 = 18446744073709551615;
+
+// dark_diagonals going from down left to up right
+pub const DARK_DIAGONAL_1: u64 = 144396663052566528;
+pub const DARK_DIAGONAL_2: u64 = 577588855528488960;
+pub const DARK_DIAGONAL_3: u64 = 2310355422147575808;
+pub const DARK_DIAGONAL_4: u64 = 9241421688590303745;
+pub const DARK_DIAGONAL_5: u64 = 141012904183812;
+pub const DARK_DIAGONAL_6: u64 = 2151686160;
+pub const DARK_DIAGONAL_7: u64 = 32832;
+pub const DARK_DIAGONALS_UP_RIGHT: u64 = 12273903644374837845;
+pub const DARK_ARRAY_UP_RIGHT: [u64; 7] = [
+    DARK_DIAGONAL_1,
+    DARK_DIAGONAL_2,
+    DARK_DIAGONAL_3,
+    DARK_DIAGONAL_4,
+    DARK_DIAGONAL_5,
+    DARK_DIAGONAL_6,
+    DARK_DIAGONAL_7,
+];
+pub const DARK_DIAGONAL_A: u64 = 66052;
+pub const DARK_DIAGONAL_B: u64 = 4328785936;
+pub const DARK_DIAGONAL_C: u64 = 283691315109952;
+pub const DARK_DIAGONAL_D: u64 = 145249953336295424;
+pub const DARK_DIAGONAL_E: u64 = 580999813328273408;
+pub const DARK_DIAGONAL_F: u64 = 2323998145211531264;
+pub const DARK_DIAGONALS_UP_LEFT: u64 = 3050531607520062036;
+pub const DARK_ARRAY_UP_LEFT: [u64; 6] = [
+    DARK_DIAGONAL_A,
+    DARK_DIAGONAL_B,
+    DARK_DIAGONAL_C,
+    DARK_DIAGONAL_D,
+    DARK_DIAGONAL_E,
+    DARK_DIAGONAL_F,
+];
+
+// light square diagonals
+pub const LIGHT_DIAGONAL_1: u64 = 288794425616760832;
+pub const LIGHT_DIAGONAL_2: u64 = 1155177711073755136;
+pub const LIGHT_DIAGONAL_3: u64 = 4620710844295151872;
+pub const LIGHT_DIAGONAL_4: u64 = 36099303471055874;
+pub const LIGHT_DIAGONAL_5: u64 = 550831656968;
+pub const LIGHT_DIAGONAL_6: u64 = 8405024;
+pub const LIGHT_DIAGONALS_UP_RIGHT: u64 = 6100782835296785706;
+pub const LIGHT_ARRAY_UP_RIGHT: [u64; 6] = [
+    LIGHT_DIAGONAL_1,
+    LIGHT_DIAGONAL_2,
+    LIGHT_DIAGONAL_3,
+    LIGHT_DIAGONAL_4,
+    LIGHT_DIAGONAL_5,
+    LIGHT_DIAGONAL_6,
+];
+
+pub const LIGHT_DIAGONAL_A: u64 = 258;
+pub const LIGHT_DIAGONAL_B: u64 = 16909320;
+pub const LIGHT_DIAGONAL_C: u64 = 1108169199648;
+pub const LIGHT_DIAGONAL_D: u64 = 72624976668147840;
+pub const LIGHT_DIAGONAL_E: u64 = 290499906672525312;
+pub const LIGHT_DIAGONAL_F: u64 = 1161999622361579520;
+pub const LIGHT_DIAGONAL_G: u64 = 4647714815446351872;
+pub const LIGHT_DIAGONALS_UP_LEFT: u64 = 6172840429334713770;
+pub const LIGHT_ARRAY_UP_LEFT: [u64; 7] = [
+    LIGHT_DIAGONAL_A,
+    LIGHT_DIAGONAL_B,
+    LIGHT_DIAGONAL_C,
+    LIGHT_DIAGONAL_D,
+    LIGHT_DIAGONAL_E,
+    LIGHT_DIAGONAL_F,
+    LIGHT_DIAGONAL_G,
+];
+
 // dark diagonals 6, down right to up left
 // dark diagonals 7, down left to up right
 // all dark squares = sum of diagonals
@@ -51,6 +122,38 @@ pub const DARK_SQUARES: u64 = 12273903644374837845;
 impl BitBoard {
     pub fn new() -> BitBoard {
         return BitBoard::init_pieces();
+    }
+
+    pub fn get_square_color(bit: u64) -> Color {
+        if BitBoard::bit_on_bit_board(bit, LIGHT_SQUARES) {
+            return Color::White;
+        } else {
+            return Color::Black;
+        }
+    }
+
+    pub fn get_diagonals_for_bit(bit: u64) -> u64 {
+        let color = BitBoard::get_square_color(bit);
+        let mut arr1: &[u64; 7] = &LIGHT_ARRAY_UP_LEFT;
+        let mut arr2: &[u64; 6] = &LIGHT_ARRAY_UP_RIGHT;
+        if color == Color::Black {
+            arr1 = &DARK_ARRAY_UP_RIGHT;
+            arr2 = &DARK_ARRAY_UP_LEFT;
+        } 
+        let mut diagonals: u64 = 0;
+        let d1 = arr1
+            .iter()
+            .find(|&&board| BitBoard::bit_on_bit_board(bit, board));
+        let d2 = arr2
+            .iter()
+            .find(|&&board| BitBoard::bit_on_bit_board(bit, board));
+        if d1.is_some() {
+            diagonals = diagonals | d1.unwrap();
+        }
+        if d2.is_some() {
+            diagonals = diagonals | d2.unwrap();
+        }
+        return diagonals;
     }
 
     pub fn get_file_for_bit(bit: u64) -> u64 {
@@ -157,13 +260,14 @@ impl BitBoard {
 
     // for some bit board, give me the lsb and remove it
     //@todo ::
-    pub fn pop_bit(bit_board: &mut u64) -> Option<u64> {
+    pub fn pop_bit(bit_board: &mut u64) -> u64 {
         let lsb = BitBoard::lsb(*bit_board);
         if lsb == 0 {
-            return None;
+            return lsb;
         }
-
-        return None;
+        // remove lsb from bit board
+        *bit_board = *bit_board ^ lsb;
+        return lsb;
     }
 
     pub fn bit_on_bit_board(bit: u64, bit_board: u64) -> bool {
@@ -554,8 +658,33 @@ pub fn test() {
     // BitBoard::print_bitboard(bit_board | 1u64 << 8);
     // BitBoard::print_bitboard(BitBoard::lsb(bit_board));
     // return;
-    // init_gen_file_boards();
+    // let start_bit = BitBoard::set_bit(0u64, 19);
+    // let diagonals = BitBoard::get_diagonals_for_bit(start_bit);
+    // BitBoard::print_bitboard(diagonals);
     // return;
+
+    // println!("up right");
+    // for diagonal in DARK_ARRAY_UP_RIGHT {
+    //     println!("{}", diagonal);
+    //     BitBoard::print_bitboard(diagonal);
+    // }
+    // println!("up left");
+    // for diagonal in DARK_ARRAY_UP_LEFT {
+    //     println!("{}", diagonal);
+    //     BitBoard::print_bitboard(diagonal);
+    // }
+    // println!("up right");
+    // for diagonal in LIGHT_ARRAY_UP_RIGHT {
+    //     println!("{}", diagonal);
+    //     BitBoard::print_bitboard(diagonal);
+    // }
+    // println!("up left");
+    // for diagonal in LIGHT_ARRAY_UP_LEFT {
+    //     println!("{}", diagonal);
+    //     BitBoard::print_bitboard(diagonal);
+    // }
+    // return;
+
     plmg::test();
     return;
     let t: u64 = 0;
@@ -605,13 +734,226 @@ pub fn test() {
 
 fn init_gen_file_boards() {
     /**   DIAGONALS  */
-    // ON ROW 1 , GOING UP RIGHT ON DARK SQUARES
-    // ON A_FILE , GOING UP RIGHT ON DARK SQUARES
-    // ON ROW 1 , GOING UP LEFT ON DARK SQUARES
-    // ON H_FILE , GOING UP LEFT ON DARK SQUARES
     //b8
     //d8
     //
+    let d = LIGHT_DIAGONAL_1
+        | LIGHT_DIAGONAL_2
+        | LIGHT_DIAGONAL_3
+        | LIGHT_DIAGONAL_4
+        | LIGHT_DIAGONAL_5
+        | LIGHT_DIAGONAL_6;
+    println!("{}", d);
+
+    let d = LIGHT_DIAGONAL_A
+        | LIGHT_DIAGONAL_B
+        | LIGHT_DIAGONAL_C
+        | LIGHT_DIAGONAL_D
+        | LIGHT_DIAGONAL_E
+        | LIGHT_DIAGONAL_F
+        | LIGHT_DIAGONAL_G;
+    println!("{}", d);
+
+    // sanity check , confirmed!
+    println!(
+        "{} {}",
+        DARK_DIAGONALS_UP_LEFT | DARK_DIAGONALS_UP_RIGHT,
+        DARK_SQUARES
+    );
+    println!(
+        "{} {}",
+        LIGHT_DIAGONALS_UP_LEFT | LIGHT_DIAGONALS_UP_RIGHT,
+        LIGHT_SQUARES
+    );
+
+    let mut bit_board = A_FILE;
+    let a = BitBoard::lsb(A_FILE);
+    println!("{}", a);
+
+    let mut lsb = BitBoard::pop_bit(&mut bit_board);
+    BitBoard::print_bitboard(lsb);
+    BitBoard::print_bitboard(bit_board);
+    lsb = BitBoard::pop_bit(&mut bit_board);
+    BitBoard::print_bitboard(lsb);
+    BitBoard::print_bitboard(bit_board);
+
+    // ON ROW 1 , GOING UP RIGHT ON DARK SQUARES
+    let mut bit_board = ROW_1;
+    let mut diagonals: Vec<u64> = Vec::new();
+    while bit_board > 0 {
+        let mut lsb = BitBoard::pop_bit(&mut bit_board);
+        if BitBoard::bit_on_bit_board(lsb, DARK_SQUARES) {
+            let mut diagonal = 0u64;
+            while BitBoard::bit_on_bit_board(lsb, DARK_SQUARES | LIGHT_SQUARES) {
+                // going up right
+                diagonal = diagonal | lsb;
+                // if on h file exit
+                if BitBoard::bit_on_bit_board(lsb, H_FILE) {
+                    break;
+                }
+                lsb = lsb << 9;
+            }
+            println!("made diagonal");
+            BitBoard::print_bitboard(diagonal);
+            diagonals.push(diagonal);
+        }
+    }
+    // ON A_FILE , GOING UP RIGHT ON DARK SQUARES
+    let mut bit_board = A_FILE;
+    while bit_board > 0 {
+        let mut lsb = BitBoard::pop_bit(&mut bit_board);
+        if BitBoard::bit_on_bit_board(lsb, DARK_SQUARES) {
+            let mut diagonal = 0u64;
+            while BitBoard::bit_on_bit_board(lsb, DARK_SQUARES | LIGHT_SQUARES) {
+                // going up right
+                diagonal = diagonal | lsb;
+                // if on h file exit
+                if BitBoard::bit_on_bit_board(lsb, ROW_8) {
+                    break;
+                }
+                lsb = lsb << 9;
+            }
+            println!("made diagonal");
+            BitBoard::print_bitboard(diagonal);
+            diagonals.push(diagonal);
+        }
+    }
+    // ON ROW 1 , GOING UP LEFT ON DARK SQUARES
+    let mut bit_board = ROW_1;
+    while bit_board > 0 {
+        let mut lsb = BitBoard::pop_bit(&mut bit_board);
+        if BitBoard::bit_on_bit_board(lsb, DARK_SQUARES) {
+            let mut diagonal = 0u64;
+            while BitBoard::bit_on_bit_board(lsb, DARK_SQUARES | LIGHT_SQUARES) {
+                // going up right
+                diagonal = diagonal | lsb;
+                // if on h file exit
+                if BitBoard::bit_on_bit_board(lsb, A_FILE) {
+                    break;
+                }
+                lsb = lsb << 7;
+            }
+            println!("made diagonal");
+            BitBoard::print_bitboard(diagonal);
+            diagonals.push(diagonal);
+        }
+    }
+    // ON H_FILE , GOING UP LEFT ON DARK SQUARES
+    let mut bit_board = H_FILE;
+    while bit_board > 0 {
+        let mut lsb = BitBoard::pop_bit(&mut bit_board);
+        if BitBoard::bit_on_bit_board(lsb, DARK_SQUARES) {
+            let mut diagonal = 0u64;
+            while BitBoard::bit_on_bit_board(lsb, DARK_SQUARES | LIGHT_SQUARES) {
+                // going up right
+                diagonal = diagonal | lsb;
+                // if on h file exit
+                if BitBoard::bit_on_bit_board(lsb, ROW_8) {
+                    break;
+                }
+                lsb = lsb << 7;
+            }
+            println!("made diagonal");
+            BitBoard::print_bitboard(diagonal);
+            diagonals.push(diagonal);
+        }
+    }
+
+    // printing all dark_square diagonals
+    for diagonal in diagonals {
+        println!("{}", diagonal);
+        BitBoard::print_bitboard(diagonal);
+    }
+
+    // MAKING LIGHT SQUARE DIAGONALS
+    println!("==============LIGHT SQUARES===================");
+    // ON ROW 1 , GOING UP RIGHT ON DARK SQUARES
+    let mut bit_board = ROW_1;
+    let mut diagonals: Vec<u64> = Vec::new();
+    while bit_board > 0 {
+        let mut lsb = BitBoard::pop_bit(&mut bit_board);
+        if BitBoard::bit_on_bit_board(lsb, LIGHT_SQUARES) {
+            let mut diagonal = 0u64;
+            while BitBoard::bit_on_bit_board(lsb, LIGHT_SQUARES | DARK_SQUARES) {
+                // going up right
+                diagonal = diagonal | lsb;
+                // if on h file exit
+                if BitBoard::bit_on_bit_board(lsb, H_FILE) {
+                    break;
+                }
+                lsb = lsb << 9;
+            }
+            println!("made diagonal");
+            BitBoard::print_bitboard(diagonal);
+            diagonals.push(diagonal);
+        }
+    }
+    // ON A_FILE , GOING UP RIGHT ON DARK SQUARES
+    let mut bit_board = A_FILE;
+    while bit_board > 0 {
+        let mut lsb = BitBoard::pop_bit(&mut bit_board);
+        if BitBoard::bit_on_bit_board(lsb, LIGHT_SQUARES) {
+            let mut diagonal = 0u64;
+            while BitBoard::bit_on_bit_board(lsb, LIGHT_SQUARES | DARK_SQUARES) {
+                // going up right
+                diagonal = diagonal | lsb;
+                // if on h file exit
+                if BitBoard::bit_on_bit_board(lsb, ROW_8) {
+                    break;
+                }
+                lsb = lsb << 9;
+            }
+            println!("made diagonal");
+            BitBoard::print_bitboard(diagonal);
+            diagonals.push(diagonal);
+        }
+    }
+    // ON ROW 1 , GOING UP LEFT ON DARK SQUARES
+    let mut bit_board = ROW_1;
+    while bit_board > 0 {
+        let mut lsb = BitBoard::pop_bit(&mut bit_board);
+        if BitBoard::bit_on_bit_board(lsb, LIGHT_SQUARES) {
+            let mut diagonal = 0u64;
+            while BitBoard::bit_on_bit_board(lsb, LIGHT_SQUARES | DARK_SQUARES) {
+                // going up right
+                diagonal = diagonal | lsb;
+                // if on h file exit
+                if BitBoard::bit_on_bit_board(lsb, A_FILE) {
+                    break;
+                }
+                lsb = lsb << 7;
+            }
+            println!("made diagonal");
+            BitBoard::print_bitboard(diagonal);
+            diagonals.push(diagonal);
+        }
+    }
+    // ON H_FILE , GOING UP LEFT ON DARK SQUARES
+    let mut bit_board = H_FILE;
+    while bit_board > 0 {
+        let mut lsb = BitBoard::pop_bit(&mut bit_board);
+        if BitBoard::bit_on_bit_board(lsb, LIGHT_SQUARES) {
+            let mut diagonal = 0u64;
+            while BitBoard::bit_on_bit_board(lsb, LIGHT_SQUARES | DARK_SQUARES) {
+                // going up right
+                diagonal = diagonal | lsb;
+                // if on h file exit
+                if BitBoard::bit_on_bit_board(lsb, ROW_8) {
+                    break;
+                }
+                lsb = lsb << 7;
+            }
+            println!("made diagonal");
+            BitBoard::print_bitboard(diagonal);
+            diagonals.push(diagonal);
+        }
+    }
+
+    // printing all dark_square diagonals
+    for diagonal in diagonals {
+        println!("{}", diagonal);
+        BitBoard::print_bitboard(diagonal);
+    }
 
     /**         SQUARE COLORS        */
     //light squares
