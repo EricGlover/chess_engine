@@ -1,6 +1,9 @@
+use crate::bit_board::BitBoard;
 use crate::board::*;
 use crate::board_console_printer;
 use crate::board_console_printer::print_board;
+use crate::chess_notation::pgn::Game;
+use crate::game_state::GameState;
 use std::path::Prefix::Verbatim;
 
 // @todo : board -> fen string
@@ -132,6 +135,30 @@ fn read_piece(char: &str) -> Piece {
     let piece_type = PieceType::from(char.to_lowercase().as_str()).unwrap();
     Piece::new(color, piece_type, None)
 }
+fn make_pieces(piece_string: &str)-> Vec<Piece> {
+    // tokenize by row
+    let piece_chars = "PNBRQKpnbrqk";
+    let numbers = "123456789";
+    let rows = piece_string.split("/");
+    let mut pieces:Vec<Piece> = vec![];
+    for (i, row) in rows.enumerate() {
+        let y = 8 - (i as u8);
+        let mut x: u8 = 1;
+        // read each character of the string
+        for (_, char) in row.chars().enumerate() {
+            let coordinate = Coordinate::new(x, y);
+            if numbers.contains(char) {
+                x += char.to_string().parse::<u8>().unwrap();
+            } else if piece_chars.contains(char) {
+                pieces.push(read_piece(char.to_string().as_str()));
+                x += 1;
+            } else {
+                panic!("{} char not recognized", char);
+            }
+        }
+    }
+    return pieces;
+}
 
 fn read_pieces(piece_string: &str, board: &mut dyn BoardTrait) {
     // tokenize by row
@@ -159,6 +186,39 @@ fn read_pieces(piece_string: &str, board: &mut dyn BoardTrait) {
 
 pub fn make_initial_board() -> Board {
     make_board(INITIAL_BOARD)
+}
+
+pub fn make_game_state(fen_string: &str) -> GameState {
+    let parts = fen_string.split(" ").collect::<Vec<&str>>();
+    let player_to_move = if parts[1] == "w" {
+        Color::White
+    } else {
+        Color::Black
+    };
+    let white_can_castle_king_side = parts[2].contains("K");
+    let white_can_castle_queen_side = parts[2].contains("Q");
+    let black_can_castle_king_side = parts[2].contains("k");
+    let black_can_castle_queen_side = parts[2].contains("q");
+    let en_passant_target = if parts[3] == "-" {
+        None
+    } else {
+        Some(Coordinate::from(parts[3]))
+    };
+    let half_move_clock = parts[4].parse::<u32>().unwrap();
+    let full_move_number = parts[5].parse::<u32>().unwrap();
+    let pieces = make_pieces(parts[0]);
+    let board = BitBoard::init_from_pieces(pieces);
+    return GameState::make_game_state(
+        player_to_move,
+        white_can_castle_king_side,
+        white_can_castle_queen_side,
+        black_can_castle_king_side,
+        black_can_castle_queen_side,
+        en_passant_target,
+        half_move_clock,
+        full_move_number,
+        board,
+    );
 }
 
 pub fn make_board(fen_string: &str) -> Board {

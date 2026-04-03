@@ -11,4 +11,5 @@ pub mod game;
 pub mod hash;
 pub mod move_generator;
 pub mod bit_board;
+pub mod game_state;
 mod tests;

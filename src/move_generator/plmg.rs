@@ -1,11 +1,14 @@
 // works with bitboards
 use crate::bit_board::{
-    self, BitBoard, A_FILE, B_FILE, DARK_DIAGONALS_UP_RIGHT, G_FILE, H_FILE, ROW_1, ROW_2, ROW_7,
-    ROW_8,
+    self, BitBoard, A_FILE, BLACK_KINGSIDE_CASTLE_BLOCKERS, BLACK_QUEENSIDE_CASTLE_BLOCKERS,
+    B_FILE, DARK_DIAGONALS_UP_RIGHT, G_FILE, H_FILE, ROW_1, ROW_2, ROW_7, ROW_8,
+    WHITE_KINGSIDE_CASTLE_BLOCKERS, WHITE_QUEENSIDE_CASTLE_BLOCKERS,
 };
-use crate::board::{Color, Coordinate, Piece, PieceType};
+use crate::board::{CastlingRights, Color, Coordinate, Piece, PieceType};
 use crate::board::{HIGH_X, HIGH_Y, LOW_X, LOW_Y};
-use crate::move_generator::Move;
+use crate::game;
+use crate::game_state::GameState;
+use crate::move_generator::{Move, MoveType};
 
 // array of bitboards with the attack from the corresponding index
 const BLACK_PAWN_ATTACKS: [u64; 64] = [
@@ -800,12 +803,100 @@ fn init_gen_pawn_attacks() {
     }
 }
 
+//@todo : test castling 
+pub fn gen_king_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -> Vec<Move> {
+    let at = piece.at().unwrap();
+    let idx = BitBoard::coordinate_to_idx(*at);
+    let mut attack_board: u64 = KING_ATTACKS[idx as usize];
+    let mut moves: Vec<Move> = vec![];
+    let color = piece.color;
+    println!("{} {} {}", at, idx, color);
+    BitBoard::print_bitboard(attack_board);
+
+    for to in BitBoard::attack_map_to_coordinates(attack_board) {
+        if square_occupiable_by(board, &to, color) {
+            moves.push(make_move_to(
+                at,
+                &to,
+                piece,
+                MoveType::Move,
+                board,
+                game_state,
+            ));
+        }
+    }
+
+    // castling
+    let rights = game_state.get_castling_rights(color);
+    let king_side_blockers = match color {
+        Color::White => WHITE_KINGSIDE_CASTLE_BLOCKERS,
+        Color::Black => BLACK_KINGSIDE_CASTLE_BLOCKERS,
+    };
+    let queens_side_blockers = match color {
+        Color::White => WHITE_QUEENSIDE_CASTLE_BLOCKERS,
+        Color::Black => BLACK_QUEENSIDE_CASTLE_BLOCKERS,
+    };
+    if rights.king_side() & !board.has_piece_at(king_side_blockers) {
+        moves.push(Move::castle_king_side(color));
+    }
+    if rights.queen_side() & !board.has_piece_at(queens_side_blockers) {
+        moves.push(Move::castle_queen_side(color));
+    }
+
+    return moves;
+}
+
+pub fn gen_knight_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -> Vec<Move> {
+    let at = piece.at().unwrap();
+    let idx = BitBoard::coordinate_to_idx(*at);
+    let mut attack_board: u64 = KNIGHT_ATTACKS[idx as usize];
+    let mut moves: Vec<Move> = vec![];
+    let color = piece.color;
+    //@todo : get captured piece type
+    for to in BitBoard::attack_map_to_coordinates(attack_board) {
+        if square_occupiable_by(board, &to, color) {
+            moves.push(make_move_to(
+                at,
+                &to,
+                piece,
+                MoveType::Move,
+                board,
+                game_state,
+            ));
+        }
+    }
+
+    return moves;
+}
+
 /**
  * @todo
 one square move, two square move, capturing diagonally forward, pawn promotion, en passant
 **/
-pub fn gen_pawn_moves(board: &BitBoard, piece: &Piece) -> Vec<Move> {
+pub fn gen_pawn_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -> Vec<Move> {
+    // @todo
+    let at = piece.at().unwrap();
+    let idx = BitBoard::coordinate_to_idx(*at);
+    let map = match piece.color {
+        Color::Black => BLACK_PAWN_ATTACKS,
+        Color::White => WHITE_PAWN_ATTACKS,
+    };
+    let mut attack_board: u64 = map[idx as usize];
     let mut moves: Vec<Move> = vec![];
+    let color = piece.color;
+    for to in BitBoard::attack_map_to_coordinates(attack_board) {
+        if square_occupiable_by(board, &to, color) {
+            moves.push(make_move_to(
+                at,
+                &to,
+                piece,
+                MoveType::Move,
+                board,
+                game_state,
+            ));
+        }
+    }
+
     return moves;
 }
 
@@ -816,9 +907,6 @@ fn square_is_empty(board: &BitBoard, at: &Coordinate) -> bool {
 
 // if square is off board || square has friendly price => false
 fn square_occupiable_by(board: &BitBoard, at: &Coordinate, color: Color) -> bool {
-    if !is_on_board(at) {
-        return false;
-    }
     board.get_piece_at(at).map_or(true, |p| p.color != color)
 }
 
@@ -833,4 +921,27 @@ fn has_enemy_piece(board: &BitBoard, at: &Coordinate, own_color: Color) -> bool 
 
 fn is_on_board(c: &Coordinate) -> bool {
     c.x() >= LOW_X && c.x() <= HIGH_X && c.y() >= LOW_Y && c.y() <= HIGH_Y
+}
+
+pub fn make_move_to(
+    from: &Coordinate,
+    to: &Coordinate,
+    piece: &Piece,
+    move_type: MoveType,
+    board: &BitBoard,
+    game_state: &GameState,
+) -> Move {
+    let captured = board.get_piece_at(&to);
+    Move::new(
+        from.clone(),
+        to.clone(),
+        piece.piece_type,
+        move_type,
+        captured.map(|p| p.piece_type.clone()),
+        game_state.get_castling_rights_changes_if_piece_moves(piece),
+        captured.map_or_else(
+            || None,
+            |p| game_state.get_castling_rights_changes_if_piece_moves(&p),
+        ),
+    )
 }

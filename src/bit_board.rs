@@ -1,9 +1,21 @@
 use crate::bit_board;
-use crate::board::{Color, Coordinate, Piece, PieceType};
+use crate::board::{Board, CastlingRights, Color, Coordinate, Piece, PieceType};
 use crate::board_console_printer::print_board;
 use crate::move_generator::plmg;
 use std::fmt;
 use std::fmt::{Error, Formatter};
+
+/**
+ * board indices
+57 58 59 60 61 62 63 64
+49 50 51 52 53 54 55 56
+41 42 43 44 45 46 47 48
+33 34 35 36 37 38 39 40
+25 26 27 28 29 30 31 32
+17 18 19 20 21 22 23 24
+ 9 10 11 12 13 14 15 16
+ 1  2  3  4  5  6  7  8
+ */
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub struct BitBoard {
@@ -114,6 +126,10 @@ pub const LIGHT_ARRAY_UP_LEFT: [u64; 7] = [
     LIGHT_DIAGONAL_F,
     LIGHT_DIAGONAL_G,
 ];
+pub const WHITE_KINGSIDE_CASTLE_BLOCKERS:u64 = 96;
+pub const WHITE_QUEENSIDE_CASTLE_BLOCKERS:u64 = 14;
+pub const BLACK_KINGSIDE_CASTLE_BLOCKERS:u64 = 6917529027641081856;
+pub const BLACK_QUEENSIDE_CASTLE_BLOCKERS:u64 = 1008806316530991104;
 
 // dark diagonals 6, down right to up left
 // dark diagonals 7, down left to up right
@@ -122,6 +138,28 @@ pub const LIGHT_ARRAY_UP_LEFT: [u64; 7] = [
 impl BitBoard {
     pub fn new() -> BitBoard {
         return BitBoard::init_pieces();
+    }
+
+    pub fn init_from_pieces(pieces: Vec<Piece>) -> BitBoard {
+        let mut board = BitBoard {
+            pieces: 0u64,
+            white_pieces: 0u64,
+            black_pieces: 0u64,
+            pawns: 0u64,
+            knights: 0u64,
+            bishops: 0u64,
+            rooks: 0u64,
+            queens: 0u64,
+            kings: 0u64,
+        };
+        for piece in pieces {
+            if piece.at().is_some() {
+                let at = piece.at().unwrap();
+                board.set_piece(piece.piece_type, piece.color, *at);
+            }
+        }
+
+        return board;
     }
 
     pub fn get_square_color(bit: u64) -> Color {
@@ -139,7 +177,7 @@ impl BitBoard {
         if color == Color::Black {
             arr1 = &DARK_ARRAY_UP_RIGHT;
             arr2 = &DARK_ARRAY_UP_LEFT;
-        } 
+        }
         let mut diagonals: u64 = 0;
         let d1 = arr1
             .iter()
@@ -249,7 +287,7 @@ impl BitBoard {
     }
 
     //@todo ::
-    fn lsb(bit_board: u64) -> u64 {
+    pub fn lsb(bit_board: u64) -> u64 {
         bit_board & (!bit_board + 1)
     }
 
@@ -384,8 +422,28 @@ impl BitBoard {
     }
 
     //@todo : test
-    fn coordinate_to_idx(c: Coordinate) -> u64 {
+    pub fn coordinate_to_idx(c: Coordinate) -> u64 {
         return ((c.y() - 1) * 8 + c.x()) as u64;
+    }
+
+    pub fn attack_map_to_coordinates(attack_map: u64) -> Vec<Coordinate> {
+        let mut attack_map = attack_map;
+        let mut coordinates: Vec<Coordinate> = vec![];
+        while attack_map > 0 {
+            let lsb = BitBoard::pop_bit(&mut attack_map);
+            coordinates.push(BitBoard::bit_to_coordinate(lsb));
+        }
+        return coordinates;
+    }
+
+    pub fn bit_to_coordinate(bit: u64) -> Coordinate {
+        let idx = BitBoard::get_index_of_bit(bit);
+        return Coordinate::new((idx % 8) as u8, ((idx / 8) + 1) as u8);
+    }
+
+    //@todo
+    pub fn idx_to_coordinate(idx: u64) -> u64 {
+        0u64
     }
 
     //@todo : test
@@ -425,6 +483,9 @@ impl BitBoard {
     fn get_pieces(&self, color: Color, piece_type: PieceType) -> Vec<&Piece>
     fn get_all_pieces(&self, color: Color) -> Vec<&Piece>
     **/
+    pub fn has_piece_at(&self, bit_board: u64) -> bool {
+        (self.pieces & bit_board) > 0u64
+    }
 
     //@todo : test
     pub fn get_piece_at(&self, at: &Coordinate) -> Option<Piece> {
@@ -534,6 +595,19 @@ impl BitBoard {
             println!();
         }
         println!("================================");
+    }
+
+    // empty the board
+    pub fn clear(&mut self) {
+        self.pieces = 0u64;
+        self.white_pieces = 0u64;
+        self.black_pieces = 0u64;
+        self.pawns = 0u64;
+        self.knights = 0u64;
+        self.bishops = 0u64;
+        self.rooks = 0u64;
+        self.queens = 0u64;
+        self.kings = 0u64;
     }
 
     fn init_pieces() -> BitBoard {
@@ -650,6 +724,10 @@ fn print_bitboard_indices() {
 }
 
 pub fn test() {
+    init_gen_file_boards();
+    return;
+    // testing
+
     // let mut bit_board = 1u64 << 1;
 
     // println!("{}", u64::count_ones(bit_board));
@@ -733,6 +811,42 @@ pub fn test() {
 /** INITIAL GENERATOR FUNCTIONS */
 
 fn init_gen_file_boards() {
+    /** Castling Blockers */
+
+    /**
+     * board indices
+    57 58 59 60 61 62 63 64
+    49 50 51 52 53 54 55 56
+    41 42 43 44 45 46 47 48
+    33 34 35 36 37 38 39 40
+    25 26 27 28 29 30 31 32
+    17 18 19 20 21 22 23 24
+     9 10 11 12 13 14 15 16
+     1  2  3  4  5  6  7  8
+     */
+    let mut w_k_blockers = 0u64;
+    w_k_blockers = BitBoard::set_bit(w_k_blockers, 6);
+    w_k_blockers = BitBoard::set_bit(w_k_blockers, 7);
+    let mut w_q_blockers = 0u64;
+    w_q_blockers = BitBoard::set_bit(w_q_blockers, 2);
+    w_q_blockers = BitBoard::set_bit(w_q_blockers, 3);
+    w_q_blockers = BitBoard::set_bit(w_q_blockers, 4);
+    let mut b_k_blockers = 0u64;
+    b_k_blockers = BitBoard::set_bit(b_k_blockers, 62);
+    b_k_blockers = BitBoard::set_bit(b_k_blockers, 63);
+    let mut b_q_blockers = 0u64;
+    b_q_blockers = BitBoard::set_bit(b_q_blockers, 58);
+    b_q_blockers = BitBoard::set_bit(b_q_blockers, 59);
+    b_q_blockers = BitBoard::set_bit(b_q_blockers, 60);
+    BitBoard::print_bitboard(w_k_blockers);
+    BitBoard::print_bitboard(w_q_blockers);
+    BitBoard::print_bitboard(b_k_blockers);
+    BitBoard::print_bitboard(b_q_blockers);
+    println!(
+        "{} {} {} {}",
+        w_k_blockers, w_q_blockers, b_k_blockers, b_q_blockers
+    );
+
     /**   DIAGONALS  */
     //b8
     //d8
