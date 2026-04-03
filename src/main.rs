@@ -3,7 +3,7 @@ use chess_engine::bit_board;
 use chess_engine::bit_board::BitBoard;
 use chess_engine::board::Board;
 use chess_engine::board::{Color, Coordinate, Piece, PieceType};
-use chess_engine::chess_notation;
+use chess_engine::chess_notation::{self, fen_reader};
 use chess_engine::game_state::GameState;
 use chess_engine::move_generator::plmg;
 use chess_engine::move_generator::pseudo_legal_move_generator;
@@ -33,10 +33,13 @@ fn print_help_menu() {
 }
 
 fn main() {
-    let debug = false;
+    let debug = true;
     if debug {
         // testing bit boards
-        let mut game_state = GameState::starting_game();
+        // let mut game_state = GameState::starting_game();
+        let fen = "r1bqkb1r/1ppppppp/5n2/pP6/3n4/2N2N2/P1PPPPPP/R1BQKB1R w KQkq a6 0 5";
+        let mut game_state = fen_reader::make_game_state(fen);
+
         println!("{} piece count ", game_state.board.get_piece_count());
         println!("{} piece count ", game_state.board.get_piece_count());
         // this feels wrong ...

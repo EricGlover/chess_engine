@@ -135,12 +135,12 @@ fn read_piece(char: &str) -> Piece {
     let piece_type = PieceType::from(char.to_lowercase().as_str()).unwrap();
     Piece::new(color, piece_type, None)
 }
-fn make_pieces(piece_string: &str)-> Vec<Piece> {
+fn make_pieces(piece_string: &str) -> Vec<Piece> {
     // tokenize by row
     let piece_chars = "PNBRQKpnbrqk";
     let numbers = "123456789";
     let rows = piece_string.split("/");
-    let mut pieces:Vec<Piece> = vec![];
+    let mut pieces: Vec<Piece> = vec![];
     for (i, row) in rows.enumerate() {
         let y = 8 - (i as u8);
         let mut x: u8 = 1;
@@ -150,7 +150,9 @@ fn make_pieces(piece_string: &str)-> Vec<Piece> {
             if numbers.contains(char) {
                 x += char.to_string().parse::<u8>().unwrap();
             } else if piece_chars.contains(char) {
-                pieces.push(read_piece(char.to_string().as_str()));
+                let mut piece = read_piece(char.to_string().as_str());
+                piece.set_at(coordinate);
+                pieces.push(piece);
                 x += 1;
             } else {
                 panic!("{} char not recognized", char);
@@ -207,6 +209,7 @@ pub fn make_game_state(fen_string: &str) -> GameState {
     let half_move_clock = parts[4].parse::<u32>().unwrap();
     let full_move_number = parts[5].parse::<u32>().unwrap();
     let pieces = make_pieces(parts[0]);
+    println!("{} ", pieces.len());
     let board = BitBoard::init_from_pieces(pieces);
     return GameState::make_game_state(
         player_to_move,

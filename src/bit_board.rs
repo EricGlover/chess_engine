@@ -152,9 +152,11 @@ impl BitBoard {
             queens: 0u64,
             kings: 0u64,
         };
+        println!("pieces = {}", pieces.len());
         for piece in pieces {
             if piece.at().is_some() {
                 let at = piece.at().unwrap();
+                println!("piece at {} ", at);
                 board.set_piece(piece.piece_type, piece.color, *at);
             }
         }
