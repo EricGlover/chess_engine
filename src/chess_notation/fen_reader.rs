@@ -209,7 +209,6 @@ pub fn make_game_state(fen_string: &str) -> GameState {
     let half_move_clock = parts[4].parse::<u32>().unwrap();
     let full_move_number = parts[5].parse::<u32>().unwrap();
     let pieces = make_pieces(parts[0]);
-    println!("{} ", pieces.len());
     let board = BitBoard::init_from_pieces(pieces);
     return GameState::make_game_state(
         player_to_move,

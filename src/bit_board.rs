@@ -126,10 +126,10 @@ pub const LIGHT_ARRAY_UP_LEFT: [u64; 7] = [
     LIGHT_DIAGONAL_F,
     LIGHT_DIAGONAL_G,
 ];
-pub const WHITE_KINGSIDE_CASTLE_BLOCKERS:u64 = 96;
-pub const WHITE_QUEENSIDE_CASTLE_BLOCKERS:u64 = 14;
-pub const BLACK_KINGSIDE_CASTLE_BLOCKERS:u64 = 6917529027641081856;
-pub const BLACK_QUEENSIDE_CASTLE_BLOCKERS:u64 = 1008806316530991104;
+pub const WHITE_KINGSIDE_CASTLE_BLOCKERS: u64 = 96;
+pub const WHITE_QUEENSIDE_CASTLE_BLOCKERS: u64 = 14;
+pub const BLACK_KINGSIDE_CASTLE_BLOCKERS: u64 = 6917529027641081856;
+pub const BLACK_QUEENSIDE_CASTLE_BLOCKERS: u64 = 1008806316530991104;
 
 // dark diagonals 6, down right to up left
 // dark diagonals 7, down left to up right
@@ -152,16 +152,18 @@ impl BitBoard {
             queens: 0u64,
             kings: 0u64,
         };
-        println!("pieces = {}", pieces.len());
         for piece in pieces {
             if piece.at().is_some() {
                 let at = piece.at().unwrap();
-                println!("piece at {} ", at);
                 board.set_piece(piece.piece_type, piece.color, *at);
             }
         }
 
         return board;
+    }
+    pub fn get_square_color_at(coordinate: Coordinate) -> Color {
+        let bit = BitBoard::coordinate_to_bit(coordinate);
+        return BitBoard::get_square_color(bit);
     }
 
     pub fn get_square_color(bit: u64) -> Color {
@@ -423,11 +425,6 @@ impl BitBoard {
         BitBoard::print_bitboard(board.kings);
     }
 
-    //@todo : test
-    pub fn coordinate_to_idx(c: Coordinate) -> u64 {
-        return ((c.y() - 1) * 8 + c.x()) as u64;
-    }
-
     pub fn attack_map_to_coordinates(attack_map: u64) -> Vec<Coordinate> {
         let mut attack_map = attack_map;
         let mut coordinates: Vec<Coordinate> = vec![];
@@ -441,6 +438,16 @@ impl BitBoard {
     pub fn bit_to_coordinate(bit: u64) -> Coordinate {
         let idx = BitBoard::get_index_of_bit(bit);
         return Coordinate::new((idx % 8) as u8, ((idx / 8) + 1) as u8);
+    }
+
+    pub fn coordinate_to_bit(coordinate: Coordinate) -> u64 {
+        let idx = BitBoard::coordinate_to_idx(coordinate);
+        return 1u64 << (idx - 1);
+    }
+
+    //@todo : test
+    pub fn coordinate_to_idx(c: Coordinate) -> u64 {
+        return ((c.y() - 1) * 8 + c.x()) as u64;
     }
 
     //@todo
@@ -726,6 +733,18 @@ fn print_bitboard_indices() {
 }
 
 pub fn test() {
+    for y in (1..=8) {
+        for x in (1..=8) {
+            let c = Coordinate::new(x, y);
+            let bit = BitBoard::coordinate_to_bit(c);
+            let color = BitBoard::get_square_color_at(c);
+            println!("{} at {} ", color, c);
+            // BitBoard::print_bitboard(bit);
+        }
+    }
+
+    return;
+
     init_gen_file_boards();
     return;
     // testing

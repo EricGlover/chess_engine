@@ -1,0 +1,4 @@
+I'm not quite sure on the best way to partially share class functionality with other classes in Rust yet.
+Example : BitBoard would make sense to share some functions with move generation classes that don't need to 
+be expoused to the rest of the program. 
+Not a big deal but things to consider.
