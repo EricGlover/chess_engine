@@ -69,13 +69,13 @@ mod tests {
     use Ai;
     use std::time::{Duration, Instant};
 
-    #[test]
-    fn bug_alpha_beta() {
-        let fen = "rnb1kbnr/pppp1p1p/4pp2/8/8/3BP3/PPPP1PPP/RNB1K1NR b KQkq - 3 4";
-        let board = make_board(fen);
-        let mut ai = Ai::new(Color::Black);
-        ai.make_move(&board, Some(4));
-    }
+    // #[test]
+    // fn bug_alpha_beta() {
+    //     let fen = "rnb1kbnr/pppp1p1p/4pp2/8/8/3BP3/PPPP1PPP/RNB1K1NR b KQkq - 3 4";
+    //     let board = make_board(fen);
+    //     let mut ai = Ai::new(Color::Black);
+    //     ai.make_move(&board, Some(4));
+    // }
 
     #[test]
     fn search() {

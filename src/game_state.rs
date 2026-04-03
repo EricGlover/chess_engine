@@ -66,6 +66,10 @@ impl GameState {
         }
     }
 
+    pub fn get_en_passant_target(&self) -> Option<Coordinate> {
+        self.en_passant_target
+    }
+
     pub fn get_castling_rights(&self, color: Color) -> &CastlingRights {
         return match color {
             Color::White => &self.white_castling_rights,

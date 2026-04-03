@@ -803,7 +803,7 @@ fn init_gen_pawn_attacks() {
     }
 }
 
-//@todo : test castling 
+//@todo : test castling
 pub fn gen_king_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -> Vec<Move> {
     let at = piece.at().unwrap();
     let idx = BitBoard::coordinate_to_idx(*at);
@@ -874,25 +874,124 @@ pub fn gen_knight_moves(board: &BitBoard, piece: &Piece, game_state: &GameState)
 one square move, two square move, capturing diagonally forward, pawn promotion, en passant
 **/
 pub fn gen_pawn_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -> Vec<Move> {
-    // @todo
     let at = piece.at().unwrap();
     let idx = BitBoard::coordinate_to_idx(*at);
+    // println!("{} {}", at, idx);
+    let mut moves: Vec<Move> = vec![];
+    let color = piece.color;
+
+    // quiet pawn moves
+    let enemy_pieces = match piece.color {
+        Color::Black => board.get_white_pieces(),
+        Color::White => board.get_black_pieces(),
+    };
+    let friendly_pieces = match piece.color {
+        Color::White => board.get_white_pieces(),
+        Color::Black => board.get_black_pieces(),
+    };
+    let direction = match piece.color {
+        Color::White => 1,
+        Color::Black => -1,
+    };
+    let start_y = match piece.color {
+        Color::White => 2,
+        Color::Black => 7,
+    };
+    let promotion_y = match piece.color {
+        Color::White => 8,
+        Color::Black => 1,
+    };
+    let promotion_pieces = [
+        PieceType::Rook,
+        PieceType::Queen,
+        PieceType::Bishop,
+        PieceType::Knight,
+    ];
+    let up_one = at.add(0, 1 * direction);
+    let up_two = at.add(0, 2 * direction);
+    if square_is_empty(board, &up_one) {
+        //promotion
+        if up_one.y() == promotion_y {
+            // make promotion moves
+            for promotion_type in promotion_pieces.iter() {
+                moves.push(Move::new(
+                    *at,
+                    up_one,
+                    piece.piece_type,
+                    MoveType::Promotion(*promotion_type),
+                    None,
+                    None,
+                    None,
+                ));
+            }
+        } else {
+            moves.push(make_quiet_move(at, &up_one, piece));
+            if square_is_empty(board, &up_two) && at.y() == start_y {
+                moves.push(make_quiet_move(at, &up_two, piece));
+            }
+        }
+    }
+
+    // pawn captures
+    // check attack_board for enemy pieces
     let map = match piece.color {
         Color::Black => BLACK_PAWN_ATTACKS,
         Color::White => WHITE_PAWN_ATTACKS,
     };
-    let mut attack_board: u64 = map[idx as usize];
-    let mut moves: Vec<Move> = vec![];
-    let color = piece.color;
-    for to in BitBoard::attack_map_to_coordinates(attack_board) {
-        if square_occupiable_by(board, &to, color) {
-            moves.push(make_move_to(
-                at,
-                &to,
-                piece,
-                MoveType::Move,
-                board,
-                game_state,
+
+    // check attack squares and enemy piece locations align
+    let attack_board: u64 = map[(idx - 1) as usize];
+    let capture_board = attack_board & enemy_pieces;
+    // if capture board is not empty
+    if capture_board > 0 {
+        for to in BitBoard::attack_map_to_coordinates(capture_board) {
+            //check promotion
+            if to.y() == promotion_y {
+                // make promotion moves
+                for promotion_type in promotion_pieces.iter() {
+                    moves.push(make_move_to(
+                        at,
+                        &to,
+                        piece,
+                        MoveType::Promotion(*promotion_type),
+                        board,
+                        game_state,
+                    ));
+                }
+            } else {
+                moves.push(make_move_to(
+                    at,
+                    &to,
+                    piece,
+                    MoveType::Move,
+                    board,
+                    game_state,
+                ));
+            }
+        }
+    }
+
+    // en passant target
+    let en_passant_opt = game_state.get_en_passant_target();
+    // println!("{:?}", en_passant_opt);
+    if en_passant_opt.is_some() {
+        let to = en_passant_opt.unwrap();
+        //todo::
+        // let captured = board.get_piece_at(&to).unwrap();
+        let bit = BitBoard::coordinate_to_bit(to);
+        let target = bit & attack_board;
+        // BitBoard::print_bitboard(attack_board);
+        // BitBoard::print_bitboard(bit);
+        // println!("{}, {}, {}", to, bit, target);
+        if target > 0 {
+            moves.push(Move::new(
+                at.clone(),
+                to.clone(),
+                PieceType::Pawn,
+                MoveType::EnPassant,
+                Some(PieceType::Pawn),
+                None,
+                None,
             ));
         }
     }
@@ -902,7 +1001,7 @@ pub fn gen_pawn_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -
 
 /** HELPER FUNCTIONS  */
 fn square_is_empty(board: &BitBoard, at: &Coordinate) -> bool {
-    board.is_piece_at_coordinate(at)
+    !board.is_piece_at_coordinate(at)
 }
 
 // if square is off board || square has friendly price => false
@@ -921,6 +1020,19 @@ fn has_enemy_piece(board: &BitBoard, at: &Coordinate, own_color: Color) -> bool 
 
 fn is_on_board(c: &Coordinate) -> bool {
     c.x() >= LOW_X && c.x() <= HIGH_X && c.y() >= LOW_Y && c.y() <= HIGH_Y
+}
+
+/** works if no castling rights have changed and no captures */
+pub fn make_quiet_move(from: &Coordinate, to: &Coordinate, piece: &Piece) -> Move {
+    return Move::new(
+        from.clone(),
+        to.clone(),
+        piece.piece_type,
+        MoveType::Move,
+        None,
+        None,
+        None,
+    );
 }
 
 pub fn make_move_to(

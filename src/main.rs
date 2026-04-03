@@ -6,7 +6,7 @@ use chess_engine::board::{Color, Coordinate, Piece, PieceType};
 use chess_engine::board_console_printer::print_bit_board;
 use chess_engine::chess_notation::{self, fen_reader};
 use chess_engine::game_state::GameState;
-use chess_engine::move_generator::plmg;
+use chess_engine::move_generator::{Move, plmg};
 use chess_engine::move_generator::pseudo_legal_move_generator;
 use chess_engine::{chess_notation::pgn, game, game_state};
 use getopts::Options;
@@ -42,8 +42,24 @@ fn main() {
         // testing bit boards
         // let mut game_state = GameState::starting_game();
         let fen = "r1bqkb1r/1ppppppp/5n2/pP6/3n4/2N2N2/P1PPPPPP/R1BQKB1R w KQkq a6 0 5";
+        let fen = "r2qkb1r/1pp2pp1/1P1p1n2/2B1p2p/p2n4/4PN1b/P1PPNPPP/R2QKB1R w KQkq - 0 10";
         let mut game_state = fen_reader::make_game_state(fen);
         print_bit_board(game_state.board);
+        // println!("{:?}", game_state);
+
+        let white_pawns = game_state.board.get_pieces(Color::White, PieceType::Pawn);
+        let black_pawns = game_state.board.get_pieces(Color::Black, PieceType::Pawn);
+        println!("{} white pawns", white_pawns.len());
+        println!("{} black pawns", black_pawns.len());
+        let white_pawn_moves: Vec<Move> = vec![];
+        for pawn in white_pawns {
+            // println!("{:?}", pawn);
+            let moves = plmg::gen_pawn_moves(&game_state.board, &pawn, &game_state);
+            for m in moves {
+                println!("{}", m);
+            }
+        }
+        
         return;
 
         println!("{} piece count ", game_state.board.get_piece_count());

@@ -158,7 +158,6 @@ impl BitBoard {
                 board.set_piece(piece.piece_type, piece.color, *at);
             }
         }
-
         return board;
     }
     pub fn get_square_color_at(coordinate: Coordinate) -> Color {
@@ -425,6 +424,18 @@ impl BitBoard {
         BitBoard::print_bitboard(board.kings);
     }
 
+    pub fn union(board_a: u64, board_b: u64) -> u64 {
+        board_a & board_b
+    }
+
+    pub fn get_white_pieces(&self) -> u64 {
+        self.white_pieces
+    }
+
+    pub fn get_black_pieces(&self) -> u64 {
+        self.black_pieces
+    }
+
     pub fn attack_map_to_coordinates(attack_map: u64) -> Vec<Coordinate> {
         let mut attack_map = attack_map;
         let mut coordinates: Vec<Coordinate> = vec![];
@@ -437,7 +448,7 @@ impl BitBoard {
 
     pub fn bit_to_coordinate(bit: u64) -> Coordinate {
         let idx = BitBoard::get_index_of_bit(bit);
-        return Coordinate::new((idx % 8) as u8, ((idx / 8) + 1) as u8);
+        return Coordinate::new((((idx - 1) % 8) +1) as u8, (((idx - 1) / 8) + 1) as u8);
     }
 
     pub fn coordinate_to_bit(coordinate: Coordinate) -> u64 {
@@ -494,6 +505,42 @@ impl BitBoard {
     **/
     pub fn has_piece_at(&self, bit_board: u64) -> bool {
         (self.pieces & bit_board) > 0u64
+    }
+
+    //preferably don't call this
+    pub fn get_all_pieces(&self, color: Color) -> Vec<Piece> {
+        let mut pieces: Vec<Piece> = vec![];
+        let mut all_pieces = self.pieces;
+        while all_pieces > 0 {
+            let bit = BitBoard::pop_bit(&mut all_pieces);
+        }
+        return pieces;
+    }
+    //preferably don't call this
+    pub fn get_pieces(&self, color: Color, piece_type: PieceType) -> Vec<Piece> {
+        let mut pieces: Vec<Piece> = vec![];
+        let color_board = match color {
+            Color::White => self.white_pieces,
+            Color::Black => self.black_pieces,
+        };
+        let piece_type_board = match piece_type {
+            PieceType::King => self.kings,
+            PieceType::Queen => self.queens,
+            PieceType::Bishop => self.bishops,
+            PieceType::Knight => self.knights,
+            PieceType::Rook => self.rooks,
+            PieceType::Pawn => self.pawns,
+        };
+        let mut all_pieces = color_board & piece_type_board;
+        while all_pieces > 0 {
+            let bit = BitBoard::pop_bit(&mut all_pieces);
+            pieces.push(Piece::new(
+                color,
+                piece_type,
+                Some(BitBoard::bit_to_coordinate(bit)),
+            ));
+        }
+        return pieces;
     }
 
     //@todo : test
@@ -1202,4 +1249,66 @@ fn init_gen_file_boards() {
     BitBoard::print_bitboard(F_FILE);
     BitBoard::print_bitboard(G_FILE);
     BitBoard::print_bitboard(H_FILE);
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{bit_board::BitBoard, board::*};
+
+    // pub fn bit_to_coordinate(bit: u64) -> Coordinate {
+    //     let idx = BitBoard::get_index_of_bit(bit);
+    //     return Coordinate::new((idx % 8) as u8, ((idx / 8) + 1) as u8);
+    // }
+
+    // pub fn coordinate_to_bit(coordinate: Coordinate) -> u64 {
+    //     let idx = BitBoard::coordinate_to_idx(coordinate);
+    //     return 1u64 << (idx - 1);
+    // }
+
+    // //@todo : test
+    // pub fn coordinate_to_idx(c: Coordinate) -> u64 {
+    //     return ((c.y() - 1) * 8 + c.x()) as u64;
+    // }
+
+    #[test]
+    fn test_bit_to_coordinate() {
+        let coordinates = vec![
+            Coordinate::new(1, 1),
+            Coordinate::new(3, 3),
+            Coordinate::new(8, 1),
+            Coordinate::new(8, 2),
+        ];
+        let bits: Vec<u64> = vec![1u64, 1u64 << 18, 1u64 << 7, 1u64 << 15];
+
+        for (i, c) in bits.iter().enumerate() {
+            assert_eq!(BitBoard::bit_to_coordinate(*c), coordinates[i]);
+        }
+    }
+
+    #[test]
+    fn test_coordinate_to_bit() {
+        let coordinates = vec![
+            Coordinate::new(1, 1),
+            Coordinate::new(3, 3),
+            Coordinate::new(8, 1),
+        ];
+        let indices: Vec<u64> = vec![1u64, 1u64 << 18, 1u64 << 7];
+
+        for (i, c) in coordinates.iter().enumerate() {
+            assert_eq!(BitBoard::coordinate_to_bit(*c), indices[i]);
+        }
+    }
+    #[test]
+    fn test_coordinate_to_idx() {
+        let coordinates = vec![
+            Coordinate::new(1, 1),
+            Coordinate::new(3, 3),
+            Coordinate::new(8, 1),
+        ];
+        let indices: Vec<u64> = vec![1, 19, 8];
+
+        for (i, c) in coordinates.iter().enumerate() {
+            assert_eq!(BitBoard::coordinate_to_idx(*c), indices[i]);
+        }
+    }
 }
