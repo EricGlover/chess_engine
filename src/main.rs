@@ -34,7 +34,7 @@ fn print_help_menu() {
 }
 
 fn main() {
-    let debug = true;
+    let debug = false;
     if debug {
 
         // bit_board::test();
@@ -45,18 +45,19 @@ fn main() {
         let fen = "r2qkb1r/1pp2pp1/1P1p1n2/2B1p2p/p2n4/4PN1b/P1PPNPPP/R2QKB1R w KQkq - 0 10";
         let castles_fen = "r3k2r/1ppqbpp1/1P1p1n2/2B1p2p/p2n4/1QP1PN1b/P2PNPPP/R3KB1R w KQkq - 3 12";
         let rook_test_pos = "4k2r/1ppqbppN/1P1p1n2/1rB1p2p/p2n2P1/1QP1PR1b/P2PNP1P/R3KB2 w Q - 7 18";
-        let mut game_state = fen_reader::make_game_state(rook_test_pos);
+        let bishop_test_pos = "4k2r/1pp1bppN/1Pqp1n2/1rB1pbPp/p2n4/1QP1P2R/P2PNP1P/R3KB2 w Q - 3 20";
+        let mut game_state = fen_reader::make_game_state(bishop_test_pos);
         print_bit_board(game_state.board);
         // println!("{:?}", game_state);
 
-        let white_pawns = game_state.board.get_pieces(Color::White, PieceType::Rook);
-        let black_pawns = game_state.board.get_pieces(Color::Black, PieceType::Rook);
+        let white_pawns = game_state.board.get_pieces(Color::White, PieceType::Bishop);
+        let black_pawns = game_state.board.get_pieces(Color::Black, PieceType::Bishop);
         println!("{} white pawns", white_pawns.len());
         println!("{} black pawns", black_pawns.len());
         let white_pawn_moves: Vec<Move> = vec![];
         for pawn in white_pawns {
             // println!("{:?}", pawn);
-            let moves = plmg::gen_rook_moves(&game_state.board, &pawn, &game_state);
+            let moves = plmg::gen_bishop_moves(&game_state.board, &pawn, &game_state);
             println!("{} moves found ", moves.len());
             for m in moves {
                 println!("{:?}", m);
@@ -64,7 +65,7 @@ fn main() {
         }
         for pawn in black_pawns {
             // println!("{:?}", pawn);
-            let moves = plmg::gen_rook_moves(&game_state.board, &pawn, &game_state);
+            let moves = plmg::gen_bishop_moves(&game_state.board, &pawn, &game_state);
             println!("{} moves found ", moves.len());
             for m in moves {
                 println!("{:?}", m);

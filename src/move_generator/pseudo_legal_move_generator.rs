@@ -112,6 +112,17 @@ mod tests {
 }
 
 pub fn gen_moves_for(board: &dyn BoardTrait, piece: &Piece) -> Vec<Move> {
+    // let moves = match piece.piece_type {
+    //     PieceType::King => move_generation::gen_king_moves(board, piece),
+    //     PieceType::Queen => move_generation::gen_queen_moves(board, piece),
+    //     PieceType::Bishop => move_generation::gen_bishop_moves(board, piece),
+    //     PieceType::Knight => move_generation::gen_knight_moves(board, piece),
+    //     PieceType::Rook => move_generation::gen_rook_moves(board, piece),
+    //     PieceType::Pawn => move_generation::gen_pawn_moves(board, piece),
+    // };
+    // return moves;
+
+
     let moves = match piece.piece_type {
         PieceType::King => move_generation::gen_king_moves(board, piece),
         PieceType::Queen => move_generation::gen_queen_moves(board, piece),

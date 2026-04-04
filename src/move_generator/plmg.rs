@@ -823,14 +823,144 @@ pub fn gen_bishop_moves(board: &BitBoard, piece: &Piece, game_state: &GameState)
     let less_board = start_bit - 1;
     let mut to_move_board: u64 = 0;
     let mut captures_board: u64 = 0;
+    // length for diagonals == 1 || 2
     let diagonals = BitBoard::get_diagonals_vec_for_bit(start_bit);
+    
+    let is_a_file = BitBoard::on_file(start_bit, A_FILE);
+    let is_h_file = BitBoard::on_file(start_bit, H_FILE);
 
-    // look for the up-right diagonal
-    // look for the up-left diagonal 
+    // check files or this stuff will wrap around, if the direction is off the board
+    // just set it to 0
+    let up_right_bit = match is_h_file {
+        true => 0,
+        false => start_bit << 9,
+    };
+    let up_left_bit = match is_a_file {
+        true => 0,
+        false => start_bit << 7,
+    };
+    let down_right_bit = match is_h_file {
+        true => 0,
+        false => start_bit >> 7,
+    };
+    let down_left_bit = match is_a_file {
+        true => 0,
+        false => start_bit >> 9,
+    };
 
-    let mut attack_board: u64 = KING_ATTACKS[(idx - 1) as usize];
+    for diagonal in diagonals {
+        /** UP RIGHT DIAGONAL */
+        if BitBoard::bit_on_bit_board(up_right_bit, diagonal)
+            || BitBoard::bit_on_bit_board(down_left_bit, diagonal)
+        {
+            // cut diagonal in half, top / bottom
+            let up_path = ((diagonal ^ less_board) & diagonal) ^ start_bit;
+            let down_path = (diagonal ^ up_path) ^ start_bit;
+            if up_path > 0 {
+                let occupied = up_path & board.pieces;
+                // get nearest
+                let nearest = BitBoard::lsb(occupied);
+                if nearest == 0 {
+                    // add all
+                    to_move_board = to_move_board | up_path;
+                } else {
+                    let is_enemy = BitBoard::bit_on_bit_board(nearest, enemy_bits);
+                    let mut below_nearest = (nearest - 1) & up_path;
+                    if is_enemy {
+                        below_nearest = ((nearest - 1) & up_path) | nearest;
+                        captures_board = captures_board | nearest;
+                    }
+                    BitBoard::print_bitboard(below_nearest);
+                    to_move_board = to_move_board | below_nearest;
+                }
+            }
+            if down_path > 0 {
+                let occupied = down_path & board.pieces;
+                // get nearest
+                let nearest = BitBoard::msb(occupied);
+                if nearest == 0 {
+                    // add all
+                    to_move_board = to_move_board | down_path;
+                } else {
+                    let is_enemy = BitBoard::bit_on_bit_board(nearest, enemy_bits);
+                    let mut above_nearest = (!(nearest - 1) & down_path ) ^ nearest;
+                    if is_enemy {
+                        above_nearest =  !(nearest - 1) & down_path;
+                        captures_board = captures_board | nearest;
+                    }
+                    to_move_board = to_move_board | above_nearest;
+                }
+            }
+        }
+        
+        /** UP LEFT DIAGONAL */
+        if BitBoard::bit_on_bit_board(up_left_bit, diagonal)
+            || BitBoard::bit_on_bit_board(down_right_bit, diagonal)
+        {
+            // cut diagonal in half, top / bottom
+            let up_path = ((diagonal ^ less_board) & diagonal) ^ start_bit;
+            let down_path = (diagonal ^ up_path) ^ start_bit;
+           if up_path > 0 {
+                let occupied = up_path & board.pieces;
+                // get nearest
+                let nearest = BitBoard::lsb(occupied);
+                if nearest == 0 {
+                    // add all
+                    to_move_board = to_move_board | up_path;
+                } else {
+                    let is_enemy = BitBoard::bit_on_bit_board(nearest, enemy_bits);
+                    let mut below_nearest = (nearest - 1) & up_path;
+                    if is_enemy {
+                        below_nearest = ((nearest - 1) & up_path) | nearest;
+                        captures_board = captures_board | nearest;
+                    }
+                    to_move_board = to_move_board | below_nearest;
+                }
+            }
+            if down_path > 0 {
+                let occupied = down_path & board.pieces;
+                // get nearest
+                let nearest = BitBoard::msb(occupied);
+                if nearest == 0 {
+                    // add all
+                    to_move_board = to_move_board | down_path;
+                } else {
+                    let is_enemy = BitBoard::bit_on_bit_board(nearest, enemy_bits);
+                    let mut above_nearest = (!(nearest - 1) & down_path ) ^ nearest;
+                    if is_enemy {
+                        above_nearest =  !(nearest - 1) & down_path;
+                        captures_board = captures_board | nearest;
+                    }
+                    to_move_board = to_move_board | above_nearest;
+                }
+            }
+        }
+    }
     let mut moves: Vec<Move> = vec![];
     let color = piece.color;
+
+    while to_move_board > 0 {
+        let to_bit = BitBoard::pop_bit(&mut to_move_board);
+        let to = BitBoard::bit_to_coordinate(to_bit);
+
+        if BitBoard::bit_on_bit_board(to_bit, captures_board) {
+            moves.push(make_move_to(
+                at,
+                &to,
+                piece,
+                MoveType::Move,
+                board,
+                game_state,
+            ));
+        } else {
+            moves.push(make_quiet_move_with_castle_rights(
+                at, &to, piece, game_state,
+            ));
+        }
+    }
+
+
+
     return moves;
 }
 
