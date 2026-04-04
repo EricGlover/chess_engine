@@ -19,9 +19,9 @@ use std::fmt::{Error, Formatter};
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub struct BitBoard {
-    pieces: u64,
-    white_pieces: u64,
-    black_pieces: u64,
+    pub pieces: u64,
+    pub white_pieces: u64,
+    pub black_pieces: u64,
     pawns: u64,
     knights: u64,
     bishops: u64,
@@ -173,6 +173,30 @@ impl BitBoard {
         }
     }
 
+    pub fn get_diagonals_vec_for_bit(bit:u64) -> Vec<u64> {
+        let mut diagonals:Vec<u64> = Vec::new();
+        let color = BitBoard::get_square_color(bit);
+        let mut arr1: &[u64; 7] = &LIGHT_ARRAY_UP_LEFT;
+        let mut arr2: &[u64; 6] = &LIGHT_ARRAY_UP_RIGHT;
+        if color == Color::Black {
+            arr1 = &DARK_ARRAY_UP_RIGHT;
+            arr2 = &DARK_ARRAY_UP_LEFT;
+        }
+        let d1 = arr1
+            .iter()
+            .find(|&&board| BitBoard::bit_on_bit_board(bit, board));
+        let d2 = arr2
+            .iter()
+            .find(|&&board| BitBoard::bit_on_bit_board(bit, board));
+        if d1.is_some() {
+            diagonals.push(*d1.unwrap());
+        }
+        if d2.is_some() {
+            diagonals.push(*d2.unwrap());
+        }
+        return diagonals;
+    }
+
     pub fn get_diagonals_for_bit(bit: u64) -> u64 {
         let color = BitBoard::get_square_color(bit);
         let mut arr1: &[u64; 7] = &LIGHT_ARRAY_UP_LEFT;
@@ -289,8 +313,20 @@ impl BitBoard {
         !bit_board + 1
     }
 
+    pub fn msb(bit_board: u64) -> u64 {
+        if bit_board == 0 {
+            return 0u64;
+        }
+        let go_right = u64::leading_zeros(bit_board);
+        let high_bit = 1u64 << 63;
+        return high_bit >> go_right;
+    }
+
     //@todo ::
     pub fn lsb(bit_board: u64) -> u64 {
+        if bit_board == 0 {
+            return 0u64;
+        }
         bit_board & (!bit_board + 1)
     }
 
@@ -464,6 +500,10 @@ impl BitBoard {
     //@todo
     pub fn idx_to_coordinate(idx: u64) -> u64 {
         0u64
+    }
+
+    pub fn idx_to_bit(idx: u64) -> u64 {
+        1u64 << (idx - 1)
     }
 
     //@todo : test
@@ -1269,6 +1309,19 @@ mod test {
     // pub fn coordinate_to_idx(c: Coordinate) -> u64 {
     //     return ((c.y() - 1) * 8 + c.x()) as u64;
     // }
+
+
+    #[test]
+    fn test_msb() {
+        let indices:Vec<u64> = vec![1, 12, 8, 24, 57, 64];
+        let bits:Vec<u64> = indices.iter().map(|idx| BitBoard::idx_to_bit(*idx)).collect();
+
+        for (idx , &bit) in bits.iter().enumerate() {
+            assert_eq!(BitBoard::msb(bit), bit);
+            let less_and = (bit - 1) | bit ;
+            assert_eq!(BitBoard::msb(less_and), bit);
+        }
+    }
 
     #[test]
     fn test_bit_to_coordinate() {
