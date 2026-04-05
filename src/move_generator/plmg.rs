@@ -817,9 +817,10 @@ pub fn gen_bishop_moves(board: &BitBoard, piece: &Piece, game_state: &GameState)
     let idx = BitBoard::coordinate_to_idx(*at);
     let start_bit = BitBoard::coordinate_to_bit(*at);
     let enemy_bits = match piece.color {
-        Color::White => board.black_pieces,
-        Color::Black => board.white_pieces,
+        Color::White => board.get_black_pieces_board(),
+        Color::Black => board.get_white_pieces_board(),
     };
+    let pieces_bit_board = board.get_piece_board();
     let less_board = start_bit - 1;
     let mut to_move_board: u64 = 0;
     let mut captures_board: u64 = 0;
@@ -857,7 +858,7 @@ pub fn gen_bishop_moves(board: &BitBoard, piece: &Piece, game_state: &GameState)
             let up_path = ((diagonal ^ less_board) & diagonal) ^ start_bit;
             let down_path = (diagonal ^ up_path) ^ start_bit;
             if up_path > 0 {
-                let occupied = up_path & board.pieces;
+                let occupied = up_path & pieces_bit_board;
                 // get nearest
                 let nearest = BitBoard::lsb(occupied);
                 if nearest == 0 {
@@ -875,7 +876,7 @@ pub fn gen_bishop_moves(board: &BitBoard, piece: &Piece, game_state: &GameState)
                 }
             }
             if down_path > 0 {
-                let occupied = down_path & board.pieces;
+                let occupied = down_path & pieces_bit_board;
                 // get nearest
                 let nearest = BitBoard::msb(occupied);
                 if nearest == 0 {
@@ -901,7 +902,7 @@ pub fn gen_bishop_moves(board: &BitBoard, piece: &Piece, game_state: &GameState)
             let up_path = ((diagonal ^ less_board) & diagonal) ^ start_bit;
             let down_path = (diagonal ^ up_path) ^ start_bit;
            if up_path > 0 {
-                let occupied = up_path & board.pieces;
+                let occupied = up_path & pieces_bit_board;
                 // get nearest
                 let nearest = BitBoard::lsb(occupied);
                 if nearest == 0 {
@@ -918,7 +919,7 @@ pub fn gen_bishop_moves(board: &BitBoard, piece: &Piece, game_state: &GameState)
                 }
             }
             if down_path > 0 {
-                let occupied = down_path & board.pieces;
+                let occupied = down_path & pieces_bit_board;
                 // get nearest
                 let nearest = BitBoard::msb(occupied);
                 if nearest == 0 {
@@ -968,15 +969,16 @@ pub fn gen_bishop_moves(board: &BitBoard, piece: &Piece, game_state: &GameState)
 // for the moment I'm just calculating it with fancy smancy bit manips
 pub fn gen_rook_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -> Vec<Move> {
     let at = piece.at().unwrap();
-    let idx = BitBoard::coordinate_to_idx(*at);
+    let idx: u64 = BitBoard::coordinate_to_idx(*at);
+    let pieces_bit_board = board.get_piece_board();
     println!("{} {}", at, idx);
 
     //plan get the ray, remove this piece, check for nearest other piece
     //going up or right the nearest piece is the lsb
     let start_bit = BitBoard::coordinate_to_bit(*at);
     let enemy_bits = match piece.color {
-        Color::White => board.black_pieces,
-        Color::Black => board.white_pieces,
+        Color::White => board.get_black_pieces_board(),
+        Color::Black => board.get_white_pieces_board(),
     };
     let less_board = start_bit - 1;
     let mut to_move_board: u64 = 0;
@@ -988,7 +990,7 @@ pub fn gen_rook_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -
     let below_me_file = (file ^ above_me_file) ^ start_bit;
     // above_me_file == 0 then there's no where up to go
     if above_me_file != 0 {
-        let occuppied = above_me_file & board.pieces;
+        let occuppied = above_me_file & pieces_bit_board;
         let nearest = BitBoard::lsb(occuppied);
         if nearest == 0 {
             to_move_board = to_move_board | above_me_file;
@@ -1006,7 +1008,7 @@ pub fn gen_rook_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -
     }
     // below_me_file == 0 then there's no where down to go
     if below_me_file != 0 {
-        let occuppied = below_me_file & board.pieces;
+        let occuppied = below_me_file & pieces_bit_board;
         let nearest = BitBoard::msb(occuppied);
         if nearest == 0 {
             to_move_board = to_move_board | below_me_file;
@@ -1030,7 +1032,7 @@ pub fn gen_rook_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -
     // BitBoard::print_bitboard(left_row);
     //left row == 0 then there's nowhere left
     if left_row != 0 {
-        let occupied = left_row & board.pieces;
+        let occupied = left_row & pieces_bit_board;
         // BitBoard::print_bitboard(occupied);
         let nearest = BitBoard::msb(occupied);
         if nearest == 0 {
@@ -1052,7 +1054,7 @@ pub fn gen_rook_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -
     // BitBoard::print_bitboard(right_row);
     // right row == 0 then there's nowhere right
     if right_row != 0 {
-        let occupied = right_row & board.pieces;
+        let occupied = right_row & pieces_bit_board;
         let nearest = BitBoard::lsb(occupied);
         if nearest == 0 {
             to_move_board = to_move_board | right_row;

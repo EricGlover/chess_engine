@@ -2,10 +2,7 @@ use std::collections::HashMap;
 use std::hash::Hash;
 
 use crate::bit_board::{self, BitBoard};
-use crate::board::{
-    BoardTrait, CastlingRights, Color, Coordinate, Piece, PieceType,
-    Square,
-};
+use crate::board::{BoardTrait, CastlingRights, Color, Coordinate, Piece, PieceType, Square};
 use crate::chess_notation::pgn::Game;
 use crate::move_generator::Move;
 
@@ -29,9 +26,9 @@ pub struct GameState {
 
 // @todo ::
 impl BoardTrait for GameState {
-     fn clone(&self) -> Box<dyn BoardTrait> {
+    fn clone(&self) -> Box<dyn BoardTrait> {
         Box::new(GameState::starting_game())
-     }
+    }
 
     // info about game going on
     fn player_to_move(&self) -> Color {
@@ -76,7 +73,7 @@ impl BoardTrait for GameState {
         return squares;
     }
     fn get_files(&self) -> Vec<Vec<&Square>> {
-        let files:Vec<Vec<&Square>> = Vec::new();
+        let files: Vec<Vec<&Square>> = Vec::new();
         return files;
     }
     // fn get_squares(&self) -> Vec<Vec<&Square>> {
@@ -89,24 +86,23 @@ impl BoardTrait for GameState {
 
     // moves
     //@todo
-    fn make_move_mut(&mut self, m: &Move) {
-
-    }
-    fn unmake_move_mut(&mut self, m: &Move) {
-
-    }
+    fn make_move_mut(&mut self, m: &Move) {}
+    fn unmake_move_mut(&mut self, m: &Move) {}
 
     // getting and setting pieces
     fn place_piece(&mut self, piece: Piece, at: &Coordinate) {
-        self.board.set_piece(piece.piece_type , piece.color, *at);
+        self.board.set_piece(piece.piece_type, piece.color, *at);
+        let idx = BitBoard::coordinate_to_idx(*at);
+        self.pieces.insert(idx, piece);
     }
     fn remove_piece(&mut self, piece: &Piece) -> Piece {
         if piece.at().is_none() {
             //error
             return Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(1, 1)));
         }
+        let idx = BitBoard::coordinate_to_idx(*piece.at().unwrap());
+        let piece = self.pieces.remove(&idx);
         return Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(1, 1)));
-        // self.board.remove_piece(piece.piece_type, piece.color, *piece.at().unwrap())
     }
     fn has_piece(&self, at: &Coordinate) -> bool {
         self.board.is_piece_at_coordinate(at)
@@ -114,23 +110,39 @@ impl BoardTrait for GameState {
     //@todo figure out our piece list
     //@todo, board.get_piece_at -> Option<Piece>
     fn get_piece_at(&self, at: &Coordinate) -> Option<&Piece> {
-        None
+        let idx = BitBoard::coordinate_to_idx(*at);
+        return self.pieces.get(&idx);
     }
     fn get_kings(&self) -> Vec<&Piece> {
-        let kings:Vec<&Piece> = Vec::new();
+        let mut kings: Vec<&Piece> = Vec::new();
+        for idx in self.board.get_piece_types_idx(PieceType::King) {
+            let piece_opt = self.pieces.get(&idx);
+            if piece_opt.is_some() {
+                kings.push(piece_opt.unwrap());
+            }
+        }
+
         return kings;
     }
     fn get_pieces(&self, color: Color, piece_type: PieceType) -> Vec<&Piece> {
-        let pieces:Vec<&Piece> = Vec::new();
+        let mut pieces: Vec<&Piece> = Vec::new();
+
+        for idx in self.board.get_piece_types_by_color_idx(piece_type, color) {
+            let piece_opt = self.pieces.get(&idx);
+            if piece_opt.is_some() {
+                pieces.push(piece_opt.unwrap());
+            }
+        }
         return pieces;
     }
     fn get_all_pieces(&self, color: Color) -> Vec<&Piece> {
-        let pieces:Vec<&Piece> = Vec::new();
-        return pieces;
+        return self.pieces.values().collect();
     }
+
     fn get_castling_rights_changes_if_piece_moves(&self, piece: &Piece) -> Option<CastlingRights> {
         None
     }
+
     fn get_castling_rights_changes_if_piece_is_captured(
         &self,
         piece: &Piece,
@@ -139,11 +151,9 @@ impl BoardTrait for GameState {
     }
 }
 
-
 impl GameState {
-    
     pub fn new() -> GameState {
-        GameState {
+        let mut g = GameState {
             player_to_move: Color::White,
             white_castling_rights: CastlingRights::new(true, true),
             black_castling_rights: CastlingRights::new(true, true),
@@ -156,7 +166,9 @@ impl GameState {
             squares: Vec::new(),
             pieces: HashMap::new(),
             _squares: GameState::make_squares(),
-        }
+        };
+        g.update_pieces();
+        return g;
     }
     pub fn make_game_state(
         player_to_move: Color,
@@ -169,7 +181,7 @@ impl GameState {
         full_move_number: u32,
         board: BitBoard,
     ) -> GameState {
-        GameState {
+        let mut g = GameState {
             player_to_move,
             white_castling_rights: CastlingRights::new(
                 white_can_castle_king_side,
@@ -188,10 +200,12 @@ impl GameState {
             squares: Vec::new(),
             pieces: HashMap::new(),
             _squares: GameState::make_squares(),
-        }
+        };
+        g.update_pieces();
+        return g;
     }
     pub fn starting_game() -> GameState {
-        GameState {
+        let mut g = GameState {
             player_to_move: Color::White,
             white_castling_rights: CastlingRights::new(true, true),
             black_castling_rights: CastlingRights::new(true, true),
@@ -204,6 +218,266 @@ impl GameState {
             squares: Vec::new(),
             pieces: HashMap::new(),
             _squares: GameState::make_squares(),
+        };
+        g.update_pieces();
+        return g;
+    }
+
+    // @note : definitely not the prettiest function every but whatever.
+    pub fn update_pieces(&mut self) {
+        if self.dirty_pieces {
+            //empty the hash map
+            let mut white_pawns: Vec<Piece> = Vec::new();
+            let mut white_knights: Vec<Piece> = Vec::new();
+            let mut white_rooks: Vec<Piece> = Vec::new();
+            let mut white_bishops: Vec<Piece> = Vec::new();
+            let mut white_queens: Vec<Piece> = Vec::new();
+            let mut white_kings: Vec<Piece> = Vec::new();
+
+            let mut black_pawns: Vec<Piece> = Vec::new();
+            let mut black_knights: Vec<Piece> = Vec::new();
+            let mut black_rooks: Vec<Piece> = Vec::new();
+            let mut black_bishops: Vec<Piece> = Vec::new();
+            let mut black_queens: Vec<Piece> = Vec::new();
+            let mut black_kings: Vec<Piece> = Vec::new();
+
+            ///
+            for idx in (1..=64u64) {
+                let v = self.pieces.remove(&idx);
+                if v.is_some() {
+                    let piece: Piece = v.unwrap();
+                    if piece.color == Color::White {
+                        match piece.piece_type {
+                            PieceType::King => white_kings.push(piece),
+                            PieceType::Queen => white_queens.push(piece),
+                            PieceType::Bishop => white_bishops.push(piece),
+                            PieceType::Knight => white_knights.push(piece),
+                            PieceType::Rook => white_rooks.push(piece),
+                            PieceType::Pawn => white_pawns.push(piece),
+                        }
+                    } else {
+                        match piece.piece_type {
+                            PieceType::King => black_kings.push(piece),
+                            PieceType::Queen => black_queens.push(piece),
+                            PieceType::Bishop => black_bishops.push(piece),
+                            PieceType::Knight => black_knights.push(piece),
+                            PieceType::Rook => black_rooks.push(piece),
+                            PieceType::Pawn => black_pawns.push(piece),
+                        }
+                    }
+                }
+            }
+
+            // get the indices of the where the pieces are from the bit-board
+            // grab an appropriate piece from the list, update it's location
+            // and set it in dictionary
+
+            /** WHITE PIECES  */
+            for idx in self
+                .board
+                .get_piece_types_by_color_idx(PieceType::Pawn, Color::White)
+            {
+                // grab a white pawn
+                let opt = white_pawns.pop();
+                let at = BitBoard::idx_to_coordinate(idx);
+                if opt.is_some() {
+                    let mut pawn = opt.unwrap();
+                    pawn.set_at(at);
+                    self.pieces.insert(idx, pawn);
+                } else {
+                    let pawn = Piece::new(Color::White, PieceType::Pawn, Some(at));
+                    self.pieces.insert(idx, pawn);
+                }
+            }
+            for idx in self
+                .board
+                .get_piece_types_by_color_idx(PieceType::Knight, Color::White)
+            {
+                // grab a white pawn
+                let opt = white_knights.pop();
+                let at = BitBoard::idx_to_coordinate(idx);
+                if opt.is_some() {
+                    let mut pawn = opt.unwrap();
+
+                    pawn.set_at(at);
+                    self.pieces.insert(idx, pawn);
+                } else {
+                    let pawn = Piece::new(Color::White, PieceType::Knight, Some(at));
+                    self.pieces.insert(idx, pawn);
+                }
+            }
+            for idx in self
+                .board
+                .get_piece_types_by_color_idx(PieceType::Bishop, Color::White)
+            {
+                // grab a white pawn
+                let opt = white_bishops.pop();
+                let at = BitBoard::idx_to_coordinate(idx);
+                if opt.is_some() {
+                    let mut pawn = opt.unwrap();
+
+                    pawn.set_at(at);
+                    self.pieces.insert(idx, pawn);
+                } else {
+                    let pawn = Piece::new(Color::White, PieceType::Bishop, Some(at));
+                    self.pieces.insert(idx, pawn);
+                }
+            }
+            for idx in self
+                .board
+                .get_piece_types_by_color_idx(PieceType::Rook, Color::White)
+            {
+                // grab a white pawn
+                let opt = white_rooks.pop();
+                let at = BitBoard::idx_to_coordinate(idx);
+                if opt.is_some() {
+                    let mut pawn = opt.unwrap();
+
+                    pawn.set_at(at);
+                    self.pieces.insert(idx, pawn);
+                } else {
+                    let pawn = Piece::new(Color::White, PieceType::Rook, Some(at));
+                    self.pieces.insert(idx, pawn);
+                }
+            }
+            for idx in self
+                .board
+                .get_piece_types_by_color_idx(PieceType::Queen, Color::White)
+            {
+                // grab a white pawn
+                let opt = white_queens.pop();
+                let at = BitBoard::idx_to_coordinate(idx);
+                if opt.is_some() {
+                    let mut pawn = opt.unwrap();
+
+                    pawn.set_at(at);
+                    self.pieces.insert(idx, pawn);
+                } else {
+                    let pawn = Piece::new(Color::White, PieceType::Queen, Some(at));
+                    self.pieces.insert(idx, pawn);
+                }
+            }
+            for idx in self
+                .board
+                .get_piece_types_by_color_idx(PieceType::King, Color::White)
+            {
+                // grab a white pawn
+                let opt = white_kings.pop();
+                let at = BitBoard::idx_to_coordinate(idx);
+                if opt.is_some() {
+                    let mut pawn = opt.unwrap();
+
+                    pawn.set_at(at);
+                    self.pieces.insert(idx, pawn);
+                } else {
+                    let pawn = Piece::new(Color::White, PieceType::King, Some(at));
+                    self.pieces.insert(idx, pawn);
+                }
+            }
+            /** BLACK PIECES  */
+            for idx in self
+                .board
+                .get_piece_types_by_color_idx(PieceType::Pawn, Color::Black)
+            {
+                // grab a white pawn
+                let opt = black_pawns.pop();
+                let at = BitBoard::idx_to_coordinate(idx);
+                if opt.is_some() {
+                    let mut pawn = opt.unwrap();
+
+                    pawn.set_at(at);
+                    self.pieces.insert(idx, pawn);
+                } else {
+                    let pawn = Piece::new(Color::Black, PieceType::Pawn, Some(at));
+                    self.pieces.insert(idx, pawn);
+                }
+            }
+            for idx in self
+                .board
+                .get_piece_types_by_color_idx(PieceType::Knight, Color::Black)
+            {
+                // grab a white pawn
+                let opt = black_knights.pop();
+                let at = BitBoard::idx_to_coordinate(idx);
+                if opt.is_some() {
+                    let mut pawn = opt.unwrap();
+
+                    pawn.set_at(at);
+                    self.pieces.insert(idx, pawn);
+                } else {
+                    let pawn = Piece::new(Color::Black, PieceType::Knight, Some(at));
+                    self.pieces.insert(idx, pawn);
+                }
+            }
+            for idx in self
+                .board
+                .get_piece_types_by_color_idx(PieceType::Bishop, Color::Black)
+            {
+                // grab a white pawn
+                let opt = black_bishops.pop();
+                let at = BitBoard::idx_to_coordinate(idx);
+                if opt.is_some() {
+                    let mut pawn = opt.unwrap();
+
+                    pawn.set_at(at);
+                    self.pieces.insert(idx, pawn);
+                } else {
+                    let pawn = Piece::new(Color::Black, PieceType::Bishop, Some(at));
+                    self.pieces.insert(idx, pawn);
+                }
+            }
+            for idx in self
+                .board
+                .get_piece_types_by_color_idx(PieceType::Rook, Color::Black)
+            {
+                // grab a white pawn
+                let opt = black_rooks.pop();
+                let at = BitBoard::idx_to_coordinate(idx);
+                if opt.is_some() {
+                    let mut pawn = opt.unwrap();
+
+                    pawn.set_at(at);
+                    self.pieces.insert(idx, pawn);
+                } else {
+                    let pawn = Piece::new(Color::Black, PieceType::Rook, Some(at));
+                    self.pieces.insert(idx, pawn);
+                }
+            }
+            for idx in self
+                .board
+                .get_piece_types_by_color_idx(PieceType::Queen, Color::Black)
+            {
+                // grab a white pawn
+                let opt = black_queens.pop();
+                let at = BitBoard::idx_to_coordinate(idx);
+                if opt.is_some() {
+                    let mut pawn = opt.unwrap();
+
+                    pawn.set_at(at);
+                    self.pieces.insert(idx, pawn);
+                } else {
+                    let pawn = Piece::new(Color::Black, PieceType::Queen, Some(at));
+                    self.pieces.insert(idx, pawn);
+                }
+            }
+            for idx in self
+                .board
+                .get_piece_types_by_color_idx(PieceType::King, Color::Black)
+            {
+                // grab a white pawn
+                let opt = black_kings.pop();
+                let at = BitBoard::idx_to_coordinate(idx);
+                if opt.is_some() {
+                    let mut pawn = opt.unwrap();
+
+                    pawn.set_at(at);
+                    self.pieces.insert(idx, pawn);
+                } else {
+                    let pawn = Piece::new(Color::Black, PieceType::King, Some(at));
+                    self.pieces.insert(idx, pawn);
+                }
+            }
+            self.dirty_pieces = false;
         }
     }
 
@@ -251,7 +525,7 @@ impl GameState {
     }
 
     pub fn make_squares() -> [[Square; 8]; 8] {
-         [
+        [
             [
                 Square::new(Coordinate::new(1, 1), None, Color::Black),
                 Square::new(Coordinate::new(2, 1), None, Color::White),

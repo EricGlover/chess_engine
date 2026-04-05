@@ -19,9 +19,9 @@ use std::fmt::{Error, Formatter};
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub struct BitBoard {
-    pub pieces: u64,
-    pub white_pieces: u64,
-    pub black_pieces: u64,
+    pieces: u64,
+    white_pieces: u64,
+    black_pieces: u64,
     pawns: u64,
     knights: u64,
     bishops: u64,
@@ -160,6 +160,36 @@ impl BitBoard {
         }
         return board;
     }
+
+    pub fn get_piece_board(&self) -> u64 {
+        self.pieces
+    }
+
+    pub fn get_white_pieces_board(&self) -> u64 {
+        self.white_pieces
+    }
+    pub fn get_black_pieces_board(&self) -> u64 {
+        self.black_pieces
+    }
+    pub fn get_pawns_board(&self) -> u64 {
+        self.pawns
+    }
+    pub fn get_knights_board(&self) -> u64 {
+        self.knights
+    }
+    pub fn get_bishops_board(&self) -> u64 {
+        self.bishops
+    }
+    pub fn get_rooks_board(&self) -> u64 {
+        self.rooks
+    }
+    pub fn get_queens_board(&self) -> u64 {
+        self.queens
+    }
+    pub fn get_kings_board(&self) -> u64 {
+        self.kings
+    }
+
     pub fn get_square_color_at(coordinate: Coordinate) -> Color {
         let bit = BitBoard::coordinate_to_bit(coordinate);
         return BitBoard::get_square_color(bit);
@@ -173,8 +203,8 @@ impl BitBoard {
         }
     }
 
-    pub fn get_diagonals_vec_for_bit(bit:u64) -> Vec<u64> {
-        let mut diagonals:Vec<u64> = Vec::new();
+    pub fn get_diagonals_vec_for_bit(bit: u64) -> Vec<u64> {
+        let mut diagonals: Vec<u64> = Vec::new();
         let color = BitBoard::get_square_color(bit);
         let mut arr1: &[u64; 7] = &LIGHT_ARRAY_UP_LEFT;
         let mut arr2: &[u64; 6] = &LIGHT_ARRAY_UP_RIGHT;
@@ -277,6 +307,14 @@ impl BitBoard {
         return 0;
     }
 
+    pub fn get_white_pieces(&self) -> u64 {
+        self.white_pieces
+    }
+
+    pub fn get_black_pieces(&self) -> u64 {
+        self.black_pieces
+    }
+
     //@todo: test
     pub fn get_piece_count(&self) -> u64 {
         u64::count_ones(self.pieces) as u64
@@ -290,6 +328,111 @@ impl BitBoard {
     //@todo: test
     pub fn get_black_piece_count(&self) -> u64 {
         u64::count_ones(self.black_pieces) as u64
+    }
+
+    pub fn get_piece_types_idx(&self, piece_type: PieceType) -> Vec<u64> {
+        let piece_type_board = match piece_type {
+            PieceType::King => self.kings,
+            PieceType::Queen => self.queens,
+            PieceType::Bishop => self.bishops,
+            PieceType::Knight => self.knights,
+            PieceType::Rook => self.rooks,
+            PieceType::Pawn => self.pawns,
+        };
+        return BitBoard::get_indices_of_bit_board(piece_type_board);
+    }
+
+    pub fn get_piece_types_by_color_idx(&self, piece_type: PieceType, color: Color) -> Vec<u64> {
+        let color_board = match color {
+            Color::White => self.white_pieces,
+            Color::Black => self.black_pieces,
+        };
+        let piece_type_board = match piece_type {
+            PieceType::King => self.kings,
+            PieceType::Queen => self.queens,
+            PieceType::Bishop => self.bishops,
+            PieceType::Knight => self.knights,
+            PieceType::Rook => self.rooks,
+            PieceType::Pawn => self.pawns,
+        };
+        return BitBoard::get_indices_of_bit_board(piece_type_board & color_board);
+    }
+
+    //@todo : remove, use game_state.get_all_pieces()
+    //preferably don't call this
+    pub fn get_all_pieces(&self, color: Color) -> Vec<Piece> {
+        let mut pieces: Vec<Piece> = vec![];
+        let mut all_pieces = self.pieces;
+        while all_pieces > 0 {
+            let bit = BitBoard::pop_bit(&mut all_pieces);
+        }
+        return pieces;
+    }
+
+    //@todo : remove, use game_state.get_pieces()
+    //preferably don't call this
+    pub fn get_pieces(&self, color: Color, piece_type: PieceType) -> Vec<Piece> {
+        let mut pieces: Vec<Piece> = vec![];
+        let color_board = match color {
+            Color::White => self.white_pieces,
+            Color::Black => self.black_pieces,
+        };
+        let piece_type_board = match piece_type {
+            PieceType::King => self.kings,
+            PieceType::Queen => self.queens,
+            PieceType::Bishop => self.bishops,
+            PieceType::Knight => self.knights,
+            PieceType::Rook => self.rooks,
+            PieceType::Pawn => self.pawns,
+        };
+        let mut all_pieces = color_board & piece_type_board;
+        while all_pieces > 0 {
+            let bit = BitBoard::pop_bit(&mut all_pieces);
+            pieces.push(Piece::new(
+                color,
+                piece_type,
+                Some(BitBoard::bit_to_coordinate(bit)),
+            ));
+        }
+        return pieces;
+    }
+
+    //@todo : test
+    pub fn get_piece_at(&self, at: &Coordinate) -> Option<Piece> {
+        // check pieces
+        let idx = BitBoard::coordinate_to_idx(*at);
+        // check all pieces
+        if BitBoard::get_bit(self.pieces, idx) {
+            // check color
+            let mut color: Option<Color> = None;
+            if BitBoard::get_bit(self.white_pieces, idx) {
+                color = Some(Color::White);
+            } else if BitBoard::get_bit(self.black_pieces, idx) {
+                color = Some(Color::Black);
+            } else {
+                return None;
+            }
+            let mut piece_type: Option<PieceType> = None;
+            if BitBoard::get_bit(self.kings, idx) {
+                piece_type = Some(PieceType::King);
+            } else if BitBoard::get_bit(self.queens, idx) {
+                piece_type = Some(PieceType::Queen);
+            } else if BitBoard::get_bit(self.bishops, idx) {
+                piece_type = Some(PieceType::Bishop);
+            } else if BitBoard::get_bit(self.knights, idx) {
+                piece_type = Some(PieceType::Knight);
+            } else if BitBoard::get_bit(self.rooks, idx) {
+                piece_type = Some(PieceType::Rook);
+            } else if BitBoard::get_bit(self.pawns, idx) {
+                piece_type = Some(PieceType::Pawn);
+            } else {
+                return None;
+            }
+            return Some(Piece::new(color.unwrap(), piece_type.unwrap(), Some(*at)));
+        } else {
+            return None;
+        }
+        return None;
     }
 
     //@todo: test
@@ -328,6 +471,15 @@ impl BitBoard {
             return 0u64;
         }
         bit_board & (!bit_board + 1)
+    }
+
+    pub fn get_indices_of_bit_board(mut bit_board: u64) -> Vec<u64> {
+        let mut indices: Vec<u64> = Vec::new();
+        while bit_board > 0 {
+            let lsb = BitBoard::pop_bit(&mut bit_board);
+            indices.push((u64::trailing_zeros(lsb) + 1) as u64);
+        }
+        return indices;
     }
 
     //@todo : get idx of bit
@@ -464,14 +616,6 @@ impl BitBoard {
         board_a & board_b
     }
 
-    pub fn get_white_pieces(&self) -> u64 {
-        self.white_pieces
-    }
-
-    pub fn get_black_pieces(&self) -> u64 {
-        self.black_pieces
-    }
-
     pub fn attack_map_to_coordinates(attack_map: u64) -> Vec<Coordinate> {
         let mut attack_map = attack_map;
         let mut coordinates: Vec<Coordinate> = vec![];
@@ -484,7 +628,7 @@ impl BitBoard {
 
     pub fn bit_to_coordinate(bit: u64) -> Coordinate {
         let idx = BitBoard::get_index_of_bit(bit);
-        return Coordinate::new((((idx - 1) % 8) +1) as u8, (((idx - 1) / 8) + 1) as u8);
+        return Coordinate::new((((idx - 1) % 8) + 1) as u8, (((idx - 1) / 8) + 1) as u8);
     }
 
     pub fn coordinate_to_bit(coordinate: Coordinate) -> u64 {
@@ -498,8 +642,8 @@ impl BitBoard {
     }
 
     //@todo
-    pub fn idx_to_coordinate(idx: u64) -> u64 {
-        0u64
+    pub fn idx_to_coordinate(idx: u64) -> Coordinate {
+        BitBoard::bit_to_coordinate(BitBoard::idx_to_bit(idx))
     }
 
     pub fn idx_to_bit(idx: u64) -> u64 {
@@ -545,80 +689,6 @@ impl BitBoard {
     **/
     pub fn has_piece_at(&self, bit_board: u64) -> bool {
         (self.pieces & bit_board) > 0u64
-    }
-
-    //preferably don't call this
-    pub fn get_all_pieces(&self, color: Color) -> Vec<Piece> {
-        let mut pieces: Vec<Piece> = vec![];
-        let mut all_pieces = self.pieces;
-        while all_pieces > 0 {
-            let bit = BitBoard::pop_bit(&mut all_pieces);
-        }
-        return pieces;
-    }
-    //preferably don't call this
-    pub fn get_pieces(&self, color: Color, piece_type: PieceType) -> Vec<Piece> {
-        let mut pieces: Vec<Piece> = vec![];
-        let color_board = match color {
-            Color::White => self.white_pieces,
-            Color::Black => self.black_pieces,
-        };
-        let piece_type_board = match piece_type {
-            PieceType::King => self.kings,
-            PieceType::Queen => self.queens,
-            PieceType::Bishop => self.bishops,
-            PieceType::Knight => self.knights,
-            PieceType::Rook => self.rooks,
-            PieceType::Pawn => self.pawns,
-        };
-        let mut all_pieces = color_board & piece_type_board;
-        while all_pieces > 0 {
-            let bit = BitBoard::pop_bit(&mut all_pieces);
-            pieces.push(Piece::new(
-                color,
-                piece_type,
-                Some(BitBoard::bit_to_coordinate(bit)),
-            ));
-        }
-        return pieces;
-    }
-
-    //@todo : test
-    pub fn get_piece_at(&self, at: &Coordinate) -> Option<Piece> {
-        // check pieces
-        let idx = BitBoard::coordinate_to_idx(*at);
-        // check all pieces
-        if BitBoard::get_bit(self.pieces, idx) {
-            // check color
-            let mut color: Option<Color> = None;
-            if BitBoard::get_bit(self.white_pieces, idx) {
-                color = Some(Color::White);
-            } else if BitBoard::get_bit(self.black_pieces, idx) {
-                color = Some(Color::Black);
-            } else {
-                return None;
-            }
-            let mut piece_type: Option<PieceType> = None;
-            if BitBoard::get_bit(self.kings, idx) {
-                piece_type = Some(PieceType::King);
-            } else if BitBoard::get_bit(self.queens, idx) {
-                piece_type = Some(PieceType::Queen);
-            } else if BitBoard::get_bit(self.bishops, idx) {
-                piece_type = Some(PieceType::Bishop);
-            } else if BitBoard::get_bit(self.knights, idx) {
-                piece_type = Some(PieceType::Knight);
-            } else if BitBoard::get_bit(self.rooks, idx) {
-                piece_type = Some(PieceType::Rook);
-            } else if BitBoard::get_bit(self.pawns, idx) {
-                piece_type = Some(PieceType::Pawn);
-            } else {
-                return None;
-            }
-            return Some(Piece::new(color.unwrap(), piece_type.unwrap(), Some(*at)));
-        } else {
-            return None;
-        }
-        return None;
     }
 
     //@todo : test
@@ -1310,15 +1380,17 @@ mod test {
     //     return ((c.y() - 1) * 8 + c.x()) as u64;
     // }
 
-
     #[test]
     fn test_msb() {
-        let indices:Vec<u64> = vec![1, 12, 8, 24, 57, 64];
-        let bits:Vec<u64> = indices.iter().map(|idx| BitBoard::idx_to_bit(*idx)).collect();
+        let indices: Vec<u64> = vec![1, 12, 8, 24, 57, 64];
+        let bits: Vec<u64> = indices
+            .iter()
+            .map(|idx| BitBoard::idx_to_bit(*idx))
+            .collect();
 
-        for (idx , &bit) in bits.iter().enumerate() {
+        for (idx, &bit) in bits.iter().enumerate() {
             assert_eq!(BitBoard::msb(bit), bit);
-            let less_and = (bit - 1) | bit ;
+            let less_and = (bit - 1) | bit;
             assert_eq!(BitBoard::msb(less_and), bit);
         }
     }

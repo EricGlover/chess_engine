@@ -1,7 +1,7 @@
 #![warn(unused_extern_crates)]
 use chess_engine::bit_board;
 use chess_engine::bit_board::BitBoard;
-use chess_engine::board::Board;
+use chess_engine::board::{Board, BoardTrait};
 use chess_engine::board::{Color, Coordinate, Piece, PieceType};
 use chess_engine::board_console_printer::print_bit_board;
 use chess_engine::chess_notation::{self, fen_reader};
@@ -34,7 +34,7 @@ fn print_help_menu() {
 }
 
 fn main() {
-    let debug = false;
+    let debug = true;
     if debug {
 
         // bit_board::test();
@@ -50,8 +50,8 @@ fn main() {
         print_bit_board(game_state.board);
         // println!("{:?}", game_state);
 
-        let white_pawns = game_state.board.get_pieces(Color::White, PieceType::Bishop);
-        let black_pawns = game_state.board.get_pieces(Color::Black, PieceType::Bishop);
+        let white_pawns = game_state.get_pieces(Color::White, PieceType::Bishop);
+        let black_pawns = game_state.get_pieces(Color::Black, PieceType::Bishop);
         println!("{} white pawns", white_pawns.len());
         println!("{} black pawns", black_pawns.len());
         let white_pawn_moves: Vec<Move> = vec![];
