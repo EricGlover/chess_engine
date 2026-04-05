@@ -21,7 +21,6 @@ pub struct GameState {
     dirty_pieces: bool,
     squares: Vec<Square>,
     pieces: HashMap<u64, Piece>,
-    _squares: [[Square; 8]; 8],
 }
 
 // @todo ::
@@ -65,15 +64,32 @@ impl BoardTrait for GameState {
     // getting squares
     //@todo
     fn squares_list(&self) -> Vec<&Square> {
-        let squares = Vec::new();
-        return squares;
+        self.squares.iter().collect()
     }
     fn get_rank(&self, y: u8) -> Vec<&Square> {
-        let squares = Vec::new();
-        return squares;
+        let mut rank: Vec<&Square> = Vec::new();
+        for x in (1..=8u64) {
+            let c = Coordinate::new(x as u8, y);
+            let idx = BitBoard::coordinate_to_idx(c);
+            if idx == 0 {
+                println!("{}", c);
+                panic!("");
+            }
+            rank.push(&self.squares[(idx - 1) as usize]);
+        }
+        return rank;
     }
     fn get_files(&self) -> Vec<Vec<&Square>> {
-        let files: Vec<Vec<&Square>> = Vec::new();
+        let mut files: Vec<Vec<&Square>> = Vec::new();
+        for x in (1..=8u64) {
+            let mut file: Vec<&Square> = vec![];
+            for y in (1..=8u64) {
+                let c = Coordinate::new(x as u8, y as u8);
+                let idx = BitBoard::coordinate_to_idx(c);
+                file.push(&self.squares[(idx - 1) as usize]);
+            }
+            files.push(file);
+        }
         return files;
     }
     // fn get_squares(&self) -> Vec<Vec<&Square>> {
@@ -165,9 +181,9 @@ impl GameState {
             dirty_pieces: true,
             squares: Vec::new(),
             pieces: HashMap::new(),
-            _squares: GameState::make_squares(),
         };
         g.update_pieces();
+        g.update_squares();
         return g;
     }
     pub fn make_game_state(
@@ -199,9 +215,9 @@ impl GameState {
             dirty_pieces: true,
             squares: Vec::new(),
             pieces: HashMap::new(),
-            _squares: GameState::make_squares(),
         };
         g.update_pieces();
+        g.update_squares();
         return g;
     }
     pub fn starting_game() -> GameState {
@@ -217,10 +233,33 @@ impl GameState {
             dirty_pieces: true,
             squares: Vec::new(),
             pieces: HashMap::new(),
-            _squares: GameState::make_squares(),
         };
         g.update_pieces();
+        g.update_squares();
         return g;
+    }
+
+    pub fn get_piece_list(&mut self) -> Vec<&Piece> {
+        if self.dirty_pieces {
+            self.update_pieces();
+        }
+        return self.pieces.values().collect();
+    }
+
+    pub fn update_squares(&mut self) {
+        if self.dirty_squares {
+            if self.squares.len() == 0 {
+                self.squares = GameState::make_squares()
+            }
+            //place pieces
+            for (idx, piece) in self.pieces.iter() {
+                if let Some(square) = self.squares.get_mut((idx - 1) as usize) {
+                    square.set_piece_to(piece);
+                } else {
+                    panic!("{} {}", idx, piece);
+                }
+            }
+        }
     }
 
     // @note : definitely not the prettiest function every but whatever.
@@ -520,92 +559,74 @@ impl GameState {
             None
         }
     }
-    fn init_squares(mut self) {
-        //@todo
-    }
 
-    pub fn make_squares() -> [[Square; 8]; 8] {
-        [
-            [
-                Square::new(Coordinate::new(1, 1), None, Color::Black),
-                Square::new(Coordinate::new(2, 1), None, Color::White),
-                Square::new(Coordinate::new(3, 1), None, Color::Black),
-                Square::new(Coordinate::new(4, 1), None, Color::White),
-                Square::new(Coordinate::new(5, 1), None, Color::Black),
-                Square::new(Coordinate::new(6, 1), None, Color::White),
-                Square::new(Coordinate::new(7, 1), None, Color::Black),
-                Square::new(Coordinate::new(8, 1), None, Color::White),
-            ],
-            [
-                Square::new(Coordinate::new(1, 2), None, Color::White),
-                Square::new(Coordinate::new(2, 2), None, Color::Black),
-                Square::new(Coordinate::new(3, 2), None, Color::White),
-                Square::new(Coordinate::new(4, 2), None, Color::Black),
-                Square::new(Coordinate::new(5, 2), None, Color::White),
-                Square::new(Coordinate::new(6, 2), None, Color::Black),
-                Square::new(Coordinate::new(7, 2), None, Color::White),
-                Square::new(Coordinate::new(8, 2), None, Color::Black),
-            ],
-            [
-                Square::new(Coordinate::new(1, 3), None, Color::Black),
-                Square::new(Coordinate::new(2, 3), None, Color::White),
-                Square::new(Coordinate::new(3, 3), None, Color::Black),
-                Square::new(Coordinate::new(4, 3), None, Color::White),
-                Square::new(Coordinate::new(5, 3), None, Color::Black),
-                Square::new(Coordinate::new(6, 3), None, Color::White),
-                Square::new(Coordinate::new(7, 3), None, Color::Black),
-                Square::new(Coordinate::new(8, 3), None, Color::White),
-            ],
-            [
-                Square::new(Coordinate::new(1, 4), None, Color::White),
-                Square::new(Coordinate::new(2, 4), None, Color::Black),
-                Square::new(Coordinate::new(3, 4), None, Color::White),
-                Square::new(Coordinate::new(4, 4), None, Color::Black),
-                Square::new(Coordinate::new(5, 4), None, Color::White),
-                Square::new(Coordinate::new(6, 4), None, Color::Black),
-                Square::new(Coordinate::new(7, 4), None, Color::White),
-                Square::new(Coordinate::new(8, 4), None, Color::Black),
-            ],
-            [
-                Square::new(Coordinate::new(1, 5), None, Color::Black),
-                Square::new(Coordinate::new(2, 5), None, Color::White),
-                Square::new(Coordinate::new(3, 5), None, Color::Black),
-                Square::new(Coordinate::new(4, 5), None, Color::White),
-                Square::new(Coordinate::new(5, 5), None, Color::Black),
-                Square::new(Coordinate::new(6, 5), None, Color::White),
-                Square::new(Coordinate::new(7, 5), None, Color::Black),
-                Square::new(Coordinate::new(8, 5), None, Color::White),
-            ],
-            [
-                Square::new(Coordinate::new(1, 6), None, Color::White),
-                Square::new(Coordinate::new(2, 6), None, Color::Black),
-                Square::new(Coordinate::new(3, 6), None, Color::White),
-                Square::new(Coordinate::new(4, 6), None, Color::Black),
-                Square::new(Coordinate::new(5, 6), None, Color::White),
-                Square::new(Coordinate::new(6, 6), None, Color::Black),
-                Square::new(Coordinate::new(7, 6), None, Color::White),
-                Square::new(Coordinate::new(8, 6), None, Color::Black),
-            ],
-            [
-                Square::new(Coordinate::new(1, 7), None, Color::Black),
-                Square::new(Coordinate::new(2, 7), None, Color::White),
-                Square::new(Coordinate::new(3, 7), None, Color::Black),
-                Square::new(Coordinate::new(4, 7), None, Color::White),
-                Square::new(Coordinate::new(5, 7), None, Color::Black),
-                Square::new(Coordinate::new(6, 7), None, Color::White),
-                Square::new(Coordinate::new(7, 7), None, Color::Black),
-                Square::new(Coordinate::new(8, 7), None, Color::White),
-            ],
-            [
-                Square::new(Coordinate::new(1, 8), None, Color::White),
-                Square::new(Coordinate::new(2, 8), None, Color::Black),
-                Square::new(Coordinate::new(3, 8), None, Color::White),
-                Square::new(Coordinate::new(4, 8), None, Color::Black),
-                Square::new(Coordinate::new(5, 8), None, Color::White),
-                Square::new(Coordinate::new(6, 8), None, Color::Black),
-                Square::new(Coordinate::new(7, 8), None, Color::White),
-                Square::new(Coordinate::new(8, 8), None, Color::Black),
-            ],
+    // note squares[idx], bit_board[idx_b] where idx + 1 = idx_b = Coordinate(blah)
+    pub fn make_squares() -> Vec<Square> {
+        vec![
+            Square::new(Coordinate::new(1, 1), None, Color::Black),
+            Square::new(Coordinate::new(2, 1), None, Color::White),
+            Square::new(Coordinate::new(3, 1), None, Color::Black),
+            Square::new(Coordinate::new(4, 1), None, Color::White),
+            Square::new(Coordinate::new(5, 1), None, Color::Black),
+            Square::new(Coordinate::new(6, 1), None, Color::White),
+            Square::new(Coordinate::new(7, 1), None, Color::Black),
+            Square::new(Coordinate::new(8, 1), None, Color::White),
+            Square::new(Coordinate::new(1, 2), None, Color::White),
+            Square::new(Coordinate::new(2, 2), None, Color::Black),
+            Square::new(Coordinate::new(3, 2), None, Color::White),
+            Square::new(Coordinate::new(4, 2), None, Color::Black),
+            Square::new(Coordinate::new(5, 2), None, Color::White),
+            Square::new(Coordinate::new(6, 2), None, Color::Black),
+            Square::new(Coordinate::new(7, 2), None, Color::White),
+            Square::new(Coordinate::new(8, 2), None, Color::Black),
+            Square::new(Coordinate::new(1, 3), None, Color::Black),
+            Square::new(Coordinate::new(2, 3), None, Color::White),
+            Square::new(Coordinate::new(3, 3), None, Color::Black),
+            Square::new(Coordinate::new(4, 3), None, Color::White),
+            Square::new(Coordinate::new(5, 3), None, Color::Black),
+            Square::new(Coordinate::new(6, 3), None, Color::White),
+            Square::new(Coordinate::new(7, 3), None, Color::Black),
+            Square::new(Coordinate::new(8, 3), None, Color::White),
+            Square::new(Coordinate::new(1, 4), None, Color::White),
+            Square::new(Coordinate::new(2, 4), None, Color::Black),
+            Square::new(Coordinate::new(3, 4), None, Color::White),
+            Square::new(Coordinate::new(4, 4), None, Color::Black),
+            Square::new(Coordinate::new(5, 4), None, Color::White),
+            Square::new(Coordinate::new(6, 4), None, Color::Black),
+            Square::new(Coordinate::new(7, 4), None, Color::White),
+            Square::new(Coordinate::new(8, 4), None, Color::Black),
+            Square::new(Coordinate::new(1, 5), None, Color::Black),
+            Square::new(Coordinate::new(2, 5), None, Color::White),
+            Square::new(Coordinate::new(3, 5), None, Color::Black),
+            Square::new(Coordinate::new(4, 5), None, Color::White),
+            Square::new(Coordinate::new(5, 5), None, Color::Black),
+            Square::new(Coordinate::new(6, 5), None, Color::White),
+            Square::new(Coordinate::new(7, 5), None, Color::Black),
+            Square::new(Coordinate::new(8, 5), None, Color::White),
+            Square::new(Coordinate::new(1, 6), None, Color::White),
+            Square::new(Coordinate::new(2, 6), None, Color::Black),
+            Square::new(Coordinate::new(3, 6), None, Color::White),
+            Square::new(Coordinate::new(4, 6), None, Color::Black),
+            Square::new(Coordinate::new(5, 6), None, Color::White),
+            Square::new(Coordinate::new(6, 6), None, Color::Black),
+            Square::new(Coordinate::new(7, 6), None, Color::White),
+            Square::new(Coordinate::new(8, 6), None, Color::Black),
+            Square::new(Coordinate::new(1, 7), None, Color::Black),
+            Square::new(Coordinate::new(2, 7), None, Color::White),
+            Square::new(Coordinate::new(3, 7), None, Color::Black),
+            Square::new(Coordinate::new(4, 7), None, Color::White),
+            Square::new(Coordinate::new(5, 7), None, Color::Black),
+            Square::new(Coordinate::new(6, 7), None, Color::White),
+            Square::new(Coordinate::new(7, 7), None, Color::Black),
+            Square::new(Coordinate::new(8, 7), None, Color::White),
+            Square::new(Coordinate::new(1, 8), None, Color::White),
+            Square::new(Coordinate::new(2, 8), None, Color::Black),
+            Square::new(Coordinate::new(3, 8), None, Color::White),
+            Square::new(Coordinate::new(4, 8), None, Color::Black),
+            Square::new(Coordinate::new(5, 8), None, Color::White),
+            Square::new(Coordinate::new(6, 8), None, Color::Black),
+            Square::new(Coordinate::new(7, 8), None, Color::White),
+            Square::new(Coordinate::new(8, 8), None, Color::Black),
         ]
     }
 }

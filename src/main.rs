@@ -34,7 +34,7 @@ fn print_help_menu() {
 }
 
 fn main() {
-    let debug = true;
+    let debug = false;
     if debug {
 
         // bit_board::test();
@@ -47,6 +47,10 @@ fn main() {
         let rook_test_pos = "4k2r/1ppqbppN/1P1p1n2/1rB1p2p/p2n2P1/1QP1PR1b/P2PNP1P/R3KB2 w Q - 7 18";
         let bishop_test_pos = "4k2r/1pp1bppN/1Pqp1n2/1rB1pbPp/p2n4/1QP1P2R/P2PNP1P/R3KB2 w Q - 3 20";
         let mut game_state = fen_reader::make_game_state(bishop_test_pos);
+        let rank1 = game_state.get_rank(1);
+        for s in rank1 {
+            println!("{}", s);
+        }
         print_bit_board(game_state.board);
         // println!("{:?}", game_state);
 

@@ -113,7 +113,7 @@ impl BoardTrait for Board {
     // doesn't check legality of moves
     // fn make_move_mut(&mut self, m: &Move) {
     fn make_move_mut(&mut self, mov: &Move) {
-        let mut moving_piece = self.remove_piece_at(&mov.from);
+        let moving_piece = self.remove_piece_at(&mov.from);
         if moving_piece.is_none() {
             println!("{:?}", mov);
             panic!("trying to remove a piece that isn't there.");
@@ -190,7 +190,7 @@ impl BoardTrait for Board {
     }
 
     fn unmake_move_mut(&mut self, mov: &Move) {
-        let mut moving_piece = self.remove_piece_at(&mov.to);
+        let moving_piece = self.remove_piece_at(&mov.to);
         if moving_piece.is_none() {
             println!("{:?}", mov);
             panic!("trying to remove a piece that isn't there.");

@@ -550,7 +550,7 @@ fn init_gen_bishop_attacks() {
 
 fn init_gen_king_attacks() {
     let mut king_attacks: [u64; 64] = [0; 64];
-    let mut start_bit = BitBoard::set_bit(0u64, 19); //(3,3), (c,3)
+    let start_bit = BitBoard::set_bit(0u64, 19); //(3,3), (c,3)
     BitBoard::print_bitboard(start_bit);
 
     let mut bit_board = 0u64;
@@ -570,7 +570,7 @@ fn init_gen_king_attacks() {
 
     for (idx, bit_board) in king_attacks.iter_mut().enumerate() {
         let mut res: u64 = 0;
-        let mut start_bit = BitBoard::set_bit(0u64, (idx + 1) as u64);
+        let start_bit = BitBoard::set_bit(0u64, (idx + 1) as u64);
         // up moves
         // UP 1 LEFT 1
         if !BitBoard::bit_on_bit_board(start_bit, ROW_8 | A_FILE) {
@@ -622,7 +622,7 @@ fn init_gen_king_attacks() {
 
 fn init_gen_knight_attacks() {
     let mut knight_attacks: [u64; 64] = [0; 64];
-    let mut start_bit = BitBoard::set_bit(0u64, 19); //(3,3), (c,3)
+    let start_bit = BitBoard::set_bit(0u64, 19); //(3,3), (c,3)
     BitBoard::print_bitboard(start_bit);
 
     let mut bit_board = 0u64;
@@ -658,7 +658,7 @@ fn init_gen_knight_attacks() {
         // base case : all moves
         // c3 - c6, d3-d6, e3-e6, f3-f6
         //todo : gen a mask for this
-        let mut start_bit = BitBoard::set_bit(0u64, (idx + 1) as u64);
+        let start_bit = BitBoard::set_bit(0u64, (idx + 1) as u64);
 
         let mut res = 0u64;
 
@@ -716,7 +716,7 @@ fn init_gen_pawn_attacks() {
     let gen_white = false;
     if gen_white {
         for (idx, bit_board) in wpa.iter_mut().enumerate() {
-            let mut start_bit = BitBoard::set_bit(0u64, (idx + 1) as u64);
+            let start_bit = BitBoard::set_bit(0u64, (idx + 1) as u64);
             if BitBoard::on_row(start_bit, ROW_8) {
                 continue;
             }
@@ -773,7 +773,7 @@ fn init_gen_pawn_attacks() {
 
     //BLACK PAWN ATTACKS
     for (idx, bit_board) in bpa.iter_mut().enumerate() {
-        let mut start_bit = BitBoard::set_bit(0u64, (idx + 1) as u64);
+        let start_bit = BitBoard::set_bit(0u64, (idx + 1) as u64);
 
         let on_a_file = BitBoard::on_file(start_bit, A_FILE);
         let on_h_file = BitBoard::on_file(start_bit, H_FILE);
@@ -805,7 +805,7 @@ fn init_gen_pawn_attacks() {
 
 pub fn gen_queen_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -> Vec<Move> {
     let mut all_moves = gen_rook_moves(board, piece, game_state);
-    let mut bishop_moves = gen_bishop_moves(board, piece, game_state);
+    let bishop_moves = gen_bishop_moves(board, piece, game_state);
     for m in bishop_moves {
         all_moves.push(m);
     }
@@ -1101,7 +1101,7 @@ pub fn gen_rook_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -
 pub fn gen_king_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -> Vec<Move> {
     let at = piece.at().unwrap();
     let idx = BitBoard::coordinate_to_idx(*at);
-    let mut attack_board: u64 = KING_ATTACKS[(idx - 1) as usize];
+    let attack_board: u64 = KING_ATTACKS[(idx - 1) as usize];
     let mut moves: Vec<Move> = vec![];
     let color = piece.color;
     println!("{} {} {}", at, idx, color);
@@ -1144,7 +1144,7 @@ pub fn gen_king_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -
 pub fn gen_knight_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -> Vec<Move> {
     let at = piece.at().unwrap();
     let idx = BitBoard::coordinate_to_idx(*at);
-    let mut attack_board: u64 = KNIGHT_ATTACKS[(idx - 1) as usize];
+    let attack_board: u64 = KNIGHT_ATTACKS[(idx - 1) as usize];
     let mut moves: Vec<Move> = vec![];
     let color = piece.color;
     //@todo : get captured piece type

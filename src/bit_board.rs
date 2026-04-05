@@ -361,7 +361,7 @@ impl BitBoard {
     //@todo : remove, use game_state.get_all_pieces()
     //preferably don't call this
     pub fn get_all_pieces(&self, color: Color) -> Vec<Piece> {
-        let mut pieces: Vec<Piece> = vec![];
+        let pieces: Vec<Piece> = vec![];
         let mut all_pieces = self.pieces;
         while all_pieces > 0 {
             let bit = BitBoard::pop_bit(&mut all_pieces);
@@ -849,7 +849,7 @@ impl BitBoard {
         bit_board = BitBoard::set_bit(bit_board, 5);
         bit_board = BitBoard::set_bit(bit_board, 61);
         let kings = bit_board;
-        let mut board = BitBoard {
+        let board = BitBoard {
             pieces,
             white_pieces,
             black_pieces,
@@ -1286,31 +1286,31 @@ fn init_gen_file_boards() {
     println!("{}", row1);
     BitBoard::print_bitboard(row1);
 
-    let mut row2 = row1 << 8;
+    let row2 = row1 << 8;
     println!("{}", row2);
     BitBoard::print_bitboard(row2);
 
-    let mut row3 = row1 << 16;
+    let row3 = row1 << 16;
     println!("{}", row3);
     BitBoard::print_bitboard(row3);
 
-    let mut row4 = row1 << 24;
+    let row4 = row1 << 24;
     println!("{}", row4);
     BitBoard::print_bitboard(row4);
 
-    let mut row5 = row1 << 32;
+    let row5 = row1 << 32;
     println!("{}", row5);
     BitBoard::print_bitboard(row5);
 
-    let mut row6 = row1 << 40;
+    let row6 = row1 << 40;
     println!("{}", row6);
     BitBoard::print_bitboard(row6);
 
-    let mut row7 = row1 << 48;
+    let row7 = row1 << 48;
     println!("{}", row7);
     BitBoard::print_bitboard(row7);
 
-    let mut row8 = row1 << 56;
+    let row8 = row1 << 56;
     println!("{}", row8);
     BitBoard::print_bitboard(row8);
 

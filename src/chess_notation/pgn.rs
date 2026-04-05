@@ -104,7 +104,7 @@ pub fn moves_from_pgn(pgn: &str) -> Vec<Move> {
         }
     }
 
-    let mut move_text = move_lines.join("");
+    let move_text = move_lines.join("");
     // let mut move_text = String::new();
     // for _s in move_lines.into_iter() {
     //     println!("{}", _s);
@@ -215,7 +215,7 @@ pub fn moves_from_pgn(pgn: &str) -> Vec<Move> {
                 ParsedMoveType::Promotion => MoveType::Promotion(promotion_type.unwrap()),
                 ParsedMoveType::Move => MoveType::Move,
             };
-            let mut new_move = p_gen::make_move_to(from, &to, found_piece, move_type, &scrap_board);
+            let new_move = p_gen::make_move_to(from, &to, found_piece, move_type, &scrap_board);
             moves.push(new_move);
             scrap_board.make_move_mut(&new_move);
             //@todo :: this roughly works
@@ -251,7 +251,7 @@ impl Game {
         let lines: Vec<&str> = pgn.split('\n').collect();
         let info_line_matcher = Regex::new(r"\[.*\]$").unwrap();
         let mut move_lines: Vec<&str> = Vec::new();
-        let mut info_section = true;
+        let info_section = true;
         let mut move_section = false;
         for _s in pgn.split('\n').into_iter() {
             // println!("{} \n is match {} \n is empty {} ", _s, info_line_matcher.is_match(_s), _s.is_empty());

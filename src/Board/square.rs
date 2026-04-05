@@ -1,4 +1,6 @@
 use crate::board::*;
+use std::fmt;
+use std::fmt::Formatter;
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct Square {
@@ -24,6 +26,9 @@ impl Square {
     pub fn color(&self) -> &Color {
         &self.color
     }
+    pub fn set_piece_to(&mut self, piece: &Piece) {
+        self.piece = Some(piece.clone());
+    }
     pub fn place_piece(&mut self, mut piece: Piece) {
         piece.set_at(self.coordinate.clone());
         self.piece = Some(piece)
@@ -37,5 +42,12 @@ impl Square {
             piece: self.piece.clone(),
             color: self.color.clone(),
         }
+    }
+}
+
+
+impl fmt::Display for Square {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "Square at {}, color: {}, with piece {})", self.coordinate, self.color, self.piece.map_or("None".to_string(), |p| format!("{}", p)))
     }
 }

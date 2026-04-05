@@ -42,7 +42,7 @@ impl Game {
         let mut ai = ai::Ai::new(Color::Black);
         ai.default_search_depth = 4;
         let mut ai2 = ai::Ai::new(Color::White);
-        ai.default_search_depth = 4;
+        ai2.default_search_depth = 4;
         Game {
             board: fen_reader::make_board(fen_reader::INITIAL_BOARD),
             ai,

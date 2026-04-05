@@ -87,12 +87,10 @@ fn get_piece_specifier(m: &Move, board: &dyn BoardTrait) -> String {
         .into_iter()
         .collect::<Vec<Move>>();
 
-    let mut has_similar_moves = false;
     let mut piece_specifier = String::new();
     if similar_moves.len() > 1 {
         let mut has_same_file = false;
         let mut has_same_rank = false;
-        has_similar_moves = true;
 
         // check file
         let mut same_file_moves: Vec<&Move> = vec![];
@@ -172,7 +170,7 @@ pub fn read_move(str: &str) -> Option<(PieceType, Option<Coordinate>, ParsedMove
         return Some((PieceType::King, None, ParsedMoveType::LongCastles, None));
     }
     let short_castles_matcher = Regex::new(r"^\s?O\-O").unwrap();
-    if long_castles_matcher.is_match(str) {
+    if short_castles_matcher.is_match(str) {
         return Some((PieceType::King, None, ParsedMoveType::ShortCastles, None));
     }
 
