@@ -7,15 +7,18 @@ use matrix_display::*;
 //@bug : to fix
 pub fn print_board(board: &dyn BoardTrait) {
     let mut board_cells = vec![];
-    board.get_squares().iter().rev().for_each(|row| {
-        row.iter().for_each(|square| {
+    for row_idx in (1..=8).rev() {
+        for col_idx in (1..=8) {
+            let c = Coordinate::new(col_idx, row_idx);
+            let piece_opt = board.get_piece_at(&c);
+            let color = BitBoard::get_square_color_at(c);
             // ansi 8 bit color scheme
             let mut foreground = 0;
             let mut value = ' ';
 
             // if there's a piece
-            if square.piece().is_some() {
-                let piece = square.piece().unwrap();
+            if piece_opt.is_some() {
+                let piece = piece_opt.unwrap();
                 foreground = match piece.color {
                     Color::Black => 1, // red
                     Color::White => 5, // purple
@@ -29,13 +32,13 @@ pub fn print_board(board: &dyn BoardTrait) {
                     PieceType::Pawn => 'P',
                 }
             }
-            let ansi_bg = match square.color() {
+            let ansi_bg = match color {
                 Color::White => 0,
                 Color::Black => 7,
             };
             board_cells.push(cell::Cell::new(value, foreground, ansi_bg));
-        })
-    });
+        }
+    }
     let format = Format::new(7, 3);
     let mut data = matrix::Matrix::new(8, board_cells);
     let display = MatrixDisplay::new(&format, &mut data);

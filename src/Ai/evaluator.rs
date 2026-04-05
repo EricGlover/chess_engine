@@ -83,10 +83,8 @@ impl PieceCount {
             black_rook: 0,
             black_pawn: 0,
         };
-        for square in board.squares_list() {
-            if square.piece().is_some() {
-                let piece = square.piece().unwrap();
-                match piece.piece_type {
+        for piece in board.get_all_pieces(Color::White) {
+            match piece.piece_type {
                     PieceType::King => match piece.color {
                         Color::White => piece_count.white_king = piece_count.white_king + 1,
                         Color::Black => piece_count.black_king = piece_count.black_king + 1,
@@ -112,7 +110,34 @@ impl PieceCount {
                         Color::Black => piece_count.black_pawn = piece_count.black_pawn + 1,
                     },
                 }
-            }
+        }
+         for piece in board.get_all_pieces(Color::Black) {
+            match piece.piece_type {
+                    PieceType::King => match piece.color {
+                        Color::White => piece_count.white_king = piece_count.white_king + 1,
+                        Color::Black => piece_count.black_king = piece_count.black_king + 1,
+                    },
+                    PieceType::Queen => match piece.color {
+                        Color::White => piece_count.white_queen = piece_count.white_queen + 1,
+                        Color::Black => piece_count.black_queen = piece_count.black_queen + 1,
+                    },
+                    PieceType::Bishop => match piece.color {
+                        Color::White => piece_count.white_bishop = piece_count.white_bishop + 1,
+                        Color::Black => piece_count.black_bishop = piece_count.black_bishop + 1,
+                    },
+                    PieceType::Knight => match piece.color {
+                        Color::White => piece_count.white_knight = piece_count.white_knight + 1,
+                        Color::Black => piece_count.black_knight = piece_count.black_knight + 1,
+                    },
+                    PieceType::Rook => match piece.color {
+                        Color::White => piece_count.white_rook = piece_count.white_rook + 1,
+                        Color::Black => piece_count.black_rook = piece_count.black_rook + 1,
+                    },
+                    PieceType::Pawn => match piece.color {
+                        Color::White => piece_count.white_pawn = piece_count.white_pawn + 1,
+                        Color::Black => piece_count.black_pawn = piece_count.black_pawn + 1,
+                    },
+                }
         }
         piece_count
     }
@@ -150,8 +175,8 @@ fn count_blocked_pawns(board: &dyn BoardTrait) -> (u8, u8) {
     let files = board.get_files();
     let mut white_blocked: u8 = 0;
     let mut black_blocked: u8 = 0;
-    files.for_each(|file| {
-        file.for_each(|square| {
+    files.iter().for_each(|file| {
+        file.iter().for_each(|&square| {
             let piece = square.piece();
             if piece.is_none() {
                 return;
@@ -180,8 +205,8 @@ fn make_pawn_count_by_file(board: &dyn BoardTrait) -> (PawnCountByFile, PawnCoun
     let files = board.get_files();
     let mut white_p = PawnCountByFile { files: [0; 8] };
     let mut black_p = PawnCountByFile { files: [0; 8] };
-    files.enumerate().for_each(|(x, file)| {
-        file.for_each(|square| {
+    files.iter().enumerate().for_each(|(x, file)| {
+        file.iter().for_each(|&square| {
             if square.piece().is_some() {
                 let piece = square.piece().unwrap();
                 if piece.piece_type == PieceType::Pawn {

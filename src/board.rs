@@ -77,30 +77,38 @@ impl BoardTrait for Board {
         self.black_castling_rights.clone()
     }
 
-    fn squares_list(&self) -> SquareIterator {
-        SquareIterator::new(&self.squares)
+    //@todo : test
+    fn squares_list(&self) -> Vec<&Square> {
+        self.squares.iter().flatten().collect()
     }
 
-    fn get_rank(&self, y: u8) -> RankIterator {
-        RankIterator::new((y - 1) as usize, &self.squares)
-        // if y < 1 || y > 8 {
-        //     panic!("invalid rank");
-        // }
-        // // self.squares.get((y - 1) as usize)
-        // let rank = self.squares.get((y - 1) as usize).unwrap();
-        // rank.iter().map(|square| square).collect()
+    fn get_rank(&self, y: u8) -> Vec<&Square> {
+        if y < 1 || y > 8 {
+            panic!("invalid rank");
+        }
+        // self.squares.get((y - 1) as usize)
+        let rank = self.squares.get((y - 1) as usize).unwrap();
+        rank.iter().map(|square| square).collect()
     }
 
-    fn get_files(&self) -> FilesIterator {
-        FilesIterator::new(&self.squares)
+    fn get_files(&self) -> Vec<Vec<&Square>> {
+        let mut  files:Vec<Vec<&Square>> = Vec::new();
+        for i in (1..=8) {
+            let mut file:Vec<&Square> = Vec::new();
+            for j in (1..=8) {
+                file.push(&self.squares[j as usize][i as usize]);
+            }
+            files.push(file);
+        }
+        return files;
     }
 
-    fn get_squares(&self) -> Vec<Vec<&Square>> {
-        self.squares
-            .iter()
-            .map(|row| row.iter().map(|s| s).collect())
-            .collect()
-    }
+    // fn get_squares(&self) -> Vec<Vec<&Square>> {
+    //     self.squares
+    //         .iter()
+    //         .map(|row| row.iter().map(|s| s).collect())
+    //         .collect()
+    // }
 
     // doesn't check legality of moves
     // fn make_move_mut(&mut self, m: &Move) {
@@ -436,10 +444,6 @@ impl Board {
             .filter(filter)
             .map(|square| square.piece().unwrap())
             .collect()
-    }
-
-    fn squares_list_iter(&self) -> SquareIterator {
-        SquareIterator::new(&self.squares)
     }
 
     fn get_square(&self, at: &Coordinate) -> &Square {
