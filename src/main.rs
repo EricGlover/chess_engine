@@ -18,7 +18,7 @@ use std::path::Path;
 use std::time::{Duration, Instant};
 use std::{env, path};
 
-/**
+/*
  * init results of running gen_king moves between old board and bit board
  * over 10 thousand iterations each time with release build
  * bit_boards seem around 50x's faster on average, at worst it was 30 something (38 on first run? )

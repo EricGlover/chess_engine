@@ -8,7 +8,7 @@ use std::path::Prefix::Verbatim;
 
 // @todo : board -> fen string
 
-/**
+/*
 FEN SPEC
     1. Piece placement (from White's perspective). Each rank is described, starting with rank 8 and ending with rank 1;
         within each rank, the contents of each square are described from file "a" through file "h".

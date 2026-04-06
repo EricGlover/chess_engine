@@ -311,7 +311,7 @@ impl GameState {
             // grab an appropriate piece from the list, update it's location
             // and set it in dictionary
 
-            /** WHITE PIECES  */
+            /* WHITE PIECES  */
             for idx in self
                 .board
                 .get_piece_types_by_color_idx(PieceType::Pawn, Color::White)
@@ -413,7 +413,7 @@ impl GameState {
                     self.pieces.insert(idx, pawn);
                 }
             }
-            /** BLACK PIECES  */
+            /* BLACK PIECES  */
             for idx in self
                 .board
                 .get_piece_types_by_color_idx(PieceType::Pawn, Color::Black)

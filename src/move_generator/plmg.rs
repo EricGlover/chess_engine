@@ -850,7 +850,7 @@ pub fn gen_bishop_moves(board: &BitBoard, piece: &Piece, game_state: &GameState)
     };
 
     for diagonal in diagonals {
-        /** UP RIGHT DIAGONAL */
+        /* UP RIGHT DIAGONAL */
         if BitBoard::bit_on_bit_board(up_right_bit, diagonal)
             || BitBoard::bit_on_bit_board(down_left_bit, diagonal)
         {
@@ -894,7 +894,7 @@ pub fn gen_bishop_moves(board: &BitBoard, piece: &Piece, game_state: &GameState)
             }
         }
         
-        /** UP LEFT DIAGONAL */
+        /* UP LEFT DIAGONAL */
         if BitBoard::bit_on_bit_board(up_left_bit, diagonal)
             || BitBoard::bit_on_bit_board(down_right_bit, diagonal)
         {
@@ -1140,7 +1140,7 @@ pub fn gen_king_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -
     return moves;
 }
 
-/**@todo : test  */
+/*@todo : test  */
 pub fn gen_knight_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -> Vec<Move> {
     let at = piece.at().unwrap();
     let idx = BitBoard::coordinate_to_idx(*at);
@@ -1164,7 +1164,7 @@ pub fn gen_knight_moves(board: &BitBoard, piece: &Piece, game_state: &GameState)
     return moves;
 }
 
-/**
+/*
  *
 one square move, two square move, capturing diagonally forward, pawn promotion, en passant
 **/
@@ -1294,7 +1294,7 @@ pub fn gen_pawn_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -
     return moves;
 }
 
-/** HELPER FUNCTIONS  */
+/* HELPER FUNCTIONS  */
 fn square_is_empty(board: &BitBoard, at: &Coordinate) -> bool {
     !board.is_piece_at_coordinate(at)
 }
@@ -1317,7 +1317,7 @@ fn is_on_board(c: &Coordinate) -> bool {
     c.x() >= LOW_X && c.x() <= HIGH_X && c.y() >= LOW_Y && c.y() <= HIGH_Y
 }
 
-/** works if no castling rights have changed and no captures */
+/* works if no castling rights have changed and no captures */
 pub fn make_quiet_move(from: &Coordinate, to: &Coordinate, piece: &Piece) -> Move {
     return Move::new(
         from.clone(),

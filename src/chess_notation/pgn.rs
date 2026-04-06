@@ -392,7 +392,7 @@ mod tests {
 
     #[test]
     fn move_from_game() {
-        /**
+        /*
                 [Event "Let\\'s Play!"]
         [Site "Chess.com"]
         [Date "2021.05.04"]

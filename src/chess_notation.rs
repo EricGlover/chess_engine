@@ -6,7 +6,7 @@ use regex::Regex;
 use crate::board::*;
 use crate::move_generator::*;
 
-/**
+/*
 <piece_specifier><piece_file | piece_rank | piece_file && piece_rank><captures><file><rank>
 piece_specifier = ['R', 'B', 'N', 'Q', 'K']
 piece_file = [a-h][1-8]

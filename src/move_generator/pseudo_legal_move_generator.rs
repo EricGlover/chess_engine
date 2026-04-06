@@ -319,9 +319,9 @@ mod move_generation {
         .flatten()
         .collect()
     }
-    /**
+    /* 
     one square move, two square move, capturing diagonally forward, pawn promotion, en passant
-    **/
+    */
     pub fn gen_pawn_moves(board: &dyn BoardTrait, piece: &Piece) -> Vec<Move> {
         let from = piece.at().unwrap();
         let direction: i8 = if piece.color == Color::White { 1 } else { -1 };

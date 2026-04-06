@@ -5,7 +5,7 @@ use crate::move_generator::plmg;
 use std::fmt;
 use std::fmt::{Error, Formatter};
 
-/**
+/*
  * board indices
 57 58 59 60 61 62 63 64
 49 50 51 52 53 54 55 56
@@ -681,7 +681,7 @@ impl BitBoard {
         return false;
     }
 
-    /** functionality to rework and add ?
+    /* functionality to rework and add ?
     fn get_piece_at(&self, at: &Coordinate) -> Option<&Piece>
     fn get_kings(&self) -> Vec<&Piece>
     fn get_pieces(&self, color: Color, piece_type: PieceType) -> Vec<&Piece>
@@ -865,7 +865,7 @@ impl BitBoard {
     }
 }
 
-/**
+/*
  * board indices
 57 58 59 60 61 62 63 64
 49 50 51 52 53 54 55 56
@@ -986,12 +986,12 @@ pub fn test() {
     return;
 }
 
-/** INITIAL GENERATOR FUNCTIONS */
+/*  INITIAL GENERATOR FUNCTIONS */
 
 fn init_gen_file_boards() {
-    /** Castling Blockers */
+    /* Castling Blockers */
 
-    /**
+    /*
      * board indices
     57 58 59 60 61 62 63 64
     49 50 51 52 53 54 55 56
@@ -1025,7 +1025,7 @@ fn init_gen_file_boards() {
         w_k_blockers, w_q_blockers, b_k_blockers, b_q_blockers
     );
 
-    /**   DIAGONALS  */
+    /*   DIAGONALS  */
     //b8
     //d8
     //
@@ -1247,7 +1247,7 @@ fn init_gen_file_boards() {
         BitBoard::print_bitboard(diagonal);
     }
 
-    /**         SQUARE COLORS        */
+    /*         SQUARE COLORS        */
     //light squares
     let mut light_squares = 0u64;
     let mut dark_squares = 0u64;
@@ -1278,7 +1278,7 @@ fn init_gen_file_boards() {
     println!("{}", dark_squares);
     BitBoard::print_bitboard(dark_squares);
 
-    /**   ROWS  */
+    /*   ROWS  */
     let mut row1 = 0u64;
     for idx in (1u64..=8u64) {
         row1 = BitBoard::set_bit(row1, idx);
@@ -1314,7 +1314,7 @@ fn init_gen_file_boards() {
     println!("{}", row8);
     BitBoard::print_bitboard(row8);
 
-    /**   FILES  */
+    /*  FILES  */
     let mut a_file = 0u64;
     for idx in (1u64..=8u64) {
         a_file = BitBoard::set_bit(a_file, 1 + ((idx - 1) * 8));
