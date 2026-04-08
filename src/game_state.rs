@@ -23,7 +23,7 @@ pub struct GameState {
     pieces: HashMap<u64, Piece>,
 }
 
-// @todo :: test 
+// @todo :: test
 impl BoardTrait for GameState {
     fn clone(&self) -> Box<dyn BoardTrait> {
         Box::new(self.clone_to_game_state())
@@ -256,7 +256,7 @@ impl BoardTrait for GameState {
                     &m.to,
                 );
             }
-
+            self.pieces.insert(to_idx, piece_to_move);
             self.remove_piece(&piece_to_move);
             self.place_piece(piece_to_move, &m.from);
         } else {
@@ -267,7 +267,8 @@ impl BoardTrait for GameState {
 
     // getting and setting pieces
     // update the piece, piece map , square, and board
-    fn place_piece(&mut self, piece: Piece, at: &Coordinate) {
+    fn place_piece(&mut self, mut piece: Piece, at: &Coordinate) {
+        piece.set_at(*at);
         self.board.set_piece(piece.piece_type, piece.color, *at);
         let idx = BitBoard::coordinate_to_idx(*at);
         self.pieces.insert(idx, piece);
@@ -281,9 +282,12 @@ impl BoardTrait for GameState {
     fn remove_piece(&mut self, piece: &Piece) -> Piece {
         if piece.at().is_none() {
             //error
+            panic!("tried to remove piece without coordinate \n{}", piece);
             return Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(1, 1)));
         }
         let idx = BitBoard::coordinate_to_idx(*piece.at().unwrap());
+        // update bit_board 
+        self.board.remove_piece(piece.piece_type, piece.color, piece.at().unwrap().clone());
         // update piece map
         println!("{:?}", self.pieces);
         let piece_opt = self.pieces.remove(&idx);
@@ -332,7 +336,7 @@ impl BoardTrait for GameState {
         return pieces;
     }
     fn get_all_pieces(&self, color: Color) -> Vec<&Piece> {
-        return self.pieces.values().collect();
+        return self.pieces.values().filter(|&p| p.color == color).collect();
     }
 
     fn get_castling_rights_changes_if_piece_moves(&self, piece: &Piece) -> Option<CastlingRights> {
@@ -506,6 +510,10 @@ impl GameState {
         //     self.update_pieces();
         // }
         return self.pieces.values().collect();
+    }
+
+    pub fn get_piece_map(&self) -> HashMap<u64,Piece> {
+        return self.pieces.clone();
     }
 
     pub fn update_squares(&mut self) {
@@ -937,4 +945,228 @@ impl GameState {
         //     })
         // });
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_squares_list() {}
+    #[test]
+    fn test_get_rank() {}
+    #[test]
+    fn test_get_files() {}
+    #[test]
+    fn test_make_move_mut() {
+        let mut game_state = GameState::starting_game();
+
+        // E4
+        let from = Coordinate::new(5, 2);
+        let to = from.add(0, 2);
+        // let piece = Piece::new(Color::White, PieceType::Pawn, Some(from));
+        let e4_move = Move::new(from, to, PieceType::Pawn, MoveType::Move, None, None, None);
+        game_state.make_move_mut(&e4_move);
+        let e4_pawn = game_state.get_piece_at(&to);
+        assert!(e4_pawn.is_some(), "pawn not found at e4");
+        let e2 = game_state.get_piece_at(&from);
+        assert!(e2.is_none(), "pawn should not be at e2");
+
+        // check state things 
+        // bit board
+        let bit_board = game_state.get_board();
+        let pawn_board = bit_board.get_pawns_board();
+        let all_pieces = bit_board.get_piece_board();
+        let e4 = bit_board.get_piece_at(&to);
+        assert!(e4.is_some(), "pawn not found at e4 on bitboard");
+        let e2 = bit_board.get_piece_at(&from);
+        BitBoard::print_bitboard(pawn_board);
+        BitBoard::print_bitboard(all_pieces);
+        assert!(e2.is_none(), "pawn should not be found at e2 on bitboard");
+
+        // hash map
+        let piece_map = game_state.get_piece_map();
+        let from_idx = BitBoard::coordinate_to_idx(from);
+        let to_idx = BitBoard::coordinate_to_idx(to);
+        assert!(piece_map.get(&from_idx).is_none(), "old pawn data found in hash map");
+        assert!(piece_map.get(&to_idx).is_some(), "pawn not found in hash map");
+        if let Some(piece) = piece_map.get(&to_idx) {
+            assert_eq!(piece, &Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(5, 4))));
+        }
+        // squares
+        let squares = game_state.squares_list();
+        
+
+        // E5
+        let from = Coordinate::new(5, 7);
+        let to = from.add(0, -2);
+        let e5_move = Move::new(from, to, PieceType::Pawn, MoveType::Move, None, None, None);
+        game_state.make_move_mut(&e5_move);
+        let e5_pawn = game_state.get_piece_at(&to);
+        assert!(e5_pawn.is_some(), "pawn not found at e5");
+        let e7 = game_state.get_piece_at(&from);
+        assert!(e7.is_none(), "pawn should not be at e7");
+    }
+    #[test]
+    fn test_unmake_move_mut() {}
+    #[test]
+    fn test_place_piece() {}
+    #[test]
+    fn test_remove_piece() {}
+    #[test]
+    fn test_has_piece() {}
+    #[test]
+    fn test_get_piece_at() {
+        let game_state = GameState::starting_game();
+        let a2_pawn = Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(1, 2)));
+        let e2_pawn = Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(5, 2)));
+        let h2_pawn = Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(8, 2)));
+        let a7_pawn = Piece::new(Color::Black, PieceType::Pawn, Some(Coordinate::new(1, 7)));
+        let d7_pawn = Piece::new(Color::Black, PieceType::Pawn, Some(Coordinate::new(4, 7)));
+        let h7_pawn = Piece::new(Color::Black, PieceType::Pawn, Some(Coordinate::new(8, 7)));
+        let pawns: Vec<Piece> = vec![a2_pawn, e2_pawn, h2_pawn, a7_pawn, d7_pawn, h7_pawn];
+        for pawn in pawns.iter() {
+            if let Some(at) = pawn.at() {
+                let found = game_state.get_piece_at(at);
+                if let Some(found_p) = found {
+                    //stuff
+                    assert_eq!(pawn, found_p);
+                } else {
+                    panic!("piece not found!");
+                }
+            }
+        }
+        let coordinates: Vec<Coordinate> = vec![
+            Coordinate::new(4, 4),
+            Coordinate::new(3, 3),
+            Coordinate::new(1, 5),
+            Coordinate::new(1, 3),
+            Coordinate::new(8, 6),
+            Coordinate::new(8, 3),
+        ];
+        for c in coordinates.iter() {
+            let found = game_state.get_piece_at(c);
+            if let Some(found_p) = found {
+                //stuff
+                panic!("piece found! at {}, when no piece is there", c);
+            }
+        }
+    }
+    #[test]
+    fn test_get_kings() {}
+    #[test]
+    fn test_get_pieces() {
+        let game_state = GameState::starting_game();
+        let a2_pawn = Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(1, 2)));
+        let b2_pawn = Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(2, 2)));
+        let c2_pawn = Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(3, 2)));
+        let d2_pawn = Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(4, 2)));
+        let e2_pawn = Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(5, 2)));
+        let f2_pawn = Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(6, 2)));
+        let g2_pawn = Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(7, 2)));
+        let h2_pawn = Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(8, 2)));
+        //
+        let a7_pawn = Piece::new(Color::Black, PieceType::Pawn, Some(Coordinate::new(1, 7)));
+        let b7_pawn = Piece::new(Color::Black, PieceType::Pawn, Some(Coordinate::new(2, 7)));
+        let c7_pawn = Piece::new(Color::Black, PieceType::Pawn, Some(Coordinate::new(3, 7)));
+        let d7_pawn = Piece::new(Color::Black, PieceType::Pawn, Some(Coordinate::new(4, 7)));
+        let e7_pawn = Piece::new(Color::Black, PieceType::Pawn, Some(Coordinate::new(5, 7)));
+        let f7_pawn = Piece::new(Color::Black, PieceType::Pawn, Some(Coordinate::new(6, 7)));
+        let g7_pawn = Piece::new(Color::Black, PieceType::Pawn, Some(Coordinate::new(7, 7)));
+        let h7_pawn = Piece::new(Color::Black, PieceType::Pawn, Some(Coordinate::new(8, 7)));
+        //
+        let a1_p = Piece::new(Color::White, PieceType::Rook, Some(Coordinate::new(1, 1)));
+        let b1_p = Piece::new(Color::White, PieceType::Knight, Some(Coordinate::new(2, 1)));
+        let c1_p = Piece::new(Color::White, PieceType::Bishop, Some(Coordinate::new(3, 1)));
+        let d1_p = Piece::new(Color::White, PieceType::Queen, Some(Coordinate::new(4, 1)));
+        let e1_p = Piece::new(Color::White, PieceType::King, Some(Coordinate::new(5, 1)));
+        let f1_p = Piece::new(Color::White, PieceType::Bishop, Some(Coordinate::new(6, 1)));
+        let g1_p = Piece::new(Color::White, PieceType::Knight, Some(Coordinate::new(7, 1)));
+        let h1_p = Piece::new(Color::White, PieceType::Rook, Some(Coordinate::new(8, 1)));
+        //
+        let a8_p = Piece::new(Color::Black, PieceType::Rook, Some(Coordinate::new(1, 8)));
+        let b8_p = Piece::new(Color::Black, PieceType::Knight, Some(Coordinate::new(2, 8)));
+        let c8_p = Piece::new(Color::Black, PieceType::Bishop, Some(Coordinate::new(3, 8)));
+        let d8_p = Piece::new(Color::Black, PieceType::Queen, Some(Coordinate::new(4, 8)));
+        let e8_p = Piece::new(Color::Black, PieceType::King, Some(Coordinate::new(5, 8)));
+        let f8_p = Piece::new(Color::Black, PieceType::Bishop, Some(Coordinate::new(6, 8)));
+        let g8_p = Piece::new(Color::Black, PieceType::Knight, Some(Coordinate::new(7, 8)));
+        let h8_p = Piece::new(Color::Black, PieceType::Rook, Some(Coordinate::new(8, 8)));
+        let pieces: Vec<Piece> = vec![
+            a2_pawn, b2_pawn, c2_pawn, d2_pawn, e2_pawn, f2_pawn, g2_pawn, h2_pawn, a7_pawn,
+            b7_pawn, c7_pawn, d7_pawn, e7_pawn, f7_pawn, g7_pawn, h7_pawn, a8_p, b8_p, c8_p, d8_p,
+            e8_p, f8_p, g8_p, h8_p, a1_p, b1_p, c1_p, d1_p, e1_p, f1_p, g1_p, h1_p,
+        ];
+        let white_pawns = vec![
+            a2_pawn, b2_pawn, c2_pawn, d2_pawn, e2_pawn, f2_pawn, g2_pawn, h2_pawn,
+        ];
+        let black_pawns = vec![
+            a7_pawn, b7_pawn, c7_pawn, d7_pawn, e7_pawn, f7_pawn, g7_pawn, h7_pawn,
+        ];
+        let white_knights = vec![b1_p, g1_p];
+
+        let mut results = game_state.get_pieces(Color::White, PieceType::Pawn);
+        for piece in pieces.iter() {}
+    }
+    #[test]
+    fn test_get_all_pieces() {
+        let game_state = GameState::starting_game();
+        let a2_pawn = Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(1, 2)));
+        let b2_pawn = Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(2, 2)));
+        let c2_pawn = Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(3, 2)));
+        let d2_pawn = Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(4, 2)));
+        let e2_pawn = Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(5, 2)));
+        let f2_pawn = Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(6, 2)));
+        let g2_pawn = Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(7, 2)));
+        let h2_pawn = Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(8, 2)));
+        //
+        let a7_pawn = Piece::new(Color::Black, PieceType::Pawn, Some(Coordinate::new(1, 7)));
+        let b7_pawn = Piece::new(Color::Black, PieceType::Pawn, Some(Coordinate::new(2, 7)));
+        let c7_pawn = Piece::new(Color::Black, PieceType::Pawn, Some(Coordinate::new(3, 7)));
+        let d7_pawn = Piece::new(Color::Black, PieceType::Pawn, Some(Coordinate::new(4, 7)));
+        let e7_pawn = Piece::new(Color::Black, PieceType::Pawn, Some(Coordinate::new(5, 7)));
+        let f7_pawn = Piece::new(Color::Black, PieceType::Pawn, Some(Coordinate::new(6, 7)));
+        let g7_pawn = Piece::new(Color::Black, PieceType::Pawn, Some(Coordinate::new(7, 7)));
+        let h7_pawn = Piece::new(Color::Black, PieceType::Pawn, Some(Coordinate::new(8, 7)));
+        //
+        let a1_p = Piece::new(Color::White, PieceType::Rook, Some(Coordinate::new(1, 1)));
+        let b1_p = Piece::new(Color::White, PieceType::Knight, Some(Coordinate::new(2, 1)));
+        let c1_p = Piece::new(Color::White, PieceType::Bishop, Some(Coordinate::new(3, 1)));
+        let d1_p = Piece::new(Color::White, PieceType::Queen, Some(Coordinate::new(4, 1)));
+        let e1_p = Piece::new(Color::White, PieceType::King, Some(Coordinate::new(5, 1)));
+        let f1_p = Piece::new(Color::White, PieceType::Bishop, Some(Coordinate::new(6, 1)));
+        let g1_p = Piece::new(Color::White, PieceType::Knight, Some(Coordinate::new(7, 1)));
+        let h1_p = Piece::new(Color::White, PieceType::Rook, Some(Coordinate::new(8, 1)));
+        //
+        let a8_p = Piece::new(Color::Black, PieceType::Rook, Some(Coordinate::new(1, 8)));
+        let b8_p = Piece::new(Color::Black, PieceType::Knight, Some(Coordinate::new(2, 8)));
+        let c8_p = Piece::new(Color::Black, PieceType::Bishop, Some(Coordinate::new(3, 8)));
+        let d8_p = Piece::new(Color::Black, PieceType::Queen, Some(Coordinate::new(4, 8)));
+        let e8_p = Piece::new(Color::Black, PieceType::King, Some(Coordinate::new(5, 8)));
+        let f8_p = Piece::new(Color::Black, PieceType::Bishop, Some(Coordinate::new(6, 8)));
+        let g8_p = Piece::new(Color::Black, PieceType::Knight, Some(Coordinate::new(7, 8)));
+        let h8_p = Piece::new(Color::Black, PieceType::Rook, Some(Coordinate::new(8, 8)));
+        let white_pieces: Vec<Piece> = vec![
+            a2_pawn, b2_pawn, c2_pawn, d2_pawn, e2_pawn, f2_pawn, g2_pawn, h2_pawn, a1_p, b1_p,
+            c1_p, d1_p, e1_p, f1_p, g1_p, h1_p,
+        ];
+        let black_pieces: Vec<Piece> = vec![
+            a7_pawn, b7_pawn, c7_pawn, d7_pawn, e7_pawn, f7_pawn, g7_pawn, h7_pawn, a8_p, b8_p,
+            c8_p, d8_p, e8_p, f8_p, g8_p, h8_p,
+        ];
+        let mut results = game_state.get_all_pieces(Color::White);
+        assert_eq!(results.len(), white_pieces.len(), "total pieces found should be equal.");
+        for piece in white_pieces.iter() {
+            let found = white_pieces.iter().any(|p| p == piece);
+            if !found {
+                panic!("{} not found", piece);
+            }
+        }
+        let mut results = game_state.get_all_pieces(Color::Black);
+        assert_eq!(results.len(), black_pieces.len(), "total pieces found should be equal.");
+        for piece in black_pieces.iter() {}
+    }
+    #[test]
+    fn test_get_castling_rights_changes_if_piece_moves() {}
+    #[test]
+    fn test_get_castling_rights_changes_if_piece_is_captured() {}
 }
