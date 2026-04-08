@@ -3,15 +3,17 @@ mod eval_tester {
     use crate::ai::evaluator;
     use crate::ai::*;
     use crate::chess_notation::fen_reader;
+    use crate::game_state::GameState;
 
     fn test_evaluate() {}
 
     #[test]
     fn test_eval() {
         let board = fen_reader::make_board(fen_reader::INITIAL_BOARD);
-        assert_eq!(evaluator::evaluate(&board, None, None).score, 0.0);
+        let game_state = GameState::starting_game();
+        assert_eq!(evaluator::evaluate(&game_state, None, None).score, 0.0);
         let board = fen_reader::make_board(fen_reader::WHITE_IN_CHECK);
-        println!("{:?}", evaluator::evaluate(&board, None, None));
+        println!("{:?}", evaluator::evaluate(&game_state, None, None));
     }
 }
 
@@ -20,6 +22,7 @@ mod move_gen_tester {
     use crate::board::*;
     use crate::chess_notation::fen_reader;
     use crate::move_generator::*;
+    use crate::game_state::GameState;
 
     fn move_list_eq(m: &Vec<Move>, m2: &Vec<Move>) -> bool {
         if m.len() != m2.len() {
@@ -43,8 +46,9 @@ mod move_gen_tester {
     #[test]
     fn move_gen() {
         let board = fen_reader::make_board(fen_reader::INITIAL_BOARD);
-        let white_moves = gen_legal_moves(&board, Color::White);
-        let black_moves = gen_legal_moves(&board, Color::Black);
+        let game_state = GameState::starting_game();
+        let white_moves = gen_legal_moves(&game_state, Color::White);
+        let black_moves = gen_legal_moves(&game_state, Color::Black);
         println!("White moves");
         for m in white_moves.iter() {
             println!("{}", m);

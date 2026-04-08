@@ -7,15 +7,20 @@ pub mod pseudo_legal_move_generator;
 
 pub use chess_move::*;
 
+use crate::bit_board::BitBoard;
 use crate::board::*;
+use crate::board_console_printer;
 use crate::board_console_printer::print_board;
+use crate::chess_notation::pgn::Game;
+use crate::game;
+use crate::game_state;
+use crate::game_state::GameState;
 use crate::move_generator::path::*;
 use crate::move_generator::pseudo_legal_move_generator::*;
 use std::fmt;
 use std::fmt::Formatter;
 
 // @todo : test
-
 
 #[cfg(test)]
 mod bench {
@@ -25,71 +30,71 @@ mod bench {
     use crate::chess_notation::fen_reader::*;
     use crate::move_generator::chess_move::MoveType;
     use test::Bencher;
-    #[bench]
-    fn bench_perft(b: &mut Bencher) {
-        let board = fen_reader::make_initial_board();
-        let mut ai = Ai::new_with_search(Color::White, AiSearch::Minimax);
-        b.iter(|| {
-            // ai.make_move(&board, Some(0));
-            // ai.make_move(&board, Some(1));
-            // ai.make_move(&board, Some(2));
-            ai.make_move(&board, Some(3));
-            // ai.make_move(&board, Some(4));
-            // ai.make_move(&board, Some(5));
-        })
-    }
-    #[bench]
-    fn bench_gen_find_pinned_pieces(b: &mut Bencher) {
-        let white_bishop_pinned =
-            "rnbqk1nr/pppp1ppp/4p3/8/1b1P4/5N2/PPPBPPPP/RN1QKB1R b KQkq - 3 3";
-        let board = make_board(white_bishop_pinned);
-        b.iter(|| {
-            let mut pins = find_pinned_pieces(&board, Color::White);
-        })
-    }
+    // #[bench]
+    // fn bench_perft(b: &mut Bencher) {
+    //     let board = fen_reader::make_initial_board();
+    //     let mut ai = Ai::new_with_search(Color::White, AiSearch::Minimax);
+    //     b.iter(|| {
+    //         // ai.make_move(&board, Some(0));
+    //         // ai.make_move(&board, Some(1));
+    //         // ai.make_move(&board, Some(2));
+    //         ai.make_move(&board, Some(3));
+    //         // ai.make_move(&board, Some(4));
+    //         // ai.make_move(&board, Some(5));
+    //     })
+    // }
+    // #[bench]
+    // fn bench_gen_find_pinned_pieces(b: &mut Bencher) {
+    //     let white_bishop_pinned =
+    //         "rnbqk1nr/pppp1ppp/4p3/8/1b1P4/5N2/PPPBPPPP/RN1QKB1R b KQkq - 3 3";
+    //     let board = make_board(white_bishop_pinned);
+    //     b.iter(|| {
+    //         let mut pins = find_pinned_pieces(&board, Color::White);
+    //     })
+    // }
 
-    #[bench]
-    fn bench_gen_attack_vectors(b: &mut Bencher) {
-        let black_mates = "rnb1k1nr/pp2pp1p/Q5pb/2pp4/2PP4/N7/PP1qPPPP/R3KBNR w KQkq - 0 7";
-        let board = make_board(black_mates);
-        b.iter(|| {
-            let moves = gen_attack_vectors(&board, Color::White);
-        })
-    }
+    // #[bench]
+    // fn bench_gen_attack_vectors(b: &mut Bencher) {
+    //     let black_mates = "rnb1k1nr/pp2pp1p/Q5pb/2pp4/2PP4/N7/PP1qPPPP/R3KBNR w KQkq - 0 7";
+    //     let board = make_board(black_mates);
+    //     b.iter(|| {
+    //         let moves = gen_attack_vectors(&board, Color::White);
+    //     })
+    // }
 
-    #[bench]
-    fn bench_gen_pseudo_legal_moves(b: &mut Bencher) {
-        let black_mates = "rnb1k1nr/pp2pp1p/Q5pb/2pp4/2PP4/N7/PP1qPPPP/R3KBNR w KQkq - 0 7";
-        let board = make_board(black_mates);
-        let initial_board = fen_reader::make_board(fen_reader::INITIAL_BOARD);
-        b.iter(|| {
-            let moves = gen_pseudo_legal_moves(&board, Color::White);
-            let moves = gen_pseudo_legal_moves(&board, Color::Black);
-            let moves = gen_pseudo_legal_moves(&initial_board, Color::White);
-            let moves = gen_pseudo_legal_moves(&initial_board, Color::Black);
-        })
-    }
+    // #[bench]
+    // fn bench_gen_pseudo_legal_moves(b: &mut Bencher) {
+    //     let black_mates = "rnb1k1nr/pp2pp1p/Q5pb/2pp4/2PP4/N7/PP1qPPPP/R3KBNR w KQkq - 0 7";
+    //     let board = make_board(black_mates);
+    //     let initial_board = fen_reader::make_board(fen_reader::INITIAL_BOARD);
+    //     b.iter(|| {
+    //         let moves = gen_pseudo_legal_moves(&board, Color::White);
+    //         let moves = gen_pseudo_legal_moves(&board, Color::Black);
+    //         let moves = gen_pseudo_legal_moves(&initial_board, Color::White);
+    //         let moves = gen_pseudo_legal_moves(&initial_board, Color::Black);
+    //     })
+    // }
 
-    #[bench]
-    fn gen_pseudo_legal_moves_initial_board_white(b: &mut Bencher) {
-        let initial_board = fen_reader::make_board(fen_reader::INITIAL_BOARD);
-        b.iter(|| {
-            let moves = gen_pseudo_legal_moves(&initial_board, Color::White);
-        })
-    }
+    // #[bench]
+    // fn gen_pseudo_legal_moves_initial_board_white(b: &mut Bencher) {
+    //     let initial_board = fen_reader::make_board(fen_reader::INITIAL_BOARD);
+    //     b.iter(|| {
+    //         let moves = gen_pseudo_legal_moves(&initial_board, Color::White);
+    //     })
+    // }
 
-    #[bench]
-    fn bench_gen_legal_moves(b: &mut Bencher) {
-        let black_mates = "rnb1k1nr/pp2pp1p/Q5pb/2pp4/2PP4/N7/PP1qPPPP/R3KBNR w KQkq - 0 7";
-        let board = make_board(black_mates);
-        let initial_board = fen_reader::make_board(fen_reader::INITIAL_BOARD);
-        b.iter(|| {
-            let moves = gen_legal_moves(&board, Color::White);
-            let moves = gen_legal_moves(&board, Color::Black);
-            let moves = gen_legal_moves(&initial_board, Color::White);
-            let moves = gen_legal_moves(&initial_board, Color::Black);
-        })
-    }
+    // #[bench]
+    // fn bench_gen_legal_moves(b: &mut Bencher) {
+    //     let black_mates = "rnb1k1nr/pp2pp1p/Q5pb/2pp4/2PP4/N7/PP1qPPPP/R3KBNR w KQkq - 0 7";
+    //     let board = make_board(black_mates);
+    //     let initial_board = fen_reader::make_board(fen_reader::INITIAL_BOARD);
+    //     b.iter(|| {
+    //         let moves = gen_legal_moves(&board, Color::White);
+    //         let moves = gen_legal_moves(&board, Color::Black);
+    //         let moves = gen_legal_moves(&initial_board, Color::White);
+    //         let moves = gen_legal_moves(&initial_board, Color::Black);
+    //     })
+    // }
 }
 
 #[cfg(test)]
@@ -106,15 +111,15 @@ mod tests {
 
     #[test]
     fn perft_initial_position() {
-        let board = fen_reader::make_initial_board();
+        let mut game_state = GameState::starting_game();
         let mut ai = Ai::new_with_search(Color::White, AiSearch::Minimax);
-        ai.make_move(&board, Some(0));
+        ai.make_move(&mut game_state, Some(0));
         assert_eq!(ai.minimax_calls(), 1, "1 node visited at depth 0");
-        ai.make_move(&board, Some(1));
+        ai.make_move(&mut game_state, Some(1));
         assert_eq!(ai.minimax_calls(), 20, "20 nodes visited at depth 1");
-        ai.make_move(&board, Some(2));
+        ai.make_move(&mut game_state, Some(2));
         assert_eq!(ai.minimax_calls(), 400, "400 nodes visited at depth 2");
-        ai.make_move(&board, Some(3));
+        ai.make_move(&mut game_state, Some(3));
         assert_eq!(ai.minimax_calls(), 8902, "8902 nodes visited at depth 3");
         // ai.make_move(&board, Some(4));
         // assert_eq!(
@@ -132,16 +137,16 @@ mod tests {
 
     #[test]
     fn test_in_check() {
-        let board = fen_reader::make_board(fen_reader::BLACK_IN_CHECK);
-        let checks = get_checks(&board, Color::Black);
+        let game_state = fen_reader::make_game_state(fen_reader::BLACK_IN_CHECK);
+        let checks = get_checks(&game_state, Color::Black);
         assert!(checks.len() > 0, "black is in check");
-        let checks = get_checks(&board, Color::White);
+        let checks = get_checks(&game_state, Color::White);
         assert!(checks.len() == 0, "white is not in check");
 
-        let board = fen_reader::make_board(fen_reader::WHITE_IN_CHECK);
-        let checks = get_checks(&board, Color::Black);
+        let game_state = fen_reader::make_game_state(fen_reader::WHITE_IN_CHECK);
+        let checks = get_checks(&game_state, Color::Black);
         assert!(checks.len() == 0, "black is not in check");
-        let checks = get_checks(&board, Color::White);
+        let checks = get_checks(&game_state, Color::White);
         assert!(checks.len() > 0, "white is in check");
     }
 
@@ -149,9 +154,10 @@ mod tests {
     fn test_find_moves_to_resolve_check() {
         let mut moves = vec![];
         let white_queen_checks = "rnb1k1nr/pp2pp1p/6pb/1Qpp4/qPPP4/N7/P3PPPP/R1B1KBNR b KQkq - 2 7";
-        let board = fen_reader::make_board(white_queen_checks);
+
+        let game_state = fen_reader::make_game_state(white_queen_checks);
         // knight interpose
-        let knight = board.get_piece_at(&Coordinate::new(2, 8)).unwrap();
+        let knight = game_state.get_piece_at(&Coordinate::new(2, 8)).unwrap();
         let knight_at = knight.at().unwrap();
         moves.push(Move::new(
             knight_at.clone(),
@@ -172,7 +178,7 @@ mod tests {
             None,
         ));
         // bishop interpose
-        let bishop = board.get_piece_at(&Coordinate::new(3, 8)).unwrap();
+        let bishop = game_state.get_piece_at(&Coordinate::new(3, 8)).unwrap();
         let bishop_at = bishop.at().unwrap();
         moves.push(Move::new(
             bishop_at.clone(),
@@ -184,7 +190,7 @@ mod tests {
             None,
         ));
         // queen captures
-        let queen = board.get_piece_at(&Coordinate::new(1, 4)).unwrap();
+        let queen = game_state.get_piece_at(&Coordinate::new(1, 4)).unwrap();
         let queen_at = queen.at().unwrap();
         moves.push(Move::new(
             queen_at.clone(),
@@ -196,7 +202,7 @@ mod tests {
             None,
         ));
         // king move left one, right one
-        let king = board.get_piece_at(&Coordinate::new(5, 8)).unwrap();
+        let king = game_state.get_piece_at(&Coordinate::new(5, 8)).unwrap();
         let king_at = king.at().unwrap();
         moves.push(Move::new(
             king_at.clone(),
@@ -204,7 +210,7 @@ mod tests {
             king.piece_type,
             MoveType::Move,
             None,
-            board.get_castling_rights_changes_if_piece_moves(king),
+            game_state.get_castling_rights_changes_if_piece_moves(king),
             None,
         ));
         moves.push(Move::new(
@@ -213,15 +219,15 @@ mod tests {
             king.piece_type,
             MoveType::Move,
             None,
-            board.get_castling_rights_changes_if_piece_moves(king),
+            game_state.get_castling_rights_changes_if_piece_moves(king),
             None,
         ));
 
-        let checks = get_checks(&board, Color::Black);
-        let possible_moves = gen_pseudo_legal_moves(&board, Color::Black);
+        let checks = get_checks(&game_state, Color::Black);
+        let possible_moves = gen_pseudo_legal_moves(&game_state, Color::Black);
         println!("possible moves");
         possible_moves.iter().for_each(|m| println!("{}", m));
-        let found_moves = find_moves_to_resolve_check(&board, &checks, &possible_moves);
+        let found_moves = find_moves_to_resolve_check(&game_state, &checks, &possible_moves);
 
         let moves: Vec<&Move> = moves.iter().collect();
 
@@ -251,11 +257,12 @@ mod tests {
     fn test_find_attacking_pieces() {
         let white_bishop_pinned =
             "rnbqk1nr/pppp1ppp/4p3/8/1b1P4/5N2/PPPBPPPP/RN1QKB1R b KQkq - 3 3";
-        let board = make_board(white_bishop_pinned);
-        let mut king_pieces = board.get_pieces(Color::White, PieceType::King);
+        let game_state = fen_reader::make_game_state(white_bishop_pinned);
+        let mut king_pieces = game_state.get_pieces(Color::White, PieceType::King);
         assert!(king_pieces.get(0).is_some(), "king not found");
         let king = king_pieces.remove(0);
-        let mut attacking_pieces = find_attacking_pieces(&board, Color::Black, &king.at().unwrap());
+        let mut attacking_pieces =
+            find_attacking_pieces(&game_state, Color::Black, &king.at().unwrap());
         assert_eq!(
             attacking_pieces.len(),
             1,
@@ -276,14 +283,14 @@ mod tests {
         // pinned by black bishop, can capture or move 1
         let white_bishop_pinned =
             "rnbqk1nr/pppp1ppp/4p3/8/1b1P4/5N2/PPPBPPPP/RN1QKB1R b KQkq - 3 3";
-        let board = make_board(white_bishop_pinned);
+        let game_state = fen_reader::make_game_state(white_bishop_pinned);
         // diagonal from pinning piece to one space before the king
         // it'd be neat to make diagonal from / to function, and file from / to, and rank from / to
-        let mut pins = find_pinned_pieces(&board, Color::White);
+        let mut pins = find_pinned_pieces(&game_state, Color::White);
         assert_eq!(pins.len(), 1, "There is one pin");
-        let bishop = board.get_piece_at(&Coordinate::new(2, 4)).unwrap();
-        let white_bishop = board.get_piece_at(&Coordinate::new(4, 2)).unwrap();
-        let king = board.get_piece_at(&Coordinate::new(5, 1)).unwrap();
+        let bishop = game_state.get_piece_at(&Coordinate::new(2, 4)).unwrap();
+        let white_bishop = game_state.get_piece_at(&Coordinate::new(4, 2)).unwrap();
+        let king = game_state.get_piece_at(&Coordinate::new(5, 1)).unwrap();
         let can_move_to = vec![Coordinate::new(2, 4), Coordinate::new(3, 3)];
 
         let found_pin = pins.pop().unwrap();
@@ -320,13 +327,13 @@ mod tests {
     #[test]
     fn test_gen_legal_moves_checkmate() {
         let black_mates = "rnb1k1nr/pp2pp1p/Q5pb/2pp4/2PP4/N7/PP1qPPPP/R3KBNR w KQkq - 0 7";
-        let board = make_board(black_mates);
-        let moves = gen_legal_moves(&board, Color::White);
+        let game_state = fen_reader::make_game_state(black_mates);
+        let moves = gen_legal_moves(&game_state, Color::White);
         println!("{:?}", moves);
         assert_eq!(moves.len(), 0, "White has no moves");
         let white_mates = "2kQ4/pp3p2/4p1p1/7p/4P3/8/PP3PPP/3R2K1 b - - 0 21";
-        let board = make_board(white_mates);
-        let moves = gen_legal_moves(&board, Color::Black);
+        let game_state = fen_reader::make_game_state(white_mates);
+        let moves = gen_legal_moves(&game_state, Color::Black);
         assert_eq!(moves.len(), 0, "Black has no moves");
     }
 }
@@ -387,7 +394,7 @@ struct Pin<'a> {
 // ignores blocking pieces
 // don't ignore same color pieces that are in the way
 fn find_attacking_pieces<'a>(
-    board: &'a dyn BoardTrait,
+    game_state: &'a GameState,
     attackers_color: Color,
     attack_coordinate: &Coordinate,
 ) -> Vec<&'a Piece> {
@@ -396,29 +403,29 @@ fn find_attacking_pieces<'a>(
     // pieces can't attack the same square twice , so we're good
 
     // generator moves while ignoring blocking enemy pieces
-    let moves = gen_attack_vectors(board, attackers_color);
+    let moves = gen_attack_vectors(game_state, attackers_color);
     for m in moves {
         if &m.to == attack_coordinate {
-            let piece = board.get_piece_at(&m.from).unwrap();
+            let piece = game_state.get_piece_at(&m.from).unwrap();
             attacking_pieces.push(piece);
         }
     }
     attacking_pieces
 }
 
-fn find_pinned_pieces(board: &dyn BoardTrait, defender_color: Color) -> Vec<Pin> {
+fn find_pinned_pieces(game_state: &GameState, defender_color: Color) -> Vec<Pin> {
     let attacker_color = defender_color.opposite();
     //@todo generate legal? moves
 
     // get defender king
-    let mut king_pieces = board.get_pieces(defender_color, PieceType::King);
+    let mut king_pieces = game_state.get_pieces(defender_color, PieceType::King);
     if king_pieces.get(0).is_none() {
         return vec![];
     }
     let king = king_pieces.remove(0);
 
     // get pieces that can attack king (ignoring our own pieces)
-    let attacking_pieces = find_attacking_pieces(board, attacker_color, &king.at().unwrap());
+    let attacking_pieces = find_attacking_pieces(game_state, attacker_color, &king.at().unwrap());
 
     // use piece.at and king.at to generate a range of Coordinates where pieces can interpose at
     let mut pins = vec![];
@@ -444,7 +451,7 @@ fn find_pinned_pieces(board: &dyn BoardTrait, defender_color: Color) -> Vec<Pin>
             let mut defenders: Vec<&Piece> = vec![];
 
             for coordinate in path.iter() {
-                let piece = board.get_piece_at(coordinate);
+                let piece = game_state.get_piece_at(coordinate);
                 if piece.is_none() {
                     continue;
                 } else {
@@ -480,9 +487,9 @@ fn find_pinned_pieces(board: &dyn BoardTrait, defender_color: Color) -> Vec<Pin>
 // @todo: piece lists for fast lookups
 
 // get checks against color
-pub fn get_checks(board: &dyn BoardTrait, color_being_checked: Color) -> Vec<Move> {
-    let moves = gen_pseudo_legal_moves(board, color_being_checked.opposite());
-    let king_pieces = board.get_pieces(color_being_checked, PieceType::King);
+pub fn get_checks(game_state: &GameState, color_being_checked: Color) -> Vec<Move> {
+    let moves = gen_pseudo_legal_moves(game_state, color_being_checked.opposite());
+    let king_pieces = game_state.get_pieces(color_being_checked, PieceType::King);
     if king_pieces.len() == 0 {
         return vec![];
     }
@@ -492,11 +499,11 @@ pub fn get_checks(board: &dyn BoardTrait, color_being_checked: Color) -> Vec<Mov
 }
 
 fn find_checks_from_moves<'a>(
-    board: &dyn BoardTrait,
+    game_state: &GameState,
     moves: &'a Vec<Move>,
     color_being_checked: Color,
 ) -> Vec<&'a Move> {
-    let king_pieces = board.get_pieces(color_being_checked, PieceType::King);
+    let king_pieces = game_state.get_pieces(color_being_checked, PieceType::King);
     if king_pieces.len() == 0 {
         return vec![];
     }
@@ -508,7 +515,7 @@ fn find_checks_from_moves<'a>(
 // fn find_moves_to_resolve_check<'a>(board: &dyn BoardTrait, checks: &Vec<Move>, possible_moves: &'a Vec<Move>) -> Vec<&'a Move> {
 // @todo: this doesn't work in so many ways.... :/
 fn find_moves_to_resolve_check(
-    board: &dyn BoardTrait,
+    game_state: &GameState,
     checks: &Vec<Move>,
     possible_moves: &Vec<Move>,
 ) -> Vec<Move> {
@@ -521,27 +528,27 @@ fn find_moves_to_resolve_check(
 
     // worry about the king fleeing into an attack from another piece later
     // @todo
-    fn king_safely_flees(board: &dyn BoardTrait, m: &Move) -> bool {
-        let piece = board.get_piece_at(&m.from).unwrap();
+    fn king_safely_flees(game_state: &GameState, m: &Move) -> bool {
+        let piece = game_state.get_piece_at(&m.from).unwrap();
         if piece.piece_type != PieceType::King {
             return false;
         }
-        let mut fresh_board = board.clone();
+        let mut fresh_board = &mut game_state.clone_to_game_state();
         fresh_board.make_move_mut(m);
-        get_checks(&*fresh_board, piece.color).len() == 0
+        get_checks(fresh_board, piece.color).len() == 0
     }
     moves
         .into_iter()
         .filter(|m| {
             checks.iter().all(|check| {
-                let piece = board.get_piece_at(&m.from).unwrap();
+                let piece = game_state.get_piece_at(&m.from).unwrap();
                 let path = path::get_path_to(&check.from, &check.to)
                     .unwrap_or_else(|| panic!("illegal move"));
                 let interpose_path = &path[1..(path.len() - 1)];
                 let is_interposing_move =
                     interpose_path.iter().any(|coordinate| coordinate == &m.to);
                 let is_capture = check.from == m.to;
-                king_safely_flees(board, &m)
+                king_safely_flees(game_state, &m)
                     || (is_interposing_move && piece.piece_type != PieceType::King)
                     || is_capture
             })
@@ -550,32 +557,33 @@ fn find_moves_to_resolve_check(
 }
 
 // @todo pass attacker moves so you only calculate it once
-pub fn gen_legal_moves(board: &dyn BoardTrait, color: Color) -> Vec<Move> {
-    let moves = gen_pseudo_legal_moves(board, color);
-
-    // if in check do any of these moves resolve it ?
-    // let checks = find_checks_from_moves(board, &moves, color.opposite());
-    let checks = get_checks(board, color);
+pub fn gen_legal_moves(game_state: &GameState, color: Color) -> Vec<Move> {
+    let moves = gen_pseudo_legal_moves(game_state, color);
+    return moves; //@todo:::
+                  // if in check do any of these moves resolve it ?
+                  // let checks = find_checks_from_moves(board, &moves, color.opposite());
+    let checks = get_checks(game_state, color);
     if checks.len() > 0 {
-        let mut new_board = board.clone();
+        let mut new_game_state = game_state.clone();
         return moves
             .into_iter()
             .filter(|m| {
-                if board.get_piece_at(&m.from).is_none() {
-                    print_board(board);
+                if game_state.get_piece_at(&m.from).is_none() {
+                    // board_console_printer::print_bit_board(&game_state.get_board());
                     println!("{:?}", m);
                     panic!("attempting to move a piece that's not there");
                 }
 
-                let color = board.get_piece_at(&m.from).unwrap().color;
-                new_board.make_move_mut(m);
-                let has_checks = get_checks(&*new_board, color).len() == 0;
-                new_board.unmake_move_mut(m);
+                let color = new_game_state.get_piece_at(&m.from).unwrap().color;
+                new_game_state.make_move_mut(m);
+                let has_checks = get_checks(game_state, color).len() == 0;
+                new_game_state.unmake_move_mut(m);
                 has_checks
             })
             .collect();
     } else {
-        let pinned_pieces = find_pinned_pieces(board, color);
+        let pinned_pieces = find_pinned_pieces(game_state, color);
+        let pinned_pieces: Vec<Pin<'_>> = Vec::new();
 
         fn is_pinned(piece: &Piece, pinned_pieces: &Vec<Pin>) -> bool {
             pinned_pieces.iter().any(|p| p.pinned_piece == piece)
@@ -588,13 +596,13 @@ pub fn gen_legal_moves(board: &dyn BoardTrait, color: Color) -> Vec<Move> {
         moves
             .into_iter()
             .filter(|m| {
-                if board.get_piece_at(&m.from).is_none() {
-                    print_board(board);
+                if game_state.get_piece_at(&m.from).is_none() {
+                    // board_console_printer::print_bit_board(&game_state.get_board());
                     println!("{:?}", m);
                     panic!("attempting to move a piece that's not there");
                 }
                 // is this piece pinned ?
-                let piece = board.get_piece_at(&m.from).unwrap();
+                let piece = game_state.get_piece_at(&m.from).unwrap();
                 if is_pinned(&piece, &pinned_pieces) {
                     let pin = get_pin(&piece, &pinned_pieces).unwrap();
                     // check if the pinned piece can move here
@@ -608,11 +616,11 @@ pub fn gen_legal_moves(board: &dyn BoardTrait, color: Color) -> Vec<Move> {
 }
 
 // ignores enemy captures
-pub fn gen_attack_vectors(board: &dyn BoardTrait, color: Color) -> Vec<Move> {
-    board
+pub fn gen_attack_vectors(game_state: &GameState, color: Color) -> Vec<Move> {
+    game_state
         .get_all_pieces(color)
         .into_iter()
-        .map(|piece| gen_vectors_for(board, piece))
+        .map(|piece| plmg::gen_moves_for(game_state, &piece))
         .flatten()
         .collect()
 }
@@ -621,11 +629,20 @@ pub fn gen_attack_vectors(board: &dyn BoardTrait, color: Color) -> Vec<Move> {
 // determines what moves the pieces can legally do
 // does not check whether the player can legally do that move
 // for instance : no checking pins or checks , etc...
-pub fn gen_pseudo_legal_moves(board: &dyn BoardTrait, color: Color) -> Vec<Move> {
-    board
+// pub fn gen_pseudo_legal_moves(board: &dyn BoardTrait, color: Color) -> Vec<Move> {
+//     board
+//         .get_all_pieces(color)
+//         .into_iter()
+//         .map(|p| gen_moves_for(board, &p))
+//         .flatten()
+//         .collect()
+// }
+
+pub fn gen_pseudo_legal_moves(game_state: &GameState, color: Color) -> Vec<Move> {
+    game_state
         .get_all_pieces(color)
         .into_iter()
-        .map(|p| gen_moves_for(board, &p))
+        .map(|p| plmg::gen_moves_for(game_state, &p))
         .flatten()
         .collect()
 }

@@ -6,7 +6,7 @@ use chess_engine::board::{Color, Coordinate, Piece, PieceType};
 use chess_engine::board_console_printer::print_bit_board;
 use chess_engine::chess_notation::{self, fen_reader};
 use chess_engine::game_state::GameState;
-use chess_engine::move_generator::{Move, plmg};
+use chess_engine::move_generator::{Move, MoveType, plmg};
 use chess_engine::move_generator::pseudo_legal_move_generator;
 use chess_engine::{chess_notation::pgn, game, game_state};
 use getopts::Options;
@@ -34,6 +34,7 @@ fn print_help_menu() {
 }
 
 fn main() {
+    env::set_var("RUST_BACKTRACE", "1");
     let debug = false;
     if debug {
 
@@ -47,11 +48,27 @@ fn main() {
         let rook_test_pos = "4k2r/1ppqbppN/1P1p1n2/1rB1p2p/p2n2P1/1QP1PR1b/P2PNP1P/R3KB2 w Q - 7 18";
         let bishop_test_pos = "4k2r/1pp1bppN/1Pqp1n2/1rB1pbPp/p2n4/1QP1P2R/P2PNP1P/R3KB2 w Q - 3 20";
         let mut game_state = fen_reader::make_game_state(bishop_test_pos);
+
+        // testing 
+        let mut game_state = GameState::starting_game();
+        let from = Coordinate::new(5, 2);
+        let to = from.add(0, 2);
+        let m = Move::new(from, to, PieceType::Pawn, MoveType::Move, None, None, None);
+        game_state.make_move_mut(&m);
+        print_bit_board(&game_state.get_board());
+
+
+
+
+
+
+
+
         let rank1 = game_state.get_rank(1);
         for s in rank1 {
             println!("{}", s);
         }
-        print_bit_board(game_state.board);
+        print_bit_board(&game_state.get_board());
         // println!("{:?}", game_state);
 
         let white_pawns = game_state.get_pieces(Color::White, PieceType::Bishop);
@@ -61,7 +78,7 @@ fn main() {
         let white_pawn_moves: Vec<Move> = vec![];
         for pawn in white_pawns {
             // println!("{:?}", pawn);
-            let moves = plmg::gen_bishop_moves(&game_state.board, &pawn, &game_state);
+            let moves = plmg::gen_bishop_moves( &pawn, &game_state);
             println!("{} moves found ", moves.len());
             for m in moves {
                 println!("{:?}", m);
@@ -69,7 +86,7 @@ fn main() {
         }
         for pawn in black_pawns {
             // println!("{:?}", pawn);
-            let moves = plmg::gen_bishop_moves(&game_state.board, &pawn, &game_state);
+            let moves = plmg::gen_bishop_moves( &pawn, &game_state);
             println!("{} moves found ", moves.len());
             for m in moves {
                 println!("{:?}", m);
@@ -78,18 +95,18 @@ fn main() {
         
         return;
 
-        println!("{} piece count ", game_state.board.get_piece_count());
-        println!("{} piece count ", game_state.board.get_piece_count());
+        println!("{} piece count ", game_state.get_board().get_piece_count());
+        println!("{} piece count ", game_state.get_board().get_piece_count());
         // this feels wrong ...
         {
             // let board = &mut game_state.board;
             // board.clear();
         }
-        println!("{} piece count ", game_state.board.get_piece_count());
-        println!("{} piece count ", game_state.board.get_piece_count());
+        println!("{} piece count ", game_state.get_board().get_piece_count());
+        println!("{} piece count ", game_state.get_board().get_piece_count());
 
         let p = Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(3, 6)));
-        let moves = plmg::gen_pawn_moves(&game_state.board, &p, &game_state);
+        let moves = plmg::gen_pawn_moves( &p, &game_state);
 
         println!("found {} moves", moves.len());
         for m in moves {

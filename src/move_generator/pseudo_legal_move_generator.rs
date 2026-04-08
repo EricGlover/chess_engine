@@ -1,11 +1,9 @@
 use crate::board::*;
-use crate::chess_notation::fen_reader::make_board;
 #[cfg(test)]
 use crate::chess_notation::fen_reader::make_initial_board;
 use crate::move_generator::chess_move::MoveType;
 use crate::move_generator::path::{get_path_from, Direction};
 use crate::move_generator::Move;
-
 #[cfg(test)]
 mod tests {
     use super::move_generation::*;

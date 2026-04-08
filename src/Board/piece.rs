@@ -29,4 +29,7 @@ impl Piece {
     pub fn set_at(&mut self, at: Coordinate) {
         self.at = Some(at);
     }
+    pub fn remove(&mut self) {
+        self.at = None;
+    }
 }

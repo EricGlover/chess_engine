@@ -5,6 +5,7 @@ use crate::board_console_printer::print_board;
 use crate::chess_notation;
 use crate::chess_notation::pgn::Game as PgnGame;
 use crate::chess_notation::{fen_reader, parse_move, print_move};
+use crate::game_state::GameState;
 use crate::move_generator::Move;
 use chrono::{DateTime, Local};
 use std::fs::{self, File, Metadata};
@@ -26,8 +27,19 @@ pub enum GameResult {
     Win { winning_player: Color },
 }
 
+// pub struct Game {
+//     board: Board,
+//     moves: Vec<String>,
+//     ai: ai::Ai,
+//     ai2: ai::Ai,
+//     start_time: String,
+//     result: GameResult,
+//     enable_logging: bool,
+//     game_start: Instant
+// }
+
 pub struct Game {
-    board: Board,
+    board: GameState,
     moves: Vec<String>,
     ai: ai::Ai,
     ai2: ai::Ai,
@@ -44,7 +56,7 @@ impl Game {
         let mut ai2 = ai::Ai::new(Color::White);
         ai2.default_search_depth = 4;
         Game {
-            board: fen_reader::make_board(fen_reader::INITIAL_BOARD),
+            board: GameState::starting_game(),
             ai,
             ai2,
             moves: vec![],
@@ -126,7 +138,7 @@ impl Game {
         println!("{} to move", ai.color());
         print_board(&self.board);
 
-        let m = ai.make_move(&self.board, None).unwrap();
+        let m = ai.make_move(&mut self.board, None).unwrap();
         let log = print_move(&m, &self.board);
         println!("{} transposition table hits", ai.transposition_table_hits);
         println!("{} moves \n{}", ai.color(), log);
@@ -138,7 +150,7 @@ impl Game {
         println!("{} to move", self.ai.color());
         print_board(&self.board);
 
-        let m = self.ai.make_move(&self.board, None).unwrap();
+        let m = self.ai.make_move(&mut self.board, None).unwrap();
         let log = print_move(&m, &self.board);
         println!(
             "{} transposition table hits",
@@ -152,7 +164,7 @@ impl Game {
         println!("{} to move", self.ai2.color());
         print_board(&self.board);
 
-        let m = self.ai2.make_move(&self.board, None).unwrap();
+        let m = self.ai2.make_move(&mut self.board, None).unwrap();
         let log = print_move(&m, &self.board);
         println!(
             "{} transposition table hits",
@@ -194,7 +206,7 @@ impl Game {
                 print_board(&self.board);
                 // let evaluation = evaluate(&self.board, None, None);
 
-                let m = self.ai2.make_move(&self.board, None).unwrap();
+                let m = self.ai2.make_move(&mut self.board, None).unwrap();
                 let log = print_move(&m, &self.board);
                 self.print_ai_stats_for_last_move(&self.ai2);
                 println!("{} AI moves \n{}", self.ai2.color(), log);
@@ -209,7 +221,7 @@ impl Game {
                 println!("{} to move", self.ai.color());
                 print_board(&self.board);
 
-                let m = self.ai.make_move(&self.board, None).unwrap();
+                let m = self.ai.make_move(&mut self.board, None).unwrap();
                 let log = print_move(&m, &self.board);
                 self.print_ai_stats_for_last_move(&self.ai);
                 println!("{} AI moves \n{}", self.ai.color(), log);

@@ -4,9 +4,8 @@ use crate::bit_board::{
     B_FILE, DARK_DIAGONALS_UP_RIGHT, G_FILE, H_FILE, ROW_1, ROW_2, ROW_7, ROW_8,
     WHITE_KINGSIDE_CASTLE_BLOCKERS, WHITE_QUEENSIDE_CASTLE_BLOCKERS,
 };
-use crate::board::{CastlingRights, Color, Coordinate, Piece, PieceType};
+use crate::board::{ Color, Coordinate, Piece, PieceType};
 use crate::board::{HIGH_X, HIGH_Y, LOW_X, LOW_Y};
-use crate::game;
 use crate::game_state::GameState;
 use crate::move_generator::{Move, MoveType};
 
@@ -803,16 +802,30 @@ fn init_gen_pawn_attacks() {
     }
 }
 
-pub fn gen_queen_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -> Vec<Move> {
-    let mut all_moves = gen_rook_moves(board, piece, game_state);
-    let bishop_moves = gen_bishop_moves(board, piece, game_state);
+pub fn gen_moves_for(game_state: &GameState, piece: &Piece) -> Vec<Move> {
+    let moves = match piece.piece_type {
+        PieceType::King => gen_king_moves( piece, game_state),
+        PieceType::Queen => gen_queen_moves( piece, game_state),
+        PieceType::Bishop => gen_bishop_moves( piece, game_state),
+        PieceType::Knight => gen_knight_moves( piece, game_state),
+        PieceType::Rook => gen_rook_moves( piece, game_state),
+        PieceType::Pawn => gen_pawn_moves( piece, game_state),
+    };
+    return moves;
+}
+
+
+pub fn gen_queen_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
+    let mut all_moves = gen_rook_moves(piece, game_state);
+    let bishop_moves = gen_bishop_moves(piece, game_state);
     for m in bishop_moves {
         all_moves.push(m);
     }
     return all_moves;
 }
 
-pub fn gen_bishop_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -> Vec<Move> {
+pub fn gen_bishop_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
+    let board = game_state.get_board();
     let at = piece.at().unwrap();
     let idx = BitBoard::coordinate_to_idx(*at);
     let start_bit = BitBoard::coordinate_to_bit(*at);
@@ -950,7 +963,7 @@ pub fn gen_bishop_moves(board: &BitBoard, piece: &Piece, game_state: &GameState)
                 &to,
                 piece,
                 MoveType::Move,
-                board,
+                &board,
                 game_state,
             ));
         } else {
@@ -967,7 +980,8 @@ pub fn gen_bishop_moves(board: &BitBoard, piece: &Piece, game_state: &GameState)
 
 // this isn't precalculated / using magic numbers yet
 // for the moment I'm just calculating it with fancy smancy bit manips
-pub fn gen_rook_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -> Vec<Move> {
+pub fn gen_rook_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
+    let board = game_state.get_board();
     let at = piece.at().unwrap();
     let idx: u64 = BitBoard::coordinate_to_idx(*at);
     let pieces_bit_board = board.get_piece_board();
@@ -1085,7 +1099,7 @@ pub fn gen_rook_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -
                 &to,
                 piece,
                 MoveType::Move,
-                board,
+                &board,
                 game_state,
             ));
         } else {
@@ -1098,7 +1112,8 @@ pub fn gen_rook_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -
     return moves;
 }
 
-pub fn gen_king_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -> Vec<Move> {
+pub fn gen_king_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
+    let board = game_state.get_board();
     let at = piece.at().unwrap();
     let idx = BitBoard::coordinate_to_idx(*at);
     let attack_board: u64 = KING_ATTACKS[(idx - 1) as usize];
@@ -1108,13 +1123,13 @@ pub fn gen_king_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -
     BitBoard::print_bitboard(attack_board);
 
     for to in BitBoard::attack_map_to_coordinates(attack_board) {
-        if square_occupiable_by(board, &to, color) {
+        if square_occupiable_by(&board, &to, color) {
             moves.push(make_move_to(
                 at,
                 &to,
                 piece,
                 MoveType::Move,
-                board,
+                &board,
                 game_state,
             ));
         }
@@ -1141,21 +1156,24 @@ pub fn gen_king_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -
 }
 
 /*@todo : test  */
-pub fn gen_knight_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -> Vec<Move> {
+pub fn gen_knight_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
+    let board = game_state.get_board();
     let at = piece.at().unwrap();
     let idx = BitBoard::coordinate_to_idx(*at);
     let attack_board: u64 = KNIGHT_ATTACKS[(idx - 1) as usize];
+    println!("{} {} {}", at, idx, attack_board);
+    BitBoard::print_bitboard(attack_board);
     let mut moves: Vec<Move> = vec![];
     let color = piece.color;
     //@todo : get captured piece type
     for to in BitBoard::attack_map_to_coordinates(attack_board) {
-        if square_occupiable_by(board, &to, color) {
+        if square_occupiable_by(&board, &to, color) {
             moves.push(make_move_to(
                 at,
                 &to,
                 piece,
                 MoveType::Move,
-                board,
+                &board,
                 game_state,
             ));
         }
@@ -1168,7 +1186,8 @@ pub fn gen_knight_moves(board: &BitBoard, piece: &Piece, game_state: &GameState)
  *
 one square move, two square move, capturing diagonally forward, pawn promotion, en passant
 **/
-pub fn gen_pawn_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -> Vec<Move> {
+pub fn gen_pawn_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
+    let board = game_state.get_board();
     let at = piece.at().unwrap();
     let idx = BitBoard::coordinate_to_idx(*at);
     // println!("{} {}", at, idx);
@@ -1204,7 +1223,7 @@ pub fn gen_pawn_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -
     ];
     let up_one = at.add(0, 1 * direction);
     let up_two = at.add(0, 2 * direction);
-    if square_is_empty(board, &up_one) {
+    if square_is_empty(&board, &up_one) {
         //promotion
         if up_one.y() == promotion_y {
             // make promotion moves
@@ -1221,7 +1240,7 @@ pub fn gen_pawn_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -
             }
         } else {
             moves.push(make_quiet_move(at, &up_one, piece));
-            if square_is_empty(board, &up_two) && at.y() == start_y {
+            if square_is_empty(&board, &up_two) && at.y() == start_y {
                 moves.push(make_quiet_move(at, &up_two, piece));
             }
         }
@@ -1249,7 +1268,7 @@ pub fn gen_pawn_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -
                         &to,
                         piece,
                         MoveType::Promotion(*promotion_type),
-                        board,
+                        &board,
                         game_state,
                     ));
                 }
@@ -1259,7 +1278,7 @@ pub fn gen_pawn_moves(board: &BitBoard, piece: &Piece, game_state: &GameState) -
                     &to,
                     piece,
                     MoveType::Move,
-                    board,
+                    &board,
                     game_state,
                 ));
             }

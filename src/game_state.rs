@@ -1,10 +1,10 @@
 use std::collections::HashMap;
-use std::hash::Hash;
 
-use crate::bit_board::{self, BitBoard};
+use crate::bit_board::BitBoard;
 use crate::board::{BoardTrait, CastlingRights, Color, Coordinate, Piece, PieceType, Square};
 use crate::chess_notation::pgn::Game;
-use crate::move_generator::Move;
+use crate::game_state;
+use crate::move_generator::{gen_legal_moves, Move, MoveType};
 
 // might be worthwhile to add pointers to things
 // or add a list of moves
@@ -16,17 +16,17 @@ pub struct GameState {
     en_passant_target: Option<Coordinate>,
     half_move_clock: u32,
     full_move_number: u32,
-    pub board: BitBoard,
+    board: BitBoard,
     dirty_squares: bool,
     dirty_pieces: bool,
     squares: Vec<Square>,
     pieces: HashMap<u64, Piece>,
 }
 
-// @todo ::
+// @todo :: test 
 impl BoardTrait for GameState {
     fn clone(&self) -> Box<dyn BoardTrait> {
-        Box::new(GameState::starting_game())
+        Box::new(self.clone_to_game_state())
     }
 
     // info about game going on
@@ -68,7 +68,7 @@ impl BoardTrait for GameState {
     }
     fn get_rank(&self, y: u8) -> Vec<&Square> {
         let mut rank: Vec<&Square> = Vec::new();
-        for x in (1..=8u64) {
+        for x in 1..=8u64 {
             let c = Coordinate::new(x as u8, y);
             let idx = BitBoard::coordinate_to_idx(c);
             if idx == 0 {
@@ -81,9 +81,9 @@ impl BoardTrait for GameState {
     }
     fn get_files(&self) -> Vec<Vec<&Square>> {
         let mut files: Vec<Vec<&Square>> = Vec::new();
-        for x in (1..=8u64) {
+        for x in 1..=8u64 {
             let mut file: Vec<&Square> = vec![];
-            for y in (1..=8u64) {
+            for y in 1..=8u64 {
                 let c = Coordinate::new(x as u8, y as u8);
                 let idx = BitBoard::coordinate_to_idx(c);
                 file.push(&self.squares[(idx - 1) as usize]);
@@ -102,23 +102,203 @@ impl BoardTrait for GameState {
 
     // moves
     //@todo
-    fn make_move_mut(&mut self, m: &Move) {}
-    fn unmake_move_mut(&mut self, m: &Move) {}
+    fn make_move_mut(&mut self, m: &Move) {
+        let from_idx = BitBoard::coordinate_to_idx(m.from);
+        let to_idx = BitBoard::coordinate_to_idx(m.to);
+        if let Some(mut piece_to_move) = self.pieces.remove(&from_idx) {
+            // update white to move flag
+            self.player_to_move = piece_to_move.color.opposite();
+
+            // update 50 move rule draw counter
+            if m.captured.is_none() || piece_to_move.piece_type != PieceType::Pawn {
+                self.half_move_clock = self.half_move_clock + 1;
+            } else {
+                self.half_move_clock = 0;
+            }
+
+            // update castling rights
+            if !m.castling_rights_removed().none() {
+                let removed = m.castling_rights_removed();
+                if removed.king_side() {
+                    match piece_to_move.color {
+                        Color::White => {
+                            *self.white_castling_rights.king_side_mut() = false;
+                        }
+                        Color::Black => {
+                            *self.black_castling_rights.king_side_mut() = false;
+                        }
+                    }
+                }
+                if removed.queen_side() {
+                    match piece_to_move.color {
+                        Color::White => {
+                            *self.white_castling_rights.queen_side_mut() = false;
+                        }
+                        Color::Black => {
+                            *self.black_castling_rights.queen_side_mut() = false;
+                        }
+                    }
+                }
+            }
+
+            // update move counter
+            if piece_to_move.color == Color::Black {
+                self.full_move_number = self.full_move_number + 1;
+            }
+
+            // get piece to move
+            match m.move_type() {
+                MoveType::Castling { rook_from, rook_to } => {
+                    // self.move_piece(rook_from, rook_to);
+                    let mut rook_to_move = self.remove_piece_at(rook_from);
+                    if rook_to_move.is_none() {
+                        panic!("could find piece to be removed at {}", rook_from);
+                    }
+                    self.place_piece(rook_to_move.unwrap(), rook_to);
+                }
+                // if it gets promoted, then switch it's type
+                MoveType::Promotion(promoted_to) => {
+                    piece_to_move.piece_type = promoted_to.clone();
+                }
+                MoveType::EnPassant => {}
+                MoveType::Move => {}
+            }
+            // move the piece ( update the piece, piece map , square, and board )
+            // is this a capture
+            if m.captured.is_some() {
+                let removed_piece = self.remove_piece_at(&m.to);
+                if removed_piece.is_none() {
+                    panic!("could find piece to be removed at {}", m.to);
+                }
+            }
+
+            println!("{}", piece_to_move);
+            println!("{:?}", self);
+            self.pieces.insert(from_idx, piece_to_move);
+            self.remove_piece(&piece_to_move);
+            self.place_piece(piece_to_move, &m.to);
+        } else {
+            println!("{:?}", m);
+            panic!("trying to remove a piece that isn't there.");
+        }
+    }
+    fn unmake_move_mut(&mut self, m: &Move) {
+        let from_idx = BitBoard::coordinate_to_idx(m.from);
+        let to_idx = BitBoard::coordinate_to_idx(m.to);
+        if let Some(mut piece_to_move) = self.pieces.remove(&to_idx) {
+            // roll back white to move flag
+            self.player_to_move = piece_to_move.color.opposite();
+
+            // @todo:::
+            // update 50 move rule draw counter
+            // if m.captured.is_none() || piece_to_move.piece_type != PieceType::Pawn {
+            //     self.half_move_clock = self.half_move_clock - 1;
+            // } else {
+            //     self.half_move_clock = 0;
+            // }
+
+            // roll back castling rights changes
+            if !m.castling_rights_removed().none() {
+                let removed = m.castling_rights_removed();
+                if removed.king_side() {
+                    match piece_to_move.color {
+                        Color::White => {
+                            *self.white_castling_rights.king_side_mut() = true;
+                        }
+                        Color::Black => {
+                            *self.black_castling_rights.king_side_mut() = true;
+                        }
+                    }
+                }
+                if removed.queen_side() {
+                    match piece_to_move.color {
+                        Color::White => {
+                            *self.white_castling_rights.queen_side_mut() = true;
+                        }
+                        Color::Black => {
+                            *self.black_castling_rights.queen_side_mut() = true;
+                        }
+                    }
+                }
+            }
+
+            // roll back move counter
+            if piece_to_move.color == Color::Black {
+                self.full_move_number = self.full_move_number - 1;
+            }
+
+            // get piece to move
+            match m.move_type() {
+                MoveType::Castling { rook_from, rook_to } => {
+                    // move the rook back
+                    let mut rook_to_move = self.remove_piece_at(rook_to);
+                    if rook_to_move.is_none() {
+                        panic!("could find piece to be removed at {}", rook_to);
+                    }
+                    self.place_piece(rook_to_move.unwrap(), rook_from);
+                }
+                // if it gets promoted, then switch it's type
+                MoveType::Promotion(promoted_to) => {
+                    piece_to_move.piece_type = PieceType::Pawn;
+                }
+                MoveType::EnPassant => {}
+                MoveType::Move => {}
+            }
+            // move the piece ( update the piece, piece map , square, and board )
+            // is this a capture
+            if m.captured.is_some() {
+                self.place_piece(
+                    Piece::new(
+                        piece_to_move.color.opposite(),
+                        m.captured.unwrap(),
+                        Some(m.to),
+                    ),
+                    &m.to,
+                );
+            }
+
+            self.remove_piece(&piece_to_move);
+            self.place_piece(piece_to_move, &m.from);
+        } else {
+            println!("{:?}", m);
+            panic!("trying to remove a piece that isn't there.");
+        }
+    }
 
     // getting and setting pieces
+    // update the piece, piece map , square, and board
     fn place_piece(&mut self, piece: Piece, at: &Coordinate) {
         self.board.set_piece(piece.piece_type, piece.color, *at);
         let idx = BitBoard::coordinate_to_idx(*at);
         self.pieces.insert(idx, piece);
+        if let Some(square) = self.squares.get_mut((idx - 1) as usize) {
+            square.set_piece_to(&piece);
+        } else {
+            panic!("Tried to place piece {}\n...square not found", piece);
+        }
     }
+    // update the piece, piece map , square, and board
     fn remove_piece(&mut self, piece: &Piece) -> Piece {
         if piece.at().is_none() {
             //error
             return Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(1, 1)));
         }
         let idx = BitBoard::coordinate_to_idx(*piece.at().unwrap());
-        let piece = self.pieces.remove(&idx);
-        return Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(1, 1)));
+        // update piece map
+        println!("{:?}", self.pieces);
+        let piece_opt = self.pieces.remove(&idx);
+        // update squares
+        if let Some(square) = self.squares.get_mut((idx - 1) as usize) {
+            square.remove_piece();
+        } else {
+            panic!("Tried to remove piece {}\n...square not found", piece);
+        }
+        if piece_opt.is_none() {
+            panic!("piece not found {}", idx);
+        }
+        let mut piece = piece_opt.unwrap();
+        piece.remove();
+        return piece;
     }
     fn has_piece(&self, at: &Coordinate) -> bool {
         self.board.is_piece_at_coordinate(at)
@@ -156,14 +336,41 @@ impl BoardTrait for GameState {
     }
 
     fn get_castling_rights_changes_if_piece_moves(&self, piece: &Piece) -> Option<CastlingRights> {
-        None
+        let current = match piece.color {
+            Color::White => self.white_castling_rights,
+            Color::Black => self.black_castling_rights,
+        };
+        if current.none() {
+            return None;
+        }
+        if let Some(at) = piece.at() {
+            if piece.piece_type == PieceType::King {
+                return Some(CastlingRights::new(
+                    current.king_side(),
+                    current.queen_side(),
+                ));
+            } else if piece.piece_type == PieceType::Rook {
+                // which rook bro ?
+                if current.king_side() && at.x() == 8 {
+                    return Some(CastlingRights::new(true, false));
+                } else if current.queen_side() && at.x() == 1 {
+                    return Some(CastlingRights::new(false, true));
+                } else {
+                    return None;
+                }
+            } else {
+                return None;
+            }
+        } else {
+            return None;
+        }
     }
 
     fn get_castling_rights_changes_if_piece_is_captured(
         &self,
         piece: &Piece,
     ) -> Option<CastlingRights> {
-        None
+        self.get_castling_rights_changes_if_piece_moves(piece)
     }
 }
 
@@ -239,10 +446,65 @@ impl GameState {
         return g;
     }
 
-    pub fn get_piece_list(&mut self) -> Vec<&Piece> {
-        if self.dirty_pieces {
-            self.update_pieces();
+    pub fn clone_to_game_state(&self) -> GameState {
+        GameState {
+            player_to_move: self.player_to_move,
+            white_castling_rights: self.white_castling_rights,
+            black_castling_rights: self.black_castling_rights,
+            en_passant_target: self.en_passant_target,
+            half_move_clock: self.half_move_clock,
+            full_move_number: self.full_move_number,
+            board: self.board.clone(),
+            dirty_squares: self.dirty_squares,
+            dirty_pieces: self.dirty_pieces,
+            squares: self.squares.iter().map(|s| s._clone()).collect(),
+            pieces: self.pieces.clone(),
         }
+    }
+    pub fn get_player_to_move(&self) -> Color {
+        self.player_to_move
+    }
+
+    pub fn get_half_move_clock(&self) -> u32 {
+        self.half_move_clock
+    }
+    pub fn get_full_move_number(&self) -> u32 {
+        self.full_move_number
+    }
+    pub fn get_board(&self) -> BitBoard {
+        self.board.clone()
+    }
+    pub fn get_dirty_squares(&self) -> bool {
+        self.dirty_squares
+    }
+    pub fn get_dirty_pieces(&self) -> bool {
+        self.dirty_pieces
+    }
+
+    fn remove_piece_at(&mut self, at: &Coordinate) -> Option<Piece> {
+        // remove from squares
+        // remove from hash map
+        let idx = BitBoard::coordinate_to_idx(*at);
+        // update piece map
+        let piece_opt = self.pieces.remove(&idx);
+        // update squares
+        if let Some(square) = self.squares.get_mut((idx - 1) as usize) {
+            square.remove_piece();
+        } else {
+            panic!("Tried to remove piece at {}\n...square not found", at);
+        }
+        if piece_opt.is_none() {
+            return None;
+        }
+        let mut piece = piece_opt.unwrap();
+        piece.remove();
+        return Some(piece);
+    }
+
+    pub fn get_piece_list(&self) -> Vec<&Piece> {
+        // if self.dirty_pieces {
+        //     self.update_pieces();
+        // }
         return self.pieces.values().collect();
     }
 
@@ -280,8 +542,7 @@ impl GameState {
             let mut black_queens: Vec<Piece> = Vec::new();
             let mut black_kings: Vec<Piece> = Vec::new();
 
-            ///
-            for idx in (1..=64u64) {
+            for idx in 1..=64u64 {
                 let v = self.pieces.remove(&idx);
                 if v.is_some() {
                     let piece: Piece = v.unwrap();
@@ -628,5 +889,52 @@ impl GameState {
             Square::new(Coordinate::new(7, 8), None, Color::White),
             Square::new(Coordinate::new(8, 8), None, Color::Black),
         ]
+    }
+    pub fn find_pieces_can_move_to_square(
+        &self,
+        color: Color,
+        piece_type: PieceType,
+        to: Coordinate,
+    ) -> Vec<&Piece> {
+        let moves = gen_legal_moves(self, color);
+        let pieces = self.get_pieces(color, piece_type);
+        let mut found_pieces = Vec::new();
+        for &piece in self.get_piece_list().iter() {
+            if piece.piece_type == piece_type && piece.color == color {
+                let a = piece.at();
+                if a.is_none() {
+                    continue;
+                }
+                let at = piece.at().unwrap();
+                //find move
+                let found = moves.iter().any(|&m| {
+                    return (m.from.x() == at.x() && m.from.y() == at.y())
+                        && (m.to.x() == to.x() && m.to.y() == to.y());
+                });
+                if found {
+                    found_pieces.push(piece);
+                }
+            }
+        }
+        return found_pieces;
+        // return self.find_pieces(|&square| {
+
+        //     square.piece().map_or(false, |piece| {
+        //         if piece.piece_type == piece_type && piece.color == color {
+        //             let a = piece.at();
+        //             if a.is_none() {
+        //                 return false;
+        //             }
+        //             let at = piece.at().unwrap();
+        //             //find move
+        //             return moves.iter().any(|&m| {
+        //                 return (m.from.x() == at.x() && m.from.y() == at.y())
+        //                     && (m.to.x() == to.x() && m.to.y() == to.y());
+        //             });
+        //         } else {
+        //             return false;
+        //         }
+        //     })
+        // });
     }
 }

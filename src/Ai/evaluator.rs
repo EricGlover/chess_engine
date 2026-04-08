@@ -1,4 +1,5 @@
 use crate::board::*;
+use crate::game_state::GameState;
 use crate::move_generator;
 use crate::move_generator::Move;
 
@@ -12,8 +13,8 @@ mod tests {
     #[test]
     fn test_pawn_count() {
         let fen = "rnb1kr2/pp1p1p1p/1qB2n2/7Q/1P1pPP1p/b4N1R/P1P3P1/RNB1K3 b Qq - 4 10";
-        let board = fen_reader::make_board(fen);
-        let (w_count, b_count) = make_pawn_count_by_file(&board);
+        let game_state = fen_reader::make_game_state(fen);
+        let (w_count, b_count) = make_pawn_count_by_file(&game_state);
         let white_file: [u8; 8] = [1, 1, 1, 0, 1, 1, 1, 0];
         let black_file: [u8; 8] = [1, 1, 0, 2, 0, 1, 0, 2];
         assert_eq!(w_count.files, white_file);
@@ -23,12 +24,12 @@ mod tests {
     #[test]
     fn test_count_pawn_structure() {
         let fen = "rnb1kr2/pp1p1p1p/1qB2n2/7Q/1P1pPP1p/b4N1R/P1P3P1/RNB1K3 b Qq - 4 10";
-        let board = fen_reader::make_board(fen);
-        let (w, b) = count_blocked_pawns(&board);
+        let game_state = fen_reader::make_game_state(fen);
+        let (w, b) = count_blocked_pawns(&game_state);
         assert_eq!(3, b);
         assert_eq!(1, w);
         // print_board(&board);
-        let (w_count, b_count) = make_pawn_count_by_file(&board);
+        let (w_count, b_count) = make_pawn_count_by_file(&game_state);
         println!("{:?}", w_count);
         let (w, b) = count_doubled_pawns(&w_count, &b_count);
         assert_eq!(0, w);
@@ -41,8 +42,8 @@ mod tests {
     #[bench]
     fn bench_evaluate_board(b: &mut Bencher) {
         let fen = "rnb1kr2/pp1p1p1p/1qB2n2/7Q/1P1pPP1p/b4N1R/P1P3P1/RNB1K3 b Qq - 4 10";
-        let board = fen_reader::make_board(fen);
-        b.iter(|| evaluate(&board, None, None))
+        let game_state = fen_reader::make_game_state(fen);
+        b.iter(|| evaluate(&game_state, None, None))
     }
 }
 
@@ -171,7 +172,7 @@ fn count_doubled_pawns(white: &PawnCountByFile, black: &PawnCountByFile) -> (u8,
     (white_doubled, black_doubled)
 }
 
-fn count_blocked_pawns(board: &dyn BoardTrait) -> (u8, u8) {
+fn count_blocked_pawns(board: &GameState) -> (u8, u8) {
     let files = board.get_files();
     let mut white_blocked: u8 = 0;
     let mut black_blocked: u8 = 0;
@@ -201,7 +202,7 @@ fn count_blocked_pawns(board: &dyn BoardTrait) -> (u8, u8) {
     (white_blocked, black_blocked)
 }
 
-fn make_pawn_count_by_file(board: &dyn BoardTrait) -> (PawnCountByFile, PawnCountByFile) {
+fn make_pawn_count_by_file(board: &GameState) -> (PawnCountByFile, PawnCountByFile) {
     let files = board.get_files();
     let mut white_p = PawnCountByFile { files: [0; 8] };
     let mut black_p = PawnCountByFile { files: [0; 8] };
@@ -319,7 +320,7 @@ impl Evaluation {
 // }
 
 pub fn evaluate(
-    board: &dyn BoardTrait,
+    board: &GameState,
     white_moves_ref: Option<&Vec<Move>>,
     black_moves_ref: Option<&Vec<Move>>,
 ) -> Evaluation {

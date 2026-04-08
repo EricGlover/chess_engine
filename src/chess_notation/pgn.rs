@@ -5,6 +5,7 @@ use crate::chess_notation::fen_reader::make_board;
 use crate::chess_notation::read_move;
 use crate::chess_notation::{fen_reader, ParsedMoveType};
 use crate::game::Game as chess_game;
+use crate::game_state::GameState;
 use crate::move_generator::{
     self, gen_legal_moves, pseudo_legal_move_generator as p_gen, Move, MoveType,
 };
@@ -72,7 +73,8 @@ impl fmt::Display for Mode {
 pub fn moves_from_pgn(pgn: &str) -> Vec<Move> {
     // reading from a pgn time
     let mut moves: Vec<Move> = Vec::new();
-    let mut scrap_board = fen_reader::make_board(fen_reader::INITIAL_BOARD);
+    // let mut scrap_board = fen_reader::make_board(fen_reader::INITIAL_BOARD);
+    let mut scrap_game_state = GameState::starting_game();
 
     // for the moment were skipping the informational section
     // break pgn into lines then grab all the lines with move text in them
@@ -182,7 +184,7 @@ pub fn moves_from_pgn(pgn: &str) -> Vec<Move> {
                     ParsedMoveType::Move => break,
                 };
                 moves.push(new_move);
-                scrap_board.make_move_mut(&new_move);
+                scrap_game_state.make_move_mut(&new_move);
                 color_to_move = match color_to_move {
                     Color::White => Color::Black,
                     Color::Black => Color::White,
@@ -198,7 +200,7 @@ pub fn moves_from_pgn(pgn: &str) -> Vec<Move> {
             let to = coordinate.unwrap();
             // //@todo :::: make moves
             let mut found_pieces =
-                scrap_board.find_pieces_can_move_to_square(color_to_move, piece_type, to);
+                scrap_game_state.find_pieces_can_move_to_square(color_to_move, piece_type, to);
             if found_pieces.is_empty() {
                 // println!("MOVE NOT FOUND X");
                 break;
@@ -215,9 +217,9 @@ pub fn moves_from_pgn(pgn: &str) -> Vec<Move> {
                 ParsedMoveType::Promotion => MoveType::Promotion(promotion_type.unwrap()),
                 ParsedMoveType::Move => MoveType::Move,
             };
-            let new_move = p_gen::make_move_to(from, &to, found_piece, move_type, &scrap_board);
+            let new_move = p_gen::make_move_to(from, &to, found_piece, move_type, &scrap_game_state);
             moves.push(new_move);
-            scrap_board.make_move_mut(&new_move);
+            scrap_game_state.make_move_mut(&new_move);
             //@todo :: this roughly works
 
             // flip color to move

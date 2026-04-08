@@ -1,5 +1,4 @@
 use crate::board::{BoardTrait, Color, Coordinate, PieceType};
-use rand::prelude::ThreadRng;
 use rand::Rng;
 
 // initialization
@@ -8,8 +7,8 @@ fn init() {
     // https://www.chessprogramming.org/Zobrist_Hashing
     // 64 bit hash
     let mut rng = rand::thread_rng();
-    let max = (u64::pow(2, 64) - 1);
-    let num = rng.gen_range((0..max));
+    let max = u64::pow(2, 64) - 1;
+    let num = rng.gen_range(0..max);
 }
 
 #[derive(Debug)]
@@ -39,7 +38,7 @@ impl Zobrist {
         // https://www.chessprogramming.org/Zobrist_Hashing
         // 64 bit hash
         let mut rng = rand::thread_rng();
-        let mut gen = || rng.gen_range((0..u64::MAX));
+        let mut gen = || rng.gen_range(0..u64::MAX);
         let mut gen_pieces = || {
             [
                 gen(),

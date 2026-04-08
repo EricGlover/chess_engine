@@ -1,6 +1,7 @@
 pub mod evaluator;
 use crate::ai::evaluator::Evaluation;
 use crate::board::*;
+use crate::game_state::GameState;
 use crate::hash::Zobrist;
 use crate::move_generator::*;
 use rand::prelude::ThreadRng;
@@ -13,41 +14,41 @@ use std::time::{Duration, Instant};
 #[cfg(test)]
 mod bench {
     use super::*;
-    use crate::chess_notation::fen_reader::{make_board, make_initial_board};
+    use crate::{chess_notation::fen_reader::{make_board, make_initial_board}, game_state};
     use Ai;
     use std::time::{Duration, Instant};
     use test::Bencher;
 
     #[bench]
     fn alpha_beta_0(b:&mut Bencher) {
-        let board = make_initial_board();
+        let mut game_state = GameState::starting_game();
         let mut ai = Ai::new_with_search(Color::White, AiSearch::AlphaBeta);
         b.iter(|| {
-            ai.make_move(&board, Some(0));
+            ai.make_move(&mut game_state, Some(0));
         })
     }
     #[bench]
     fn alpha_beta_1(b:&mut Bencher) {
-        let board = make_initial_board();
+        let mut game_state = GameState::starting_game();
         let mut ai = Ai::new_with_search(Color::White, AiSearch::AlphaBeta);
         b.iter(|| {
-            ai.make_move(&board, Some(1));
+            ai.make_move(&mut game_state, Some(1));
         })
     }
     #[bench]
     fn alpha_beta_2(b:&mut Bencher) {
-        let board = make_initial_board();
+        let mut game_state = GameState::starting_game();
         let mut ai = Ai::new_with_search(Color::White, AiSearch::AlphaBeta);
         b.iter(|| {
-            ai.make_move(&board, Some(2));
+            ai.make_move(&mut game_state, Some(2));
         })
     }
     #[bench]
     fn alpha_beta_3(b:&mut Bencher) {
-        let board = make_initial_board();
+        let mut game_state = GameState::starting_game();
         let mut ai = Ai::new_with_search(Color::White, AiSearch::AlphaBeta);
         b.iter(|| {
-            ai.make_move(&board, Some(3));
+            ai.make_move(&mut game_state, Some(3));
         })
     }
     // takes way to long
@@ -65,7 +66,7 @@ mod bench {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::chess_notation::fen_reader::{make_board, make_initial_board};
+    use crate::{chess_notation::fen_reader::{self, make_board, make_initial_board}, game_state};
     use Ai;
     use std::time::{Duration, Instant};
 
@@ -87,10 +88,10 @@ mod tests {
         //@todo : test more boards.... use pgn ????
         fn test_initial_board_at_depth(depth: u8) {
             let mut ai = Ai::new(Color::White);
-            let mut board = make_initial_board();
+            let mut game_state = GameState::starting_game();
             let (eval, best_move) =
-                ai.alpha_beta(&mut *board.clone(), Color::White, depth, None, None);
-            let (expected_eval, expected_best_move) = ai.minimax(&mut board, Color::White, depth);
+                ai.alpha_beta(&mut game_state, Color::White, depth, None, None);
+            let (expected_eval, expected_best_move) = ai.minimax(&mut game_state, Color::White, depth);
 
             assert!(best_move.is_some(), "there is a best move");
             assert_eq!(
@@ -114,9 +115,9 @@ mod tests {
     fn bug_unwrap() {
         // black to move
         let fen = "r3k1r1/1b1p1p2/p3pp2/B1b4p/Pp2P3/1BN2P2/1PP4P/R2K1R2 b q - 10 20";
-        let board = make_board(fen);
+        let mut game_state = fen_reader::make_game_state(fen);
         let mut ai = Ai::new(Color::Black);
-        ai.make_move(&board, Some(4));
+        ai.make_move(&mut game_state, Some(4));
     }
 }
 
@@ -208,7 +209,7 @@ impl Ai {
     //
     fn alpha_beta(
         &mut self,
-        board: &mut dyn BoardTrait,
+        board: &mut GameState,
         player_moving: Color,
         depth_to_go: u8,
         mut lower_bound: Option<evaluator::Evaluation>,
@@ -333,7 +334,7 @@ impl Ai {
 
     fn choose_random_move(
         &mut self,
-        board: &dyn BoardTrait,
+        board: &GameState,
     ) -> (evaluator::Evaluation, Option<Move>) {
         let mut moves = gen_legal_moves(board, self.color);
         if moves.len() == 0 {
@@ -347,7 +348,7 @@ impl Ai {
 
     fn minimax(
         &mut self,
-        board: &mut dyn BoardTrait,
+        board: &mut GameState,
         color: Color,
         depth: u8,
     ) -> (evaluator::Evaluation, Option<Move>) {
@@ -408,7 +409,7 @@ impl Ai {
     // should return an eval, board, and move list to reach that board
     fn search(
         &mut self,
-        board: &dyn BoardTrait,
+        board: &mut GameState,
         depth: u8,
         color: Color,
     ) -> Option<(evaluator::Evaluation, Option<Move>)> {
@@ -417,8 +418,8 @@ impl Ai {
         self.transposition_table_hits = 0;
         self.transposition_table = HashMap::new();
         let (eval, best_move): (Evaluation, Option<Move>) = match self.ai_search_function {
-            AiSearch::AlphaBeta => self.alpha_beta(&mut *board.clone(), color, depth, None, None),
-            AiSearch::Minimax => self.minimax(&mut *board.clone(), color, depth),
+            AiSearch::AlphaBeta => self.alpha_beta(&mut board.clone_to_game_state(), color, depth, None, None),
+            AiSearch::Minimax => self.minimax(&mut board.clone_to_game_state(), color, depth),
             AiSearch::Random => self.choose_random_move(board),
         };
         // check move
@@ -451,7 +452,7 @@ impl Ai {
         return Some((eval, best_move));
     }
 
-    pub fn make_move(&mut self, board: &Board, depth: Option<u8>) -> Option<Move> {
+    pub fn make_move(&mut self, board: &mut GameState, depth: Option<u8>) -> Option<Move> {
         let search_depth = if depth.is_some() {
             depth.unwrap()
         } else {

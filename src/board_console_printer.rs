@@ -45,7 +45,7 @@ pub fn print_board(board: &dyn BoardTrait) {
     display.print(&mut std::io::stdout(), &style::BordersStyle::None);
 }
 
-pub fn print_bit_board(bit_board: BitBoard) {
+pub fn print_bit_board(bit_board: &BitBoard) {
     let mut board_cells = vec![];
     // loop over rows in reverse 
     for row_idx in (1..=8).rev() {

@@ -1,9 +1,4 @@
-use crate::bit_board;
-use crate::board::{Board, CastlingRights, Color, Coordinate, Piece, PieceType};
-use crate::board_console_printer::print_board;
-use crate::move_generator::plmg;
-use std::fmt;
-use std::fmt::{Error, Formatter};
+use crate::board::{ Color, Coordinate, Piece, PieceType};
 
 /*
  * board indices
@@ -638,6 +633,7 @@ impl BitBoard {
 
     //@todo : test
     pub fn coordinate_to_idx(c: Coordinate) -> u64 {
+        println!("{}", c);
         return ((c.y() - 1) * 8 + c.x()) as u64;
     }
 
@@ -890,8 +886,8 @@ fn print_bitboard_indices() {
 }
 
 pub fn test() {
-    for y in (1..=8) {
-        for x in (1..=8) {
+    for y in 1..=8 {
+        for x in 1..=8 {
             let c = Coordinate::new(x, y);
             let bit = BitBoard::coordinate_to_bit(c);
             let color = BitBoard::get_square_color_at(c);
@@ -899,89 +895,6 @@ pub fn test() {
             // BitBoard::print_bitboard(bit);
         }
     }
-
-    return;
-
-    init_gen_file_boards();
-    return;
-    // testing
-
-    // let mut bit_board = 1u64 << 1;
-
-    // println!("{}", u64::count_ones(bit_board));
-    // println!("{}", u64::count_zeros(bit_board));
-
-    // BitBoard::print_bitboard(bit_board | 1u64 << 8);
-    // BitBoard::print_bitboard(BitBoard::lsb(bit_board));
-    // return;
-    // let start_bit = BitBoard::set_bit(0u64, 19);
-    // let diagonals = BitBoard::get_diagonals_for_bit(start_bit);
-    // BitBoard::print_bitboard(diagonals);
-    // return;
-
-    // println!("up right");
-    // for diagonal in DARK_ARRAY_UP_RIGHT {
-    //     println!("{}", diagonal);
-    //     BitBoard::print_bitboard(diagonal);
-    // }
-    // println!("up left");
-    // for diagonal in DARK_ARRAY_UP_LEFT {
-    //     println!("{}", diagonal);
-    //     BitBoard::print_bitboard(diagonal);
-    // }
-    // println!("up right");
-    // for diagonal in LIGHT_ARRAY_UP_RIGHT {
-    //     println!("{}", diagonal);
-    //     BitBoard::print_bitboard(diagonal);
-    // }
-    // println!("up left");
-    // for diagonal in LIGHT_ARRAY_UP_LEFT {
-    //     println!("{}", diagonal);
-    //     BitBoard::print_bitboard(diagonal);
-    // }
-    // return;
-
-    plmg::test();
-    return;
-    let t: u64 = 0;
-    let mut t2 = 1u64;
-    // let a1:u64 = 1;
-    // let a2:u64 = 1 << 8;
-    // let a3:u64 = 1 << 16;
-    // let a4:u64 = 1 << 24;
-    // let a5:u64 = 1 << 32;
-    // let a6:u64 = 1 << 40;
-    // let a7:u64 = 1 << 48;
-    // let a8:u64 = 1 << 56;
-    // print_bitboard(1u64);
-    // print_bitboard(!1u64);
-    let mut board: BitBoard = BitBoard::new();
-    board.print();
-    return;
-    BitBoard::print_bitboard(BitBoard::set_bit(1u64, 64));
-    BitBoard::print_bitboard(BitBoard::set_bit(1u64, 16));
-
-    println!("{:?}", BitBoard::get_bit(1u64, 1));
-    println!("{:?}", BitBoard::get_bit(1u64, 2));
-    println!("{:?}", BitBoard::get_bit(1u64 << 1, 2));
-    println!("{:?}", BitBoard::get_bit(1u64 << 2, 3));
-    println!("{:?}", BitBoard::get_bit(1u64 << 7, 8));
-    println!("{:?}", BitBoard::get_bit(1u64 << 8, 9));
-    println!("{:?}", BitBoard::get_bit(1u64 << 8, 10));
-    println!("{:?}", BitBoard::get_bit(1u64 << 63, 64));
-    // println!("{:?}", get_bit(1u64, 2));
-    // println!("{:?}", get_bit(1u64 << 1, 2));
-    // println!("{:?}", get_bit(1u64 << 2, 3));
-    return;
-
-    BitBoard::print_bitboard(a1);
-    BitBoard::print_bitboard(a2);
-    BitBoard::print_bitboard(a3);
-    BitBoard::print_bitboard(a4);
-    BitBoard::print_bitboard(a5);
-    BitBoard::print_bitboard(a6);
-    BitBoard::print_bitboard(a7);
-    BitBoard::print_bitboard(a8);
 
     return;
 }
@@ -1253,7 +1166,7 @@ fn init_gen_file_boards() {
     let mut dark_squares = 0u64;
     // odd rows then even cols
     // even rows then odd cols
-    for i in (1..=64) {
+    for i in 1..=64 {
         let row = ((i - 1) / 8) + 1;
         let col = ((i - 1) % 8) + 1;
         println!("{} {}", row, col);
@@ -1280,7 +1193,7 @@ fn init_gen_file_boards() {
 
     /*   ROWS  */
     let mut row1 = 0u64;
-    for idx in (1u64..=8u64) {
+    for idx in 1u64..=8u64 {
         row1 = BitBoard::set_bit(row1, idx);
     }
     println!("{}", row1);
@@ -1316,7 +1229,7 @@ fn init_gen_file_boards() {
 
     /*  FILES  */
     let mut a_file = 0u64;
-    for idx in (1u64..=8u64) {
+    for idx in 1u64..=8u64 {
         a_file = BitBoard::set_bit(a_file, 1 + ((idx - 1) * 8));
     }
     println!("{}", a_file);
@@ -1436,4 +1349,5 @@ mod test {
             assert_eq!(BitBoard::coordinate_to_idx(*c), indices[i]);
         }
     }
+
 }

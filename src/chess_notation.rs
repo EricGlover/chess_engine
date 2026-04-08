@@ -4,6 +4,7 @@ pub mod pgn;
 use regex::Regex;
 
 use crate::board::*;
+use crate::game_state::GameState;
 use crate::move_generator::*;
 
 /*
@@ -24,7 +25,7 @@ identify the piece—which occurs only in rare cases where a player has three or
 pieces able to reach the same square, as a result of one or more pawns having promoted).
 **/
 
-pub fn print_move(m: &Move, board: &dyn BoardTrait) -> String {
+pub fn print_move(m: &Move, board: &GameState) -> String {
     if m.is_king_side_castle() {
         return String::from("O-O"); // O not 0
     }
@@ -68,7 +69,7 @@ pub fn print_move(m: &Move, board: &dyn BoardTrait) -> String {
 
 // change this to result error ?
 // doesn't return illegal moves, return None if not possible
-pub fn parse_move(str: &str, board: &dyn BoardTrait, color: Color) -> Option<Move> {
+pub fn parse_move(str: &str, board: &GameState, color: Color) -> Option<Move> {
     // find what piece they're talking about by looking through the possible moves
     let their_move = String::from(str);
     gen_legal_moves(board, color)
@@ -76,7 +77,7 @@ pub fn parse_move(str: &str, board: &dyn BoardTrait, color: Color) -> Option<Mov
         .find(|m| their_move == print_move(m, board))
 }
 
-fn get_piece_specifier(m: &Move, board: &dyn BoardTrait) -> String {
+fn get_piece_specifier(m: &Move, board: &GameState) -> String {
     // search for other moves , if similar moves we have to get specific about what piece is moving
     let piece = board.get_piece_at(&m.from).unwrap();
     let mover_color = piece.color;
@@ -126,17 +127,17 @@ fn get_piece_specifier(m: &Move, board: &dyn BoardTrait) -> String {
 }
 
 // algebraic moves and move generator moves are different because they're board dependent
-// bools are for short and long castles 
+// bools are for short and long castles
 #[derive(Debug, Eq, PartialEq)]
 pub enum ParsedMoveType {
     Move,
     ShortCastles,
     LongCastles,
-    Promotion
+    Promotion,
 }
 
 fn read_piece(str: &str) -> Option<PieceType> {
-     let piece_identifier_matcher = Regex::new(r"^\s?[R,K,Q,N,B]").unwrap();
+    let piece_identifier_matcher = Regex::new(r"^\s?[R,K,Q,N,B]").unwrap();
     if piece_identifier_matcher.is_match(str) {
         let _p = piece_identifier_matcher.find(str).unwrap().as_str();
         let mut piece = PieceType::Rook;
@@ -155,8 +156,15 @@ fn read_piece(str: &str) -> Option<PieceType> {
     }
 }
 
-// @todo : row and column specifiers 
-pub fn read_move(str: &str) -> Option<(PieceType, Option<Coordinate>, ParsedMoveType, Option<PieceType>)> {
+// @todo : row and column specifiers
+pub fn read_move(
+    str: &str,
+) -> Option<(
+    PieceType,
+    Option<Coordinate>,
+    ParsedMoveType,
+    Option<PieceType>,
+)> {
     // println!("reading {}", str);
     // is $1, $2 blah whatevers
     let crap_matcher = Regex::new(r"\$\d").unwrap();
@@ -185,10 +193,15 @@ pub fn read_move(str: &str) -> Option<(PieceType, Option<Coordinate>, ParsedMove
     let coordinate_matcher = Regex::new(r"[a-h][1-8]").unwrap();
     let is_only_coordinate_matcher = Regex::new(r"^\s?[a-h][1-8]\s?$").unwrap();
 
-    // pawn captures , no promotion 
+    // pawn captures , no promotion
     if is_capture_specifier.is_match(str) && !piece_identifier_matcher.is_match(str) {
-         let c = Coordinate::from(coordinate_matcher.find(str).unwrap().as_str());
-         return Some((PieceType::Pawn, Some(c), ParsedMoveType::Move, pawn_promotion));
+        let c = Coordinate::from(coordinate_matcher.find(str).unwrap().as_str());
+        return Some((
+            PieceType::Pawn,
+            Some(c),
+            ParsedMoveType::Move,
+            pawn_promotion,
+        ));
     }
 
     // regular non-capture pawn moves
@@ -207,16 +220,15 @@ pub fn read_move(str: &str) -> Option<(PieceType, Option<Coordinate>, ParsedMove
         let c = Coordinate::from(coordinate_matcher.find(str).unwrap().as_str());
         return Some((piece, Some(c), ParsedMoveType::Move, None));
     }
-     // "fxe8N"
+    // "fxe8N"
     // don't forget pawn capture specifiers
 
-    
-    //remove any captures 
+    //remove any captures
     //remove any checks or checkmates
     //is just coordinate ?
-    // else 
-    //is piece identifier 
-    ////is row / column included 
+    // else
+    //is piece identifier
+    //is row / column included
     return None;
 }
 
@@ -225,10 +237,11 @@ mod print_move_test {
     use super::*;
     use crate::board::CastlingRights;
     use crate::chess_notation::fen_reader::*;
+    use crate::game_state;
 
     #[test]
     fn pawn_move() {
-        let board = fen_reader::make_initial_board();
+        let game_state = GameState::starting_game();
         let m = Move::new(
             Coordinate::new(1, 2),
             Coordinate::new(1, 3),
@@ -238,13 +251,13 @@ mod print_move_test {
             None,
             None,
         );
-        let log = print_move(&m, &board);
+        let log = print_move(&m, &game_state);
         assert_eq!(log, String::from("a3"));
     }
 
     #[test]
     fn non_pawn_move() {
-        let board = fen_reader::make_initial_board();
+        let game_state = GameState::starting_game();
         let m = Move::new(
             Coordinate::new(2, 1),
             Coordinate::new(1, 3),
@@ -254,12 +267,12 @@ mod print_move_test {
             None,
             None,
         );
-        let log = print_move(&m, &board);
+        let log = print_move(&m, &game_state);
         assert_eq!(log, String::from("Na3"));
 
         // file specified
         let fen = "rnbqkbnr/1ppppppp/8/8/8/p1N1N3/PPPPPPPP/R1BQKB1R b KQkq - 1 5";
-        let board = make_board(fen);
+        let game_state = fen_reader::make_game_state(fen);
         let m = Move::new(
             Coordinate::new(3, 3),
             Coordinate::new(4, 5),
@@ -269,7 +282,7 @@ mod print_move_test {
             None,
             None,
         );
-        let log = print_move(&m, &board);
+        let log = print_move(&m, &game_state);
         assert_eq!(
             log,
             String::from("Ncd5"),
@@ -285,7 +298,7 @@ mod print_move_test {
             None,
             None,
         );
-        let log = print_move(&m, &board);
+        let log = print_move(&m, &game_state);
         assert_eq!(
             log,
             String::from("Ned5"),
@@ -294,7 +307,7 @@ mod print_move_test {
 
         //rank specified
         let fen = "rnbqkbnr/1ppppppp/8/3N4/8/1nP5/P1QPPPPP/2BNKB1R w Kkq - 5 10";
-        let board = make_board(fen);
+        let game_state = fen_reader::make_game_state(fen);
         let m = Move::new(
             Coordinate::new(4, 1),
             Coordinate::new(5, 3),
@@ -304,7 +317,7 @@ mod print_move_test {
             None,
             None,
         );
-        let log = print_move(&m, &board);
+        let log = print_move(&m, &game_state);
         assert_eq!(
             log,
             String::from("N1e3"),
@@ -320,7 +333,7 @@ mod print_move_test {
             None,
             None,
         );
-        let log = print_move(&m, &board);
+        let log = print_move(&m, &game_state);
         assert_eq!(
             log,
             String::from("N5e3"),
@@ -331,7 +344,7 @@ mod print_move_test {
     #[test]
     fn captures() {
         let fen = "rnbqkbnr/1ppppppp/8/3N4/8/1nP5/P1QPPPPP/2BNKB1R w Kkq - 5 10";
-        let board = make_board(fen);
+        let game_state = fen_reader::make_game_state(fen);
         let m = Move::new(
             Coordinate::new(1, 2),
             Coordinate::new(2, 3),
@@ -341,14 +354,14 @@ mod print_move_test {
             None,
             None,
         );
-        let log = print_move(&m, &board);
+        let log = print_move(&m, &game_state);
         assert_eq!(log, String::from("axb3"), "A Pawn takes knight.");
     }
 
     #[test]
     fn pawn_promotion() {
         let fen = "rnbqkbnr/1ppppppp/8/8/2N5/2N5/PpPPPPPP/R1BQKB1R b KQkq - 1 6";
-        let board = make_board(fen);
+        let game_state = fen_reader::make_game_state(fen);
         let m = Move::new(
             Coordinate::new(2, 2),
             Coordinate::new(1, 1),
@@ -358,7 +371,7 @@ mod print_move_test {
             None,
             None,
         );
-        let log = print_move(&m, &board);
+        let log = print_move(&m, &game_state);
         assert_eq!(
             log,
             String::from("bxa1=N"),
@@ -374,7 +387,7 @@ mod print_move_test {
             None,
             None,
         );
-        let log = print_move(&m, &board);
+        let log = print_move(&m, &game_state);
         assert_eq!(
             log,
             String::from("bxa1=B"),
@@ -390,7 +403,7 @@ mod print_move_test {
             None,
             None,
         );
-        let log = print_move(&m, &board);
+        let log = print_move(&m, &game_state);
         assert_eq!(
             log,
             String::from("bxa1=R"),
@@ -405,7 +418,7 @@ mod print_move_test {
             None,
             None,
         );
-        let log = print_move(&m, &board);
+        let log = print_move(&m, &game_state);
         assert_eq!(
             log,
             String::from("bxa1=Q"),
@@ -416,7 +429,7 @@ mod print_move_test {
     #[test]
     fn castling() {
         let fen = "rnbqkbnr/1pp4p/4pp2/3p2p1/3P4/2NQN1PB/PBP1PP1P/R3K2R b KQkq - 1 10";
-        let board = make_board(fen);
+        let game_state = fen_reader::make_game_state(fen);
         let m = Move::new(
             Coordinate::new(5, 1),
             Coordinate::new(7, 1),
@@ -429,7 +442,7 @@ mod print_move_test {
             Some(CastlingRights::new(true, true)),
             None,
         );
-        let log = print_move(&m, &board);
+        let log = print_move(&m, &game_state);
         assert_eq!(log, String::from("O-O"), "short castles");
 
         let m = Move::new(
@@ -444,7 +457,7 @@ mod print_move_test {
             Some(CastlingRights::new(true, true)),
             None,
         );
-        let log = print_move(&m, &board);
+        let log = print_move(&m, &game_state);
         assert_eq!(log, String::from("O-O-O"), "long castles");
     }
 
@@ -452,7 +465,7 @@ mod print_move_test {
     fn en_passant() {
         // unimplemented!("");
         let fen = "rnbqkbnr/1pp4p/4pp2/3p4/3P1Pp1/2NQN1PB/PBP1P2P/R3K2R b KQkq f3 0 11";
-        let board = make_board(fen);
+        let game_state = fen_reader::make_game_state(fen);
         let m = Move::new(
             Coordinate::new(7, 4),
             Coordinate::new(6, 3),
@@ -462,7 +475,7 @@ mod print_move_test {
             None,
             None,
         );
-        let log = print_move(&m, &board);
+        let log = print_move(&m, &game_state);
         assert_eq!(log, String::from("gxf3"), "Pawn en passant captures");
     }
 
@@ -470,7 +483,7 @@ mod print_move_test {
     fn test_make_move_log() {
         // double capture
         let double_capture = "rnbqkbnr/ppppp1pp/8/5p2/4P1P1/8/PPPP1P1P/RNBQKBNR b KQkq g3 0 2";
-        let board = make_board(double_capture);
+        let game_state = fen_reader::make_game_state(double_capture);
         // let m = Move::new()
     }
 }
@@ -494,11 +507,11 @@ mod tests {
 
     #[test]
     fn read_move_test() {
-        let board = fen_reader::make_board(fen_reader::INITIAL_BOARD);
+        let game_state = GameState::starting_game();
         let s = "Ra2";
         let s2 = "a4";
-        let m = parse_move(s, &board, Color::White);
-        let m2 = parse_move(s2, &board, Color::White).unwrap();
+        let m = parse_move(s, &game_state, Color::White);
+        let m2 = parse_move(s2, &game_state, Color::White).unwrap();
         let a1 = Coordinate::from("a1");
         let a2 = Coordinate::from("a2");
         let a4 = Coordinate::from("a4");
