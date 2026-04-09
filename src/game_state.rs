@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use rand::seq::index;
+
 use crate::bit_board::BitBoard;
 use crate::board::{BoardTrait, CastlingRights, Color, Coordinate, Piece, PieceType, Square};
 use crate::chess_notation::pgn::Game;
@@ -92,16 +94,8 @@ impl BoardTrait for GameState {
         }
         return files;
     }
-    // fn get_squares(&self) -> Vec<Vec<&Square>> {
-    //     let squares: Vec<Vec<&Square>> = Vec::new();
-    //     if self.dirty_squares {
-    //         // self.init_squares();
-    //     }
-    //     return squares;
-    // }
 
     // moves
-    //@todo
     fn make_move_mut(&mut self, m: &Move) {
         let from_idx = BitBoard::coordinate_to_idx(m.from);
         let to_idx = BitBoard::coordinate_to_idx(m.to);
@@ -110,7 +104,7 @@ impl BoardTrait for GameState {
             self.player_to_move = piece_to_move.color.opposite();
 
             // update 50 move rule draw counter
-            if m.captured.is_none() || piece_to_move.piece_type != PieceType::Pawn {
+            if m.captured.is_none() && piece_to_move.piece_type != PieceType::Pawn {
                 self.half_move_clock = self.half_move_clock + 1;
             } else {
                 self.half_move_clock = 0;
@@ -151,10 +145,7 @@ impl BoardTrait for GameState {
                 MoveType::Castling { rook_from, rook_to } => {
                     // self.move_piece(rook_from, rook_to);
                     let mut rook_to_move = self.remove_piece_at(rook_from);
-                    if rook_to_move.is_none() {
-                        panic!("could find piece to be removed at {}", rook_from);
-                    }
-                    self.place_piece(rook_to_move.unwrap(), rook_to);
+                    self.place_piece(rook_to_move, rook_to);
                 }
                 // if it gets promoted, then switch it's type
                 MoveType::Promotion(promoted_to) => {
@@ -167,13 +158,10 @@ impl BoardTrait for GameState {
             // is this a capture
             if m.captured.is_some() {
                 let removed_piece = self.remove_piece_at(&m.to);
-                if removed_piece.is_none() {
-                    panic!("could find piece to be removed at {}", m.to);
-                }
             }
 
-            println!("{}", piece_to_move);
-            println!("{:?}", self);
+            // println!("{}", piece_to_move);
+            // println!("{:?}", self);
             self.pieces.insert(from_idx, piece_to_move);
             self.remove_piece(&piece_to_move);
             self.place_piece(piece_to_move, &m.to);
@@ -232,10 +220,7 @@ impl BoardTrait for GameState {
                 MoveType::Castling { rook_from, rook_to } => {
                     // move the rook back
                     let mut rook_to_move = self.remove_piece_at(rook_to);
-                    if rook_to_move.is_none() {
-                        panic!("could find piece to be removed at {}", rook_to);
-                    }
-                    self.place_piece(rook_to_move.unwrap(), rook_from);
+                    self.place_piece(rook_to_move, rook_from);
                 }
                 // if it gets promoted, then switch it's type
                 MoveType::Promotion(promoted_to) => {
@@ -285,25 +270,8 @@ impl BoardTrait for GameState {
             panic!("tried to remove piece without coordinate \n{}", piece);
             return Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(1, 1)));
         }
-        let idx = BitBoard::coordinate_to_idx(*piece.at().unwrap());
-        // update bit_board
-        self.board
-            .remove_piece(piece.piece_type, piece.color, piece.at().unwrap().clone());
-        // update piece map
-        println!("{:?}", self.pieces);
-        let piece_opt = self.pieces.remove(&idx);
-        // update squares
-        if let Some(square) = self.squares.get_mut((idx - 1) as usize) {
-            square.remove_piece();
-        } else {
-            panic!("Tried to remove piece {}\n...square not found", piece);
-        }
-        if piece_opt.is_none() {
-            panic!("piece not found {}", idx);
-        }
-        let mut piece = piece_opt.unwrap();
-        piece.remove();
-        return piece;
+        let at = *piece.at().unwrap();
+        return self.remove_piece_at(&at);
     }
     fn has_piece(&self, at: &Coordinate) -> bool {
         self.board.is_piece_at_coordinate(at)
@@ -486,24 +454,30 @@ impl GameState {
         self.dirty_pieces
     }
 
-    fn remove_piece_at(&mut self, at: &Coordinate) -> Option<Piece> {
-        // remove from squares
-        // remove from hash map
+    fn remove_piece_at(&mut self, at: &Coordinate) -> Piece {
         let idx = BitBoard::coordinate_to_idx(*at);
         // update piece map
         let piece_opt = self.pieces.remove(&idx);
-        // update squares
-        if let Some(square) = self.squares.get_mut((idx - 1) as usize) {
-            square.remove_piece();
+        if let Some(piece) = piece_opt {
+            // update bit_board
+            self.board
+                .remove_piece(piece.piece_type, piece.color, piece.at().unwrap().clone());
+
+            // update squares
+            if let Some(square) = self.squares.get_mut((idx - 1) as usize) {
+                square.remove_piece();
+            } else {
+                panic!("Tried to remove piece {}\n...square not found", piece);
+            }
+            if piece_opt.is_none() {
+                panic!("piece not found {}", idx);
+            }
+            let mut piece = piece_opt.unwrap();
+            piece.remove();
+            return piece;
         } else {
-            panic!("Tried to remove piece at {}\n...square not found", at);
+            panic!("tried to remove piece \npiece not found at idx {}", idx);
         }
-        if piece_opt.is_none() {
-            return None;
-        }
-        let mut piece = piece_opt.unwrap();
-        piece.remove();
-        return Some(piece);
     }
 
     pub fn get_piece_list(&self) -> Vec<&Piece> {
@@ -951,12 +925,90 @@ impl GameState {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::chess_notation::fen_reader;
+
+    fn assert_valid_state(game_state: &GameState) {
+        let squares = game_state.squares_list();
+        let piece_map = game_state.get_piece_map();
+        let bit_board = game_state.get_board();
+        for x in (1..=8u8) {
+            for y in (1..=8u8) {
+                let at = Coordinate::new(x, y);
+                let idx = BitBoard::coordinate_to_idx(at);
+                let square_opt = squares.iter().map(|s| *s).find(|&s| *s.coordinate() == at);
+                assert!(square_opt.is_some(), "square should be findable");
+                let square = square_opt.unwrap();
+                let piece_opt = bit_board.get_piece_at(&at);
+                if let Some(piece) = piece_map.get(&idx) {
+                    assert!(piece_opt.is_some(), "piece should be in bit board");
+                    let piece_in_board = piece_opt.unwrap();
+                    assert_eq!(*piece.at().unwrap(), at);
+                    assert_eq!(*piece, *square.piece().unwrap());
+                    assert_eq!(*piece, piece_in_board);
+                } else {
+                    assert!(piece_opt.is_none(), "piece should not be in bit board");
+                    assert!(square.piece().is_none(), "piece should not be in square");
+                }
+            }
+        }
+    }
+
     #[test]
     fn test_squares_list() {}
     #[test]
     fn test_get_rank() {}
     #[test]
     fn test_get_files() {}
+
+    #[test]
+    fn test_make_move_mut_captures() {
+        // fairly simple first postion
+        let fen_scandi = "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2";
+        let fen_after = "rnbqkbnr/ppp1pppp/8/3P4/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 2";
+        let mut game_state = fen_reader::make_game_state(fen_scandi);
+        //exd5
+        let from = Coordinate::new(5, 4);
+        let to = from.add(-1, 1);
+        let takes_move = Move::new(
+            from,
+            to,
+            PieceType::Pawn,
+            MoveType::Move,
+            Some(PieceType::Pawn),
+            None,
+            None,
+        );
+        game_state.make_move_mut(&takes_move);
+        assert_valid_state(&game_state);
+
+        // check with fen
+        let result_fen = fen_reader::make_fen(&game_state);
+        assert_eq!(result_fen, fen_after, "fen should be equal");
+
+        // weird position with lots of captures
+        let captures_fen = "4kb1r/1pp2ppp/4pn2/2rp4/q1BPP1b1/p1Pn1N1P/4KPP1/RNBQ3R b k - 14 15";
+        let mut game_state = fen_reader::make_game_state(captures_fen);
+        let a4 = Coordinate::new(1, 4);
+        let d1 = Coordinate::new(4, 1);
+        let takes_move = Move::new(
+            a4,
+            d1,
+            PieceType::Queen,
+            MoveType::Move,
+            Some(PieceType::Queen),
+            None,
+            None,
+        );
+        game_state.make_move_mut(&takes_move);
+        assert_valid_state(&game_state);
+        let fen_after = "4kb1r/1pp2ppp/4pn2/2rp4/2BPP1b1/p1Pn1N1P/4KPP1/RNBq3R w k - 0 16";
+        let result_fen = fen_reader::make_fen(&game_state);
+        assert_eq!(fen_after, result_fen, "fen should be equal");
+        // check bit board
+        // check hash map
+        // check
+    }
+
     #[test]
     fn test_make_move_mut() {
         let mut game_state = GameState::starting_game();
@@ -967,6 +1019,9 @@ mod tests {
         // let piece = Piece::new(Color::White, PieceType::Pawn, Some(from));
         let e4_move = Move::new(from, to, PieceType::Pawn, MoveType::Move, None, None, None);
         game_state.make_move_mut(&e4_move);
+
+        assert_valid_state(&game_state);
+
         let e4_pawn = game_state.get_piece_at(&to);
         assert!(e4_pawn.is_some(), "pawn not found at e4");
         let e2 = game_state.get_piece_at(&from);
@@ -1017,7 +1072,11 @@ mod tests {
         let found_s = found_square.unwrap();
         assert!(found_s.piece().is_some(), "e4 should not be empty");
         let found_piece = found_s.piece().unwrap();
-        assert_eq!(*found_piece, Piece::new(Color::White, PieceType::Pawn, Some(to)), " piece should be a white pawn");
+        assert_eq!(
+            *found_piece,
+            Piece::new(Color::White, PieceType::Pawn, Some(to)),
+            " piece should be a white pawn"
+        );
 
         // for x in (1..=8) {
         //     let row_1_x = Coordinate::new(x, 1);
@@ -1073,7 +1132,6 @@ mod tests {
         BitBoard::print_bitboard(all_pieces);
         assert!(e2.is_some(), "pawn should be found at e2 on bitboard");
 
-        
         // hash map
         let piece_map = game_state.get_piece_map();
         let from_idx = BitBoard::coordinate_to_idx(from);
@@ -1092,7 +1150,7 @@ mod tests {
                 &Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(5, 2)))
             );
         }
-        
+
         // squares
         // let find_square = |
         let squares = game_state.squares_list();
@@ -1107,13 +1165,15 @@ mod tests {
         let found_square = squares.iter().find(|&&square| *square.coordinate() == to);
         assert!(found_square.is_some(), "e4 should be found ");
         let found_piece = found_s.piece().unwrap();
-        assert_eq!(*found_piece, Piece::new(Color::White, PieceType::Pawn, Some(from)), " piece should be a white pawn");
+        assert_eq!(
+            *found_piece,
+            Piece::new(Color::White, PieceType::Pawn, Some(from)),
+            " piece should be a white pawn"
+        );
 
         // check e4
         let found_s = found_square.unwrap();
         assert!(found_s.piece().is_none(), "e4 should be empty");
-        
-        
     }
     #[test]
     fn test_place_piece() {}
