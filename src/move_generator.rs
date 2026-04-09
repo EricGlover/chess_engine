@@ -559,7 +559,7 @@ fn find_moves_to_resolve_check(
 // @todo pass attacker moves so you only calculate it once
 pub fn gen_legal_moves(game_state: &GameState, color: Color) -> Vec<Move> {
     let moves = gen_pseudo_legal_moves(game_state, color);
-    return moves; //@todo:::
+    // return moves; //@todo:::
                   // if in check do any of these moves resolve it ?
                   // let checks = find_checks_from_moves(board, &moves, color.opposite());
     let checks = get_checks(game_state, color);
@@ -620,7 +620,7 @@ pub fn gen_attack_vectors(game_state: &GameState, color: Color) -> Vec<Move> {
     game_state
         .get_all_pieces(color)
         .into_iter()
-        .map(|piece| plmg::gen_moves_for(game_state, &piece))
+        .map(|piece| plmg::gen_vectors_for(game_state, &piece))
         .flatten()
         .collect()
 }

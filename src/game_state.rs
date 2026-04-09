@@ -286,8 +286,9 @@ impl BoardTrait for GameState {
             return Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(1, 1)));
         }
         let idx = BitBoard::coordinate_to_idx(*piece.at().unwrap());
-        // update bit_board 
-        self.board.remove_piece(piece.piece_type, piece.color, piece.at().unwrap().clone());
+        // update bit_board
+        self.board
+            .remove_piece(piece.piece_type, piece.color, piece.at().unwrap().clone());
         // update piece map
         println!("{:?}", self.pieces);
         let piece_opt = self.pieces.remove(&idx);
@@ -512,7 +513,7 @@ impl GameState {
         return self.pieces.values().collect();
     }
 
-    pub fn get_piece_map(&self) -> HashMap<u64,Piece> {
+    pub fn get_piece_map(&self) -> HashMap<u64, Piece> {
         return self.pieces.clone();
     }
 
@@ -971,7 +972,7 @@ mod tests {
         let e2 = game_state.get_piece_at(&from);
         assert!(e2.is_none(), "pawn should not be at e2");
 
-        // check state things 
+        // check state things
         // bit board
         let bit_board = game_state.get_board();
         let pawn_board = bit_board.get_pawns_board();
@@ -987,14 +988,51 @@ mod tests {
         let piece_map = game_state.get_piece_map();
         let from_idx = BitBoard::coordinate_to_idx(from);
         let to_idx = BitBoard::coordinate_to_idx(to);
-        assert!(piece_map.get(&from_idx).is_none(), "old pawn data found in hash map");
-        assert!(piece_map.get(&to_idx).is_some(), "pawn not found in hash map");
+        assert!(
+            piece_map.get(&from_idx).is_none(),
+            "old pawn data found in hash map"
+        );
+        assert!(
+            piece_map.get(&to_idx).is_some(),
+            "pawn not found in hash map"
+        );
         if let Some(piece) = piece_map.get(&to_idx) {
-            assert_eq!(piece, &Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(5, 4))));
+            assert_eq!(
+                piece,
+                &Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(5, 4)))
+            );
         }
         // squares
+        // let find_square = |
         let squares = game_state.squares_list();
-        
+        assert_eq!(squares.len(), 64, "there should be 64 squares.");
+
+        let found_square = squares.iter().find(|&&square| *square.coordinate() == from);
+        assert!(found_square.is_some(), "e2 should be found ");
+        let found_s = found_square.unwrap();
+        assert!(found_s.piece().is_none(), "e2 should be empty");
+
+        let found_square = squares.iter().find(|&&square| *square.coordinate() == to);
+        assert!(found_square.is_some(), "e4 should be found ");
+        let found_s = found_square.unwrap();
+        assert!(found_s.piece().is_some(), "e4 should not be empty");
+        let found_piece = found_s.piece().unwrap();
+        assert_eq!(*found_piece, Piece::new(Color::White, PieceType::Pawn, Some(to)), " piece should be a white pawn");
+
+        // for x in (1..=8) {
+        //     let row_1_x = Coordinate::new(x, 1);
+        //     let row_7_x = Coordinate::new(x, 7);
+        //     let row_8_x = Coordinate::new(x, 8);
+        //     let mut coords_to_check:Vec<Coordinate> = vec![row_1_x, row_7_x, row_8_x];
+        //     // we already moved e2
+        //     if x != 5 {
+        //         let row_2_x = Coordinate::new(x, 2);
+        //         coords_to_check.push(row_2_x);
+        //     }
+        //     // for coordinate in coords_to_check {
+
+        //     // }
+        // }
 
         // E5
         let from = Coordinate::new(5, 7);
@@ -1007,7 +1045,76 @@ mod tests {
         assert!(e7.is_none(), "pawn should not be at e7");
     }
     #[test]
-    fn test_unmake_move_mut() {}
+    fn test_unmake_move_mut() {
+        let mut game_state = GameState::starting_game();
+
+        // E4
+        let from = Coordinate::new(5, 2);
+        let to = from.add(0, 2);
+        // let piece = Piece::new(Color::White, PieceType::Pawn, Some(from));
+        let e4_move = Move::new(from, to, PieceType::Pawn, MoveType::Move, None, None, None);
+        game_state.make_move_mut(&e4_move);
+        game_state.unmake_move_mut(&e4_move);
+
+        let e4_pawn = game_state.get_piece_at(&to);
+        assert!(e4_pawn.is_none(), "pawn found at e4");
+        let e2 = game_state.get_piece_at(&from);
+        assert!(e2.is_some(), "pawn should be at e2");
+
+        // check state things
+        // bit board
+        let bit_board = game_state.get_board();
+        let pawn_board = bit_board.get_pawns_board();
+        let all_pieces = bit_board.get_piece_board();
+        let e4 = bit_board.get_piece_at(&to);
+        assert!(e4.is_none(), "pawn found at e4 on bitboard");
+        let e2 = bit_board.get_piece_at(&from);
+        BitBoard::print_bitboard(pawn_board);
+        BitBoard::print_bitboard(all_pieces);
+        assert!(e2.is_some(), "pawn should be found at e2 on bitboard");
+
+        
+        // hash map
+        let piece_map = game_state.get_piece_map();
+        let from_idx = BitBoard::coordinate_to_idx(from);
+        let to_idx = BitBoard::coordinate_to_idx(to);
+        assert!(
+            piece_map.get(&from_idx).is_some(),
+            "old pawn data found in hash map"
+        );
+        assert!(
+            piece_map.get(&to_idx).is_none(),
+            "pawn not found in hash map"
+        );
+        if let Some(piece) = piece_map.get(&to_idx) {
+            assert_eq!(
+                piece,
+                &Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(5, 2)))
+            );
+        }
+        
+        // squares
+        // let find_square = |
+        let squares = game_state.squares_list();
+        assert_eq!(squares.len(), 64, "there should be 64 squares.");
+
+        let found_square = squares.iter().find(|&&square| *square.coordinate() == from);
+        assert!(found_square.is_some(), "e2 should be found ");
+        let found_s = found_square.unwrap();
+        assert!(found_s.piece().is_some(), "e2 should not be empty");
+
+        // check e2
+        let found_square = squares.iter().find(|&&square| *square.coordinate() == to);
+        assert!(found_square.is_some(), "e4 should be found ");
+        let found_piece = found_s.piece().unwrap();
+        assert_eq!(*found_piece, Piece::new(Color::White, PieceType::Pawn, Some(from)), " piece should be a white pawn");
+
+        // check e4
+        let found_s = found_square.unwrap();
+        assert!(found_s.piece().is_none(), "e4 should be empty");
+        
+        
+    }
     #[test]
     fn test_place_piece() {}
     #[test]
@@ -1154,7 +1261,11 @@ mod tests {
             c8_p, d8_p, e8_p, f8_p, g8_p, h8_p,
         ];
         let mut results = game_state.get_all_pieces(Color::White);
-        assert_eq!(results.len(), white_pieces.len(), "total pieces found should be equal.");
+        assert_eq!(
+            results.len(),
+            white_pieces.len(),
+            "total pieces found should be equal."
+        );
         for piece in white_pieces.iter() {
             let found = white_pieces.iter().any(|p| p == piece);
             if !found {
@@ -1162,7 +1273,11 @@ mod tests {
             }
         }
         let mut results = game_state.get_all_pieces(Color::Black);
-        assert_eq!(results.len(), black_pieces.len(), "total pieces found should be equal.");
+        assert_eq!(
+            results.len(),
+            black_pieces.len(),
+            "total pieces found should be equal."
+        );
         for piece in black_pieces.iter() {}
     }
     #[test]
