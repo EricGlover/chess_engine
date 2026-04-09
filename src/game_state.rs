@@ -73,10 +73,6 @@ impl BoardTrait for GameState {
         for x in 1..=8u64 {
             let c = Coordinate::new(x as u8, y);
             let idx = BitBoard::coordinate_to_idx(c);
-            if idx == 0 {
-                println!("{}", c);
-                panic!("");
-            }
             rank.push(&self.squares[(idx - 1) as usize]);
         }
         return rank;
@@ -159,9 +155,6 @@ impl BoardTrait for GameState {
             if m.captured.is_some() {
                 let removed_piece = self.remove_piece_at(&m.to);
             }
-
-            // println!("{}", piece_to_move);
-            // println!("{:?}", self);
             self.pieces.insert(from_idx, piece_to_move);
             self.remove_piece(&piece_to_move);
             self.place_piece(piece_to_move, &m.to);
@@ -175,7 +168,7 @@ impl BoardTrait for GameState {
         let to_idx = BitBoard::coordinate_to_idx(m.to);
         if let Some(mut piece_to_move) = self.pieces.remove(&to_idx) {
             // roll back white to move flag
-            self.player_to_move = piece_to_move.color.opposite();
+            self.player_to_move = piece_to_move.color;
 
             // @todo:::
             // update 50 move rule draw counter
@@ -229,6 +222,8 @@ impl BoardTrait for GameState {
                 MoveType::EnPassant => {}
                 MoveType::Move => {}
             }
+            self.pieces.insert(to_idx, piece_to_move);
+            let piece_to_move = self.remove_piece(&piece_to_move);
             // move the piece ( update the piece, piece map , square, and board )
             // is this a capture
             if m.captured.is_some() {
@@ -241,8 +236,6 @@ impl BoardTrait for GameState {
                     &m.to,
                 );
             }
-            self.pieces.insert(to_idx, piece_to_move);
-            self.remove_piece(&piece_to_move);
             self.place_piece(piece_to_move, &m.from);
         } else {
             println!("{:?}", m);
@@ -253,9 +246,15 @@ impl BoardTrait for GameState {
     // getting and setting pieces
     // update the piece, piece map , square, and board
     fn place_piece(&mut self, mut piece: Piece, at: &Coordinate) {
+        let idx = BitBoard::coordinate_to_idx(*at);
+        let existing_piece = self.pieces.get(&idx);
+        if existing_piece.is_some() {
+            panic!("tried to place a piece at {}, but {} is already there.", at, existing_piece.unwrap());
+        }
+        
         piece.set_at(*at);
         self.board.set_piece(piece.piece_type, piece.color, *at);
-        let idx = BitBoard::coordinate_to_idx(*at);
+        
         self.pieces.insert(idx, piece);
         if let Some(square) = self.squares.get_mut((idx - 1) as usize) {
             square.set_piece_to(&piece);
@@ -961,6 +960,71 @@ mod tests {
     fn test_get_files() {}
 
     #[test]
+    fn test_unmake_move_mut_captures() {
+        // fairly simple first postion
+        let fen_scandi = "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2";
+        let mut game_state = fen_reader::make_game_state(fen_scandi);
+        //exd5
+        let from = Coordinate::new(5, 4);
+        let to = from.add(-1, 1);
+        let takes_move = Move::new(
+            from,
+            to,
+            PieceType::Pawn,
+            MoveType::Move,
+            Some(PieceType::Pawn),
+            None,
+            None,
+        );
+        game_state.make_move_mut(&takes_move);
+        game_state.unmake_move_mut(&takes_move);
+        assert_valid_state(&game_state);
+
+        // check with fen
+        let result_fen = fen_reader::make_fen(&game_state);
+        assert_eq!(result_fen, fen_scandi, "fen should be equal");
+
+        // weird position with lots of captures
+        // half move is broken btw, so we manually set it to 0 for the moment
+        let captures_fen = "4kb1r/1pp2ppp/4pn2/2rp4/q1BPP1b1/p1Pn1N1P/4KPP1/RNBQ3R b k - 0 15";
+        let mut game_state = fen_reader::make_game_state(captures_fen);
+        let a4 = Coordinate::new(1, 4);
+        let d1 = Coordinate::new(4, 1);
+        let takes_move = Move::new(
+            a4,
+            d1,
+            PieceType::Queen,
+            MoveType::Move,
+            Some(PieceType::Queen),
+            None,
+            None,
+        );
+        game_state.make_move_mut(&takes_move);
+        game_state.unmake_move_mut(&takes_move);
+        assert_valid_state(&game_state);
+        let result_fen = fen_reader::make_fen(&game_state);
+        assert_eq!(captures_fen, result_fen, "fen should be equal");
+    }
+
+    #[test]
+    fn test_make_move_captures_pawn_promotion() {
+        let fen = "r3k1r1/1b1p1p2/p3pp2/B1b4p/P3P3/1B3P2/1pP4P/R2K1R2 b q - 1 22";
+        let mut game_state = fen_reader::make_game_state(fen);
+        let b2  = Coordinate::new(2, 2);
+        let a1 = Coordinate::new(1, 1);
+        let m = Move::new(b2, a1, PieceType::Pawn, MoveType::Promotion(PieceType::Queen), Some(PieceType::Rook), None, None);
+        game_state.make_move_mut(&m);
+        let result_fen = fen_reader::make_fen(&game_state);
+        let after_fen = "r3k1r1/1b1p1p2/p3pp2/B1b4p/P3P3/1B3P2/2P4P/q2K1R2 w q - 0 23";
+        assert_eq!(after_fen, result_fen, "fen should be equal");
+        assert_valid_state(&game_state);
+    }
+    #[test]
+    fn test_unmake_move_captures_pawn_promotion() {
+        let fen = "r3k1r1/1b1p1p2/p3pp2/B1b4p/P3P3/1B3P2/1pP4P/R2K1R2 b q - 1 22";
+    }
+
+    #[test]
     fn test_make_move_mut_captures() {
         // fairly simple first postion
         let fen_scandi = "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2";
@@ -1004,9 +1068,6 @@ mod tests {
         let fen_after = "4kb1r/1pp2ppp/4pn2/2rp4/2BPP1b1/p1Pn1N1P/4KPP1/RNBq3R w k - 0 16";
         let result_fen = fen_reader::make_fen(&game_state);
         assert_eq!(fen_after, result_fen, "fen should be equal");
-        // check bit board
-        // check hash map
-        // check
     }
 
     #[test]
@@ -1106,14 +1167,18 @@ mod tests {
     #[test]
     fn test_unmake_move_mut() {
         let mut game_state = GameState::starting_game();
-
+        let start_fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        assert_eq!(fen_reader::make_fen(&game_state), start_fen, "fen should be equal");
         // E4
         let from = Coordinate::new(5, 2);
         let to = from.add(0, 2);
         // let piece = Piece::new(Color::White, PieceType::Pawn, Some(from));
         let e4_move = Move::new(from, to, PieceType::Pawn, MoveType::Move, None, None, None);
+        
         game_state.make_move_mut(&e4_move);
         game_state.unmake_move_mut(&e4_move);
+        assert_eq!(fen_reader::make_fen(&game_state), start_fen, "fen should be equal");
+        assert_valid_state(&game_state);
 
         let e4_pawn = game_state.get_piece_at(&to);
         assert!(e4_pawn.is_none(), "pawn found at e4");
@@ -1176,9 +1241,39 @@ mod tests {
         assert!(found_s.piece().is_none(), "e4 should be empty");
     }
     #[test]
-    fn test_place_piece() {}
+    fn test_place_piece() {
+        // simple case , add piece to empty board
+        let mut game_state = GameState::starting_game();
+        let start_fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        assert_eq!(fen_reader::make_fen(&game_state), start_fen, "fen should be equal");
+        
+        let e4 = Coordinate::new(5, 4);
+        let piece = Piece::new(Color::White, PieceType::Knight, Some(e4));
+        game_state.place_piece(piece, &e4);
+
+
+        assert_valid_state(&game_state);
+
+        let added_fen = "rnbqkbnr/pppppppp/8/8/4N3/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        assert_eq!(fen_reader::make_fen(&game_state), added_fen, "fen should be equal");
+    }
     #[test]
-    fn test_remove_piece() {}
+    fn test_remove_piece() {
+        let added_fen = "rnbqkbnr/pppppppp/8/8/4N3/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        let mut game_state = fen_reader::make_game_state(added_fen);
+        assert_eq!(fen_reader::make_fen(&game_state), added_fen, "fen should be equal");
+        assert_valid_state(&game_state);
+        
+        let e4 = Coordinate::new(5, 4);
+        let piece = Piece::new(Color::White, PieceType::Knight, Some(e4));
+        game_state.remove_piece_at(&e4);
+
+        assert_valid_state(&game_state);
+        
+        let start_fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        assert_eq!(fen_reader::make_fen(&game_state), start_fen, "fen should be equal");
+
+    }
     #[test]
     fn test_has_piece() {}
     #[test]

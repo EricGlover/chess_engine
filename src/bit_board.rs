@@ -633,7 +633,6 @@ impl BitBoard {
 
     //@todo : test
     pub fn coordinate_to_idx(c: Coordinate) -> u64 {
-        println!("{}", c);
         return ((c.y() - 1) * 8 + c.x()) as u64;
     }
 
