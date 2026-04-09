@@ -1,0 +1,5 @@
+test ai::bench::alpha_beta_0                    ... bench:      11,745 ns/iter (+/- 354)
+test ai::bench::alpha_beta_1                    ... bench:     253,353 ns/iter (+/- 6,243)
+test ai::bench::alpha_beta_2                    ... bench:   4,755,524 ns/iter (+/- 118,344)
+test ai::bench::alpha_beta_3                    ... bench: 108,050,749 ns/iter (+/- 2,466,074)
+test ai::evaluator::tests::bench_evaluate_board ... bench:      16,938 ns/iter (+/- 3,837)

@@ -902,7 +902,6 @@ pub fn gen_bishop_vector(game_state: &GameState, piece: &Piece) -> Vec<Move> {
                         below_nearest = ((nearest - 1) & up_path) | nearest;
                         captures_board = captures_board | nearest;
                     }
-                    BitBoard::print_bitboard(below_nearest);
                     to_move_board = to_move_board | below_nearest;
                 }
             }
@@ -1189,7 +1188,6 @@ pub fn gen_bishop_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
                         below_nearest = ((nearest - 1) & up_path) | nearest;
                         captures_board = captures_board | nearest;
                     }
-                    BitBoard::print_bitboard(below_nearest);
                     to_move_board = to_move_board | below_nearest;
                 }
             }
@@ -1413,8 +1411,6 @@ pub fn gen_king_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
     let attack_board: u64 = KING_ATTACKS[(idx - 1) as usize];
     let mut moves: Vec<Move> = vec![];
     let color = piece.color;
-    println!("{} {} {}", at, idx, color);
-    BitBoard::print_bitboard(attack_board);
 
     for to in BitBoard::attack_map_to_coordinates(attack_board) {
         if square_occupiable_by(&board, &to, color) {
@@ -1455,8 +1451,6 @@ pub fn gen_knight_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
     let at = piece.at().unwrap();
     let idx = BitBoard::coordinate_to_idx(*at);
     let attack_board: u64 = KNIGHT_ATTACKS[(idx - 1) as usize];
-    println!("{} {} {}", at, idx, attack_board);
-    BitBoard::print_bitboard(attack_board);
     let mut moves: Vec<Move> = vec![];
     let color = piece.color;
     //@todo : get captured piece type
@@ -1484,7 +1478,6 @@ pub fn gen_pawn_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
     let board = game_state.get_board();
     let at = piece.at().unwrap();
     let idx = BitBoard::coordinate_to_idx(*at);
-    // println!("{} {}", at, idx);
     let mut moves: Vec<Move> = vec![];
     let color = piece.color;
 
@@ -1581,26 +1574,12 @@ pub fn gen_pawn_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
 
     // en passant target
     let en_passant_opt = game_state.get_en_passant_target();
-    // println!("{:?}", en_passant_opt);
     if en_passant_opt.is_some() {
         let to = en_passant_opt.unwrap();
-        //todo::
-        // let captured = board.get_piece_at(&to).unwrap();
         let bit = BitBoard::coordinate_to_bit(to);
         let target = bit & attack_board;
-        // BitBoard::print_bitboard(attack_board);
-        // BitBoard::print_bitboard(bit);
-        // println!("{}, {}, {}", to, bit, target);
         if target > 0 {
-            moves.push(Move::new(
-                at.clone(),
-                to.clone(),
-                PieceType::Pawn,
-                MoveType::EnPassant,
-                Some(PieceType::Pawn),
-                None,
-                None,
-            ));
+            moves.push(make_move_to(&at, &to, piece, MoveType::EnPassant, &board, game_state));
         }
     }
 
