@@ -1,4 +1,4 @@
-use crate::board::{ Color, Coordinate, Piece, PieceType};
+use crate::board::{Color, Coordinate, Piece, PieceType};
 
 /*
  * board indices
@@ -325,7 +325,7 @@ impl BitBoard {
         u64::count_ones(self.black_pieces) as u64
     }
 
-    pub fn get_piece_types_idx(&self, piece_type: PieceType) -> Vec<u64> {
+    pub fn get_piece_types_idx(&self, piece_type: PieceType) -> Vec<u8> {
         let piece_type_board = match piece_type {
             PieceType::King => self.kings,
             PieceType::Queen => self.queens,
@@ -337,7 +337,7 @@ impl BitBoard {
         return BitBoard::get_indices_of_bit_board(piece_type_board);
     }
 
-    pub fn get_piece_types_by_color_idx(&self, piece_type: PieceType, color: Color) -> Vec<u64> {
+    pub fn get_piece_types_by_color_idx(&self, piece_type: PieceType, color: Color) -> Vec<u8> {
         let color_board = match color {
             Color::White => self.white_pieces,
             Color::Black => self.black_pieces,
@@ -468,18 +468,18 @@ impl BitBoard {
         bit_board & (!bit_board + 1)
     }
 
-    pub fn get_indices_of_bit_board(mut bit_board: u64) -> Vec<u64> {
-        let mut indices: Vec<u64> = Vec::new();
+    pub fn get_indices_of_bit_board(mut bit_board: u64) -> Vec<u8> {
+        let mut indices: Vec<u8> = Vec::new();
         while bit_board > 0 {
             let lsb = BitBoard::pop_bit(&mut bit_board);
-            indices.push((u64::trailing_zeros(lsb) + 1) as u64);
+            indices.push((u64::trailing_zeros(lsb) + 1) as u8);
         }
         return indices;
     }
 
     //@todo : get idx of bit
-    pub fn get_index_of_bit(bit: u64) -> u64 {
-        return (u64::trailing_zeros(bit) + 1) as u64;
+    pub fn get_index_of_bit(bit: u64) -> u8 {
+        return (u64::trailing_zeros(bit) + 1) as u8;
     }
 
     // for some bit board, give me the lsb and remove it
@@ -505,7 +505,7 @@ impl BitBoard {
         return (bit_board & file_board) != 0u64;
     }
     // idx 1..64
-    pub fn get_bit(bit_board: u64, idx: u64) -> bool {
+    pub fn get_bit(bit_board: u64, idx: u8) -> bool {
         // idx 1..8 => row_idx 1
         // idx 9..18 => row_idx 2
         // get row
@@ -525,13 +525,13 @@ impl BitBoard {
         // idx 1..8 => 1..8
         // idx 9..18 => 1..8
         //1..8
-        let col_idx: u64 = ((idx - 1) % 8) + 1;
+        let col_idx: u8 = ((idx - 1) % 8) + 1;
         let mask: u64 = row << (col_idx - 1);
 
         return (mask & bit_board) > 0;
     }
 
-    pub fn set_bit_to(bit_board: u64, idx: u64, bit: bool) -> u64 {
+    pub fn set_bit_to(bit_board: u64, idx: u8, bit: bool) -> u64 {
         if bit {
             return BitBoard::set_bit(bit_board, idx);
         } else {
@@ -539,7 +539,7 @@ impl BitBoard {
         }
     }
 
-    pub fn set_bit(bit_board: u64, idx: u64) -> u64 {
+    pub fn set_bit2(bit_board: u64, idx: u8) -> u64 {
         let row_idx = ((idx - 1) / 8) + 1;
         let row = match row_idx {
             1 => a1,
@@ -555,12 +555,12 @@ impl BitBoard {
         // idx 1..8 => 1..8
         // idx 9..18 => 1..8
         //1..8
-        let col_idx: u64 = ((idx - 1) % 8) + 1;
+        let col_idx: u8 = ((idx - 1) % 8) + 1;
         let mask: u64 = row << (col_idx - 1);
         return mask | bit_board;
     }
 
-    pub fn unset_bit(bit_board: u64, idx: u64) -> u64 {
+    pub fn set_bit(bit_board: u64, idx: u8) -> u64 {
         let row_idx = ((idx - 1) / 8) + 1;
         let row = match row_idx {
             1 => a1,
@@ -576,7 +576,28 @@ impl BitBoard {
         // idx 1..8 => 1..8
         // idx 9..18 => 1..8
         //1..8
-        let col_idx: u64 = ((idx - 1) % 8) + 1;
+        let col_idx: u8 = ((idx - 1) % 8) + 1;
+        let mask: u64 = row << (col_idx - 1);
+        return mask | bit_board;
+    }
+
+    pub fn unset_bit(bit_board: u64, idx: u8) -> u64 {
+        let row_idx = ((idx - 1) / 8) + 1;
+        let row = match row_idx {
+            1 => a1,
+            2 => a2,
+            3 => a3,
+            4 => a4,
+            5 => a5,
+            6 => a6,
+            7 => a7,
+            8 => a8,
+            _ => a1,
+        };
+        // idx 1..8 => 1..8
+        // idx 9..18 => 1..8
+        //1..8
+        let col_idx: u8 = ((idx - 1) % 8) + 1;
         let mask: u64 = row << (col_idx - 1);
         // flip it
         return (!mask) & bit_board;
@@ -632,16 +653,16 @@ impl BitBoard {
     }
 
     //@todo : test
-    pub fn coordinate_to_idx(c: Coordinate) -> u64 {
-        return ((c.y() - 1) * 8 + c.x()) as u64;
+    pub fn coordinate_to_idx(c: Coordinate) -> u8 {
+        return (c.y() - 1) * 8 + c.x();
     }
 
     //@todo
-    pub fn idx_to_coordinate(idx: u64) -> Coordinate {
+    pub fn idx_to_coordinate(idx: u8) -> Coordinate {
         BitBoard::bit_to_coordinate(BitBoard::idx_to_bit(idx))
     }
 
-    pub fn idx_to_bit(idx: u64) -> u64 {
+    pub fn idx_to_bit(idx: u8) -> u64 {
         1u64 << (idx - 1)
     }
 
@@ -1165,23 +1186,23 @@ fn init_gen_file_boards() {
     let mut dark_squares = 0u64;
     // odd rows then even cols
     // even rows then odd cols
-    for i in 1..=64 {
+    for i in 1..=64u8 {
         let row = ((i - 1) / 8) + 1;
         let col = ((i - 1) % 8) + 1;
         println!("{} {}", row, col);
         if row % 2 == 0 {
             //even row
             if col % 2 != 0 {
-                light_squares = light_squares | BitBoard::set_bit(0u64, i as u64);
+                light_squares = light_squares | BitBoard::set_bit(0u64, i);
             } else {
-                dark_squares = dark_squares | BitBoard::set_bit(0u64, i as u64)
+                dark_squares = dark_squares | BitBoard::set_bit(0u64, i)
             }
         } else {
             // odd row
             if col % 2 == 0 {
-                light_squares = light_squares | BitBoard::set_bit(0u64, i as u64);
+                light_squares = light_squares | BitBoard::set_bit(0u64, i);
             } else {
-                dark_squares = dark_squares | BitBoard::set_bit(0u64, i as u64)
+                dark_squares = dark_squares | BitBoard::set_bit(0u64, i)
             }
         }
     }
@@ -1192,7 +1213,7 @@ fn init_gen_file_boards() {
 
     /*   ROWS  */
     let mut row1 = 0u64;
-    for idx in 1u64..=8u64 {
+    for idx in 1..=8u8 {
         row1 = BitBoard::set_bit(row1, idx);
     }
     println!("{}", row1);
@@ -1228,7 +1249,7 @@ fn init_gen_file_boards() {
 
     /*  FILES  */
     let mut a_file = 0u64;
-    for idx in 1u64..=8u64 {
+    for idx in 1..=8u8 {
         a_file = BitBoard::set_bit(a_file, 1 + ((idx - 1) * 8));
     }
     println!("{}", a_file);
@@ -1274,6 +1295,49 @@ fn init_gen_file_boards() {
 }
 
 #[cfg(test)]
+mod bench {
+    use ::test::{black_box, Bencher};
+
+    use crate::game_state::GameState;
+
+    use super::*;
+
+    #[bench]
+    fn bench_set_bit(b: &mut Bencher) {
+        let game_start = GameState::starting_game();
+        let start_board = game_start.get_board();
+        b.iter(|| {
+            for i in (1..=1000u64) {
+                black_box({
+                    BitBoard::set_bit(start_board.pieces, 37);
+                    BitBoard::set_bit(start_board.pieces, 1);
+                    BitBoard::set_bit(start_board.pieces, 64);
+                    BitBoard::set_bit(start_board.pieces, 50);
+                    BitBoard::set_bit(start_board.pieces, 40);
+                })
+            }
+        });
+    }
+
+    #[bench]
+    fn bench_set_bit2(b: &mut Bencher) {
+        let game_start = GameState::starting_game();
+        let start_board = game_start.get_board();
+        b.iter(|| {
+            for i in (1..=1000u64) {
+                black_box({
+                    BitBoard::set_bit2(start_board.pieces, 37);
+                    BitBoard::set_bit2(start_board.pieces, 1);
+                    BitBoard::set_bit2(start_board.pieces, 64);
+                    BitBoard::set_bit2(start_board.pieces, 50);
+                    BitBoard::set_bit2(start_board.pieces, 40);
+                })
+            }
+        });
+    }
+}
+
+#[cfg(test)]
 mod test {
     use crate::{bit_board::BitBoard, board::*};
 
@@ -1294,7 +1358,7 @@ mod test {
 
     #[test]
     fn test_msb() {
-        let indices: Vec<u64> = vec![1, 12, 8, 24, 57, 64];
+        let indices: Vec<u8> = vec![1, 12, 8, 24, 57, 64];
         let bits: Vec<u64> = indices
             .iter()
             .map(|idx| BitBoard::idx_to_bit(*idx))
@@ -1342,11 +1406,10 @@ mod test {
             Coordinate::new(3, 3),
             Coordinate::new(8, 1),
         ];
-        let indices: Vec<u64> = vec![1, 19, 8];
+        let indices: Vec<u8> = vec![1, 19, 8];
 
         for (i, c) in coordinates.iter().enumerate() {
             assert_eq!(BitBoard::coordinate_to_idx(*c), indices[i]);
         }
     }
-
 }

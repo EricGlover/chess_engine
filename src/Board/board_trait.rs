@@ -7,8 +7,8 @@ pub trait BoardTrait {
     // info about game going on
     fn player_to_move(&self) -> Color;
     fn en_passant_target(&self) -> Option<Coordinate>;
-    fn half_move_clock(&self) -> u32;
-    fn full_move_number(&self) -> u32;
+    fn half_move_clock(&self) -> u16;
+    fn full_move_number(&self) -> u16;
     fn can_castle_queen_side(&self, color: Color) -> bool;
     fn can_castle_king_side(&self, color: Color) -> bool;
     fn white_castling_rights(&self) -> CastlingRights;

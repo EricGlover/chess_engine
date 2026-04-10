@@ -51,11 +51,11 @@ impl BoardTrait for Board {
     fn en_passant_target(&self) -> Option<Coordinate> {
         self.en_passant_target.clone()
     }
-    fn half_move_clock(&self) -> u32 {
-        self.half_move_clock
+    fn half_move_clock(&self) -> u16 {
+        self.half_move_clock as u16
     }
-    fn full_move_number(&self) -> u32 {
-        self.full_move_number
+    fn full_move_number(&self) -> u16 {
+        self.full_move_number as u16
     }
     fn can_castle_queen_side(&self, color: Color) -> bool {
         match color {

@@ -495,7 +495,7 @@ pub fn test() {
 fn init_gen_queen_attacks() {
     let mut queen_attacks: [u64; 64] = [0; 64];
     for (idx, bit_board) in queen_attacks.iter_mut().enumerate() {
-        let i = (idx + 1) as u64;
+        let i = (idx + 1) as u8;
         let start_bit = BitBoard::set_bit(0, i);
         *bit_board = ROOK_ATTACKS[idx] | BISHOP_ATTACKS[idx];
     }
@@ -512,7 +512,7 @@ fn init_gen_queen_attacks() {
 fn init_gen_rook_attacks() {
     let mut rook_attacks: [u64; 64] = [0; 64];
     for (idx, bit_board) in rook_attacks.iter_mut().enumerate() {
-        let i = (idx + 1) as u64;
+        let i = (idx + 1) as u8;
         let start_bit = BitBoard::set_bit(0, i);
         // find file
         let file = BitBoard::get_file_for_bit(start_bit);
@@ -533,7 +533,7 @@ fn init_gen_rook_attacks() {
 fn init_gen_bishop_attacks() {
     let mut bishop_attacks: [u64; 64] = [0; 64];
     for (idx, bit_board) in bishop_attacks.iter_mut().enumerate() {
-        let i = (idx + 1) as u64;
+        let i = (idx + 1) as u8;
         let start_bit = BitBoard::set_bit(0, i);
         let color = BitBoard::get_square_color(start_bit);
         let diagonals = BitBoard::get_diagonals_for_bit(start_bit);
@@ -572,7 +572,7 @@ fn init_gen_king_attacks() {
 
     for (idx, bit_board) in king_attacks.iter_mut().enumerate() {
         let mut res: u64 = 0;
-        let start_bit = BitBoard::set_bit(0u64, (idx + 1) as u64);
+        let start_bit = BitBoard::set_bit(0u64, (idx + 1) as u8);
         // up moves
         // UP 1 LEFT 1
         if !BitBoard::bit_on_bit_board(start_bit, ROW_8 | A_FILE) {
@@ -660,7 +660,7 @@ fn init_gen_knight_attacks() {
         // base case : all moves
         // c3 - c6, d3-d6, e3-e6, f3-f6
         //todo : gen a mask for this
-        let start_bit = BitBoard::set_bit(0u64, (idx + 1) as u64);
+        let start_bit = BitBoard::set_bit(0u64, (idx + 1) as u8);
 
         let mut res = 0u64;
 
@@ -718,7 +718,7 @@ fn init_gen_pawn_attacks() {
     let gen_white = false;
     if gen_white {
         for (idx, bit_board) in wpa.iter_mut().enumerate() {
-            let start_bit = BitBoard::set_bit(0u64, (idx + 1) as u64);
+            let start_bit = BitBoard::set_bit(0u64, (idx + 1) as u8);
             if BitBoard::on_row(start_bit, ROW_8) {
                 continue;
             }
@@ -775,7 +775,7 @@ fn init_gen_pawn_attacks() {
 
     //BLACK PAWN ATTACKS
     for (idx, bit_board) in bpa.iter_mut().enumerate() {
-        let start_bit = BitBoard::set_bit(0u64, (idx + 1) as u64);
+        let start_bit = BitBoard::set_bit(0u64, (idx + 1) as u8);
 
         let on_a_file = BitBoard::on_file(start_bit, A_FILE);
         let on_h_file = BitBoard::on_file(start_bit, H_FILE);
@@ -1006,7 +1006,7 @@ pub fn gen_queen_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
 pub fn gen_rook_vector(game_state: &GameState, piece: &Piece) -> Vec<Move> {
     let board = game_state.get_board();
     let at = piece.at().unwrap();
-    let idx: u64 = BitBoard::coordinate_to_idx(*at);
+    let idx: u8 = BitBoard::coordinate_to_idx(*at);
 
     //plan get the ray, remove this piece, check for nearest other piece
     //going up or right the nearest piece is the lsb
@@ -1284,7 +1284,7 @@ pub fn gen_bishop_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
 pub fn gen_rook_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
     let board = game_state.get_board();
     let at = piece.at().unwrap();
-    let idx: u64 = BitBoard::coordinate_to_idx(*at);
+    let idx: u8 = BitBoard::coordinate_to_idx(*at);
     let pieces_bit_board = board.get_piece_board();
 
     //plan get the ray, remove this piece, check for nearest other piece

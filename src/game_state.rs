@@ -16,13 +16,13 @@ pub struct GameState {
     white_castling_rights: CastlingRights,
     black_castling_rights: CastlingRights,
     en_passant_target: Option<Coordinate>,
-    half_move_clock: u32,
-    full_move_number: u32,
+    half_move_clock: u16,
+    full_move_number: u16,
     board: BitBoard,
     dirty_squares: bool,
     dirty_pieces: bool,
     squares: Vec<Square>,
-    pieces: HashMap<u64, Piece>,
+    pieces: HashMap<u8, Piece>,
 }
 
 // @todo :: test
@@ -38,10 +38,10 @@ impl BoardTrait for GameState {
     fn en_passant_target(&self) -> Option<Coordinate> {
         self.en_passant_target
     }
-    fn half_move_clock(&self) -> u32 {
+    fn half_move_clock(&self) -> u16 {
         self.half_move_clock
     }
-    fn full_move_number(&self) -> u32 {
+    fn full_move_number(&self) -> u16 {
         self.full_move_number
     }
     fn can_castle_queen_side(&self, color: Color) -> bool {
@@ -70,8 +70,8 @@ impl BoardTrait for GameState {
     }
     fn get_rank(&self, y: u8) -> Vec<&Square> {
         let mut rank: Vec<&Square> = Vec::new();
-        for x in 1..=8u64 {
-            let c = Coordinate::new(x as u8, y);
+        for x in 1..=8u8 {
+            let c = Coordinate::new(x, y);
             let idx = BitBoard::coordinate_to_idx(c);
             rank.push(&self.squares[(idx - 1) as usize]);
         }
@@ -79,9 +79,9 @@ impl BoardTrait for GameState {
     }
     fn get_files(&self) -> Vec<Vec<&Square>> {
         let mut files: Vec<Vec<&Square>> = Vec::new();
-        for x in 1..=8u64 {
+        for x in 1..=8u8 {
             let mut file: Vec<&Square> = vec![];
-            for y in 1..=8u64 {
+            for y in 1..=8u8 {
                 let c = Coordinate::new(x as u8, y as u8);
                 let idx = BitBoard::coordinate_to_idx(c);
                 file.push(&self.squares[(idx - 1) as usize]);
@@ -372,8 +372,8 @@ impl GameState {
         black_can_castle_king_side: bool,
         black_can_castle_queen_side: bool,
         en_passant_target: Option<Coordinate>,
-        half_move_clock: u32,
-        full_move_number: u32,
+        half_move_clock: u16,
+        full_move_number: u16,
         board: BitBoard,
     ) -> GameState {
         let mut g = GameState {
@@ -437,10 +437,10 @@ impl GameState {
         self.player_to_move
     }
 
-    pub fn get_half_move_clock(&self) -> u32 {
+    pub fn get_half_move_clock(&self) -> u16 {
         self.half_move_clock
     }
-    pub fn get_full_move_number(&self) -> u32 {
+    pub fn get_full_move_number(&self) -> u16 {
         self.full_move_number
     }
     pub fn get_board(&self) -> BitBoard {
@@ -486,7 +486,7 @@ impl GameState {
         return self.pieces.values().collect();
     }
 
-    pub fn get_piece_map(&self) -> HashMap<u64, Piece> {
+    pub fn get_piece_map(&self) -> HashMap<u8, Piece> {
         return self.pieces.clone();
     }
 
@@ -524,7 +524,7 @@ impl GameState {
             let mut black_queens: Vec<Piece> = Vec::new();
             let mut black_kings: Vec<Piece> = Vec::new();
 
-            for idx in 1..=64u64 {
+            for idx in 1..=64u8 {
                 let v = self.pieces.remove(&idx);
                 if v.is_some() {
                     let piece: Piece = v.unwrap();

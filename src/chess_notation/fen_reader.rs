@@ -206,8 +206,8 @@ pub fn make_game_state(fen_string: &str) -> GameState {
     } else {
         Some(Coordinate::from(parts[3]))
     };
-    let half_move_clock = parts[4].parse::<u32>().unwrap();
-    let full_move_number = parts[5].parse::<u32>().unwrap();
+    let half_move_clock = parts[4].parse::<u16>().unwrap();
+    let full_move_number = parts[5].parse::<u16>().unwrap();
     let pieces = make_pieces(parts[0]);
     let board = BitBoard::init_from_pieces(pieces);
     return GameState::make_game_state(
