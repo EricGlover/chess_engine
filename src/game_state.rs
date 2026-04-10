@@ -281,6 +281,7 @@ impl BoardTrait for GameState {
         let idx = BitBoard::coordinate_to_idx(*at);
         return self.pieces.get(&idx);
     }
+
     fn get_kings(&self) -> Vec<&Piece> {
         let mut kings: Vec<&Piece> = Vec::new();
         for idx in self.board.get_piece_types_idx(PieceType::King) {
@@ -454,6 +455,16 @@ impl GameState {
     }
     pub fn get_dirty_pieces(&self) -> bool {
         self.dirty_pieces
+    }
+
+    pub fn get_king(&self, color: Color) -> Option<&Piece> {
+        let indices = self.board.get_piece_types_by_color_idx(PieceType::King, color);
+        if let Some(idx) = indices.get(0) {
+            if let Some(king) = self.pieces.get(idx) {
+                return Some(king);
+            }
+        }
+        return None;
     }
 
     fn remove_piece_at(&mut self, at: &Coordinate) -> Piece {
