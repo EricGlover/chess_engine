@@ -1,7 +1,15 @@
 use crate::board::*;
 use crate::game_state::GameState;
-use crate::move_generator::{self, plmg};
 use crate::move_generator::Move;
+use crate::move_generator::{self, plmg};
+
+/*
+previously with Board
+test ai::evaluator::tests::bench_evaluate_board                        ... bench:      24,675 ns/iter (+/- 855)
+ ================================   60x faster  ==========================================
+with Bit Boards and eval improvements
+test ai::evaluator::tests::bench_evaluate_board                        ... bench:         409 ns/iter (+/- 11)
+*/
 
 #[cfg(test)]
 mod tests {
@@ -42,7 +50,7 @@ mod tests {
         assert_eq!(b.files[6], 0);
         assert_eq!(b.files[7], 2);
 
-         // pos 3
+        // pos 3
         let fen = "rnbqkbnr/3pppp1/2pP2p1/p6P/p1P5/8/P1PP1P1P/RNBQKBNR w KQkq - 0 1";
         let game_state = fen_reader::make_game_state(fen);
         let (w, b) = make_pawn_count_by_file(&game_state);
@@ -81,20 +89,41 @@ mod tests {
         let (w, b) = make_pawn_count_by_file(&game_state2);
         let (w, b) = count_doubled_pawns(&w, &b);
         assert_eq!(w, 0);
-        assert_eq!(b, 2);
+        assert_eq!(b, 1);
 
         // pos 3
         let fen3 = "rnbqkbnr/3pppp1/2pP2p1/p6P/p1P5/8/P1PP1P1P/RNBQKBNR w KQkq - 0 1";
         let game_state3 = fen_reader::make_game_state(fen3);
         let (w, b) = make_pawn_count_by_file(&game_state3);
         let (w, b) = count_doubled_pawns(&w, &b);
-        assert_eq!(w, 6);
-        assert_eq!(b, 4);
+        assert_eq!(w, 3);
+        assert_eq!(b, 2);
     }
     #[test]
-    fn test_count_blocked_pawns() {}
-    #[test]
-    fn test_count_isolated_pawns() {}
+    fn test_count_isolated_pawns() {
+        // starting pos
+        let game_state = GameState::starting_game();
+        let (wf, bf) = make_pawn_count_by_file(&game_state);
+        let (w, b) = count_isolated_pawns(&wf, &bf);
+        assert_eq!(w, 0);
+        assert_eq!(b, 0);
+
+        // pos 2
+        let fen = "2r2rk1/1b4bp/1q1pp1p1/2p1np2/1p2P3/pNnPBPP1/PPPQN1BP/3R1RK1 w - - 0 1";
+        let game_state = fen_reader::make_game_state(fen);
+        let (wf, bf) = make_pawn_count_by_file(&game_state);
+        let (w, b) = count_isolated_pawns(&wf, &bf);
+        assert_eq!(w, 0);
+        assert_eq!(b, 0);
+
+        // pos 3, edge pawns
+        let fen = "2r2rk1/1b4bp/1q1pp1p1/4n3/1p2P3/1NnPBP2/P1PQN1BP/3R1RK1 w - - 0 1";
+        let game_state = fen_reader::make_game_state(fen);
+        let (wf, bf) = make_pawn_count_by_file(&game_state);
+        let (w, b) = count_isolated_pawns(&wf, &bf);
+        assert_eq!(w, 2);
+        assert_eq!(b, 1);
+    }
 
     #[test]
     fn test_piece_count() {
@@ -151,15 +180,15 @@ mod tests {
     fn test_count_pawn_structure() {
         let fen = "rnb1kr2/pp1p1p1p/1qB2n2/7Q/1P1pPP1p/b4N1R/P1P3P1/RNB1K3 b Qq - 4 10";
         let game_state = fen_reader::make_game_state(fen);
-        let (w, b) = count_blocked_pawns(&game_state);
-        assert_eq!(3, b);
-        assert_eq!(1, w);
+        // let (w, b) = count_blocked_pawns(&game_state);
+        // assert_eq!(3, b);
+        // assert_eq!(1, w);
         // print_board(&board);
         let (w_count, b_count) = make_pawn_count_by_file(&game_state);
         println!("{:?}", w_count);
         let (w, b) = count_doubled_pawns(&w_count, &b_count);
         assert_eq!(0, w);
-        assert_eq!(4, b);
+        assert_eq!(2, b);
         let (w, b) = count_isolated_pawns(&w_count, &b_count);
         assert_eq!(5, b);
         assert_eq!(0, w);
@@ -169,7 +198,13 @@ mod tests {
     fn bench_evaluate_board(b: &mut Bencher) {
         let fen = "rnb1kr2/pp1p1p1p/1qB2n2/7Q/1P1pPP1p/b4N1R/P1P3P1/RNB1K3 b Qq - 4 10";
         let game_state = fen_reader::make_game_state(fen);
-        b.iter(|| evaluate(&game_state, None, None))
+        b.iter(|| {
+            for i in 0..100 {
+                black_box({
+                    evaluate(&game_state, None, None);
+                })
+            }
+        });
     }
 
     #[bench]
@@ -182,7 +217,31 @@ mod tests {
                     let (w, b) = make_pawn_count_by_file(&game_state);
                 })
             }
-        })
+        });
+    }
+    #[bench]
+    fn bench_make_pawn_count_isolated_pawns(b: &mut Bencher) {
+        let fen = "2r2rk1/1b4bp/1q1pp1p1/4n3/1p2P3/1NnPBP2/P1PQN1BP/3R1RK1 w - - 0 1";
+        let game_state = fen_reader::make_game_state(fen);
+
+        b.iter(|| {
+            let (w, b) = make_pawn_count_by_file(&game_state);
+            for i in 0..1000 {
+                black_box({
+                    let (wi, bi) = count_isolated_pawns(&w, &b);
+                })
+            }
+        });
+
+        let game_state = GameState::starting_game();
+        b.iter(|| {
+            let (w, b) = make_pawn_count_by_file(&game_state);
+            for i in 0..1000 {
+                black_box({
+                    let (wi, bi) = count_isolated_pawns(&w, &b);
+                })
+            }
+        });
     }
 }
 
@@ -244,12 +303,12 @@ fn count_doubled_pawns(white: &PawnCountByFile, black: &PawnCountByFile) -> (u8,
     let mut black_doubled: u8 = 0;
     for &file in white.files.iter() {
         if file >= 2 {
-            white_doubled += file;
+            white_doubled += file - 1;
         }
     }
     for &file in black.files.iter() {
         if file >= 2 {
-            black_doubled += file;
+            black_doubled += file - 1;
         }
     }
     (white_doubled, black_doubled)
@@ -308,33 +367,33 @@ fn make_pawn_count_by_file(game_state: &GameState) -> (PawnCountByFile, PawnCoun
 //     (white_p, black_p)
 // }
 
+/*
+before rewrite
+test ai::evaluator::tests::bench_make_pawn_count_isolated_pawns        ... bench:       4,711 ns/iter (+/- 280)
+after
+test ai::evaluator::tests::bench_make_pawn_count_isolated_pawns        ... bench:         251 ns/iter (+/- 12)
+ */
 fn count_isolated_pawns(white: &PawnCountByFile, black: &PawnCountByFile) -> (u8, u8) {
     let mut white_p: u8 = 0;
     let mut black_p: u8 = 0;
-    for (i, file) in white.files.iter().enumerate() {
-        let mut left_empty_or_none = false;
+    for i in 0..=7usize {
+        let mut left_empty_w = true;
+        let mut left_empty_b = true;
         if i > 0 {
-            let left = white.files.get(i - 1);
-            left_empty_or_none = (left.is_some() && *left.unwrap() == 0) || left.is_none();
+            left_empty_w = white.files[i - 1] == 0;
+            left_empty_b = black.files[i - 1] == 0;
         }
-        let right = white.files.get(i + 1);
-        let right_empty_or_none = (right.is_some() && *right.unwrap() == 0) || right.is_none();
-
-        if left_empty_or_none && right_empty_or_none {
-            white_p = white_p + *file;
+        let mut right_empty_w = true;
+        let mut right_empty_b = true;
+        if i < 7 {
+            right_empty_w = white.files[i + 1] == 0;
+            right_empty_b = black.files[i + 1] == 0;
         }
-    }
-    for (i, file) in black.files.iter().enumerate() {
-        let mut left_empty_or_none = false;
-        if i > 0 {
-            let left = black.files.get(i - 1);
-            left_empty_or_none = (left.is_some() && *left.unwrap() == 0) || left.is_none();
+        if left_empty_w && right_empty_w {
+            white_p += white.files[i];
         }
-        let right = black.files.get(i + 1);
-        let right_empty_or_none = (right.is_some() && *right.unwrap() == 0) || right.is_none();
-
-        if left_empty_or_none && right_empty_or_none {
-            black_p = black_p + *file;
+        if left_empty_b && right_empty_b {
+            black_p += black.files[i];
         }
     }
     (white_p, black_p)
@@ -428,9 +487,7 @@ pub fn evaluate(
     let (white_isolated_pawns, black_isolated_pawns) =
         count_isolated_pawns(&white_pawn_file, &black_pawn_file);
     let isolated: i32 = white_isolated_pawns as i32 - black_isolated_pawns as i32;
-    let (white_blocked_pawns, black_blocked_pawns) = count_blocked_pawns(game_state);
-    let blocked: i32 = (white_blocked_pawns as i32) - (black_blocked_pawns as i32);
-    let pawn_structure = 0.5 * (doubled + isolated + blocked) as f32;
+    let pawn_structure = 0.5 * (doubled + isolated) as f32;
 
     // mobility
     let white_move_count: i32 = white_moves_ref.map_or_else(
