@@ -1,6 +1,6 @@
 use crate::board::*;
 use crate::game_state::GameState;
-use crate::move_generator;
+use crate::move_generator::{self, plmg};
 use crate::move_generator::Move;
 
 #[cfg(test)]
@@ -8,7 +8,133 @@ mod tests {
     use super::*;
     use crate::board_console_printer::print_board;
     use crate::chess_notation::fen_reader;
-    use test::Bencher;
+    use crate::game_state;
+    use test::{black_box, Bencher};
+
+    #[test]
+    fn test_make_pawn_count_by_file() {
+        // initial position
+        let game_state = GameState::starting_game();
+        let (w, b) = make_pawn_count_by_file(&game_state);
+        for idx in 0..7u8 {
+            assert_eq!(w.files[idx as usize], 1);
+            assert_eq!(b.files[idx as usize], 1);
+        }
+        // position 2
+        let fen = "3rkr2/pp3p1p/4b3/3PP2n/1P1q3p/3R4/P1P3P1/2R1K3 b - - 0 19";
+        let game_state = fen_reader::make_game_state(fen);
+        let (w, b) = make_pawn_count_by_file(&game_state);
+        assert_eq!(w.files[0], 1);
+        assert_eq!(w.files[1], 1);
+        assert_eq!(w.files[2], 1);
+        assert_eq!(w.files[3], 1);
+        assert_eq!(w.files[4], 1);
+        assert_eq!(w.files[5], 0);
+        assert_eq!(w.files[6], 1);
+        assert_eq!(w.files[7], 0);
+        ////
+        assert_eq!(b.files[0], 1);
+        assert_eq!(b.files[1], 1);
+        assert_eq!(b.files[2], 0);
+        assert_eq!(b.files[3], 0);
+        assert_eq!(b.files[4], 0);
+        assert_eq!(b.files[5], 1);
+        assert_eq!(b.files[6], 0);
+        assert_eq!(b.files[7], 2);
+
+         // pos 3
+        let fen = "rnbqkbnr/3pppp1/2pP2p1/p6P/p1P5/8/P1PP1P1P/RNBQKBNR w KQkq - 0 1";
+        let game_state = fen_reader::make_game_state(fen);
+        let (w, b) = make_pawn_count_by_file(&game_state);
+        assert_eq!(w.files[0], 1);
+        assert_eq!(w.files[1], 0);
+        assert_eq!(w.files[2], 2);
+        assert_eq!(w.files[3], 2);
+        assert_eq!(w.files[4], 0);
+        assert_eq!(w.files[5], 1);
+        assert_eq!(w.files[6], 0);
+        assert_eq!(w.files[7], 2);
+        ////
+        assert_eq!(b.files[0], 2);
+        assert_eq!(b.files[1], 0);
+        assert_eq!(b.files[2], 1);
+        assert_eq!(b.files[3], 1);
+        assert_eq!(b.files[4], 1);
+        assert_eq!(b.files[5], 1);
+        assert_eq!(b.files[6], 2);
+        assert_eq!(b.files[7], 0);
+    }
+    #[test]
+    fn test_count_doubled_pawns() {
+        // rows with more than one pawn
+
+        // starting pos
+        let game_state = GameState::starting_game();
+        let (wf, bf) = make_pawn_count_by_file(&game_state);
+        let (w, b) = count_doubled_pawns(&wf, &bf);
+        assert_eq!(w, 0);
+        assert_eq!(b, 0);
+
+        // pos 2
+        let fen2 = "3rkr2/pp3p1p/4b3/3PP2n/1P1q3p/3R4/P1P3P1/2R1K3 b - - 0 19";
+        let game_state2 = fen_reader::make_game_state(fen2);
+        let (w, b) = make_pawn_count_by_file(&game_state2);
+        let (w, b) = count_doubled_pawns(&w, &b);
+        assert_eq!(w, 0);
+        assert_eq!(b, 2);
+
+        // pos 3
+        let fen3 = "rnbqkbnr/3pppp1/2pP2p1/p6P/p1P5/8/P1PP1P1P/RNBQKBNR w KQkq - 0 1";
+        let game_state3 = fen_reader::make_game_state(fen3);
+        let (w, b) = make_pawn_count_by_file(&game_state3);
+        let (w, b) = count_doubled_pawns(&w, &b);
+        assert_eq!(w, 6);
+        assert_eq!(b, 4);
+    }
+    #[test]
+    fn test_count_blocked_pawns() {}
+    #[test]
+    fn test_count_isolated_pawns() {}
+
+    #[test]
+    fn test_piece_count() {
+        // starting position
+        let game_state = GameState::starting_game();
+        let piece_count = PieceCount::new(&game_state);
+        // black pieces
+        assert_eq!(piece_count.black_rook, 2);
+        assert_eq!(piece_count.black_bishop, 2);
+        assert_eq!(piece_count.black_king, 1);
+        assert_eq!(piece_count.black_knight, 2);
+        assert_eq!(piece_count.black_queen, 1);
+        assert_eq!(piece_count.black_pawn, 8);
+        // white pieces
+        assert_eq!(piece_count.white_rook, 2);
+        assert_eq!(piece_count.white_bishop, 2);
+        assert_eq!(piece_count.white_king, 1);
+        assert_eq!(piece_count.white_knight, 2);
+        assert_eq!(piece_count.white_queen, 1);
+        assert_eq!(piece_count.white_pawn, 8);
+
+        // position 2
+        let fen = "3rkr2/pp3p1p/4b3/3PP2n/1P1q3p/3R4/P1P3P1/2R1K3 b - - 0 19";
+        let game_state = fen_reader::make_game_state(fen);
+        let piece_count = PieceCount::new(&game_state);
+        // black pieces
+        assert_eq!(piece_count.black_rook, 2);
+        assert_eq!(piece_count.black_bishop, 1);
+        assert_eq!(piece_count.black_king, 1);
+        assert_eq!(piece_count.black_knight, 1);
+        assert_eq!(piece_count.black_queen, 1);
+        assert_eq!(piece_count.black_pawn, 5);
+        // white pieces
+        assert_eq!(piece_count.white_rook, 2);
+        assert_eq!(piece_count.white_bishop, 0);
+        assert_eq!(piece_count.white_king, 1);
+        assert_eq!(piece_count.white_knight, 0);
+        assert_eq!(piece_count.white_queen, 0);
+        assert_eq!(piece_count.white_pawn, 6);
+    }
 
     #[test]
     fn test_pawn_count() {
@@ -45,10 +171,23 @@ mod tests {
         let game_state = fen_reader::make_game_state(fen);
         b.iter(|| evaluate(&game_state, None, None))
     }
+
+    #[bench]
+    fn bench_make_pawn_count_by_file(b: &mut Bencher) {
+        let fen = "3rkr2/pp3p1p/4b3/3PP2n/1P1q3p/3R4/P1P3P1/2R1K3 b - - 0 19";
+        let game_state = fen_reader::make_game_state(fen);
+        b.iter(|| {
+            for i in 0..1000 {
+                black_box({
+                    let (w, b) = make_pawn_count_by_file(&game_state);
+                })
+            }
+        })
+    }
 }
 
 #[derive(Debug)]
-struct PawnCountByFile {
+pub struct PawnCountByFile {
     pub files: [u8; 8],
 }
 
@@ -69,78 +208,22 @@ struct PieceCount {
 }
 
 impl PieceCount {
-    pub fn new(board: &dyn BoardTrait) -> PieceCount {
-        let mut piece_count = PieceCount {
-            white_king: 0,
-            white_queen: 0,
-            white_bishop: 0,
-            white_knight: 0,
-            white_rook: 0,
-            white_pawn: 0,
-            black_king: 0,
-            black_queen: 0,
-            black_bishop: 0,
-            black_knight: 0,
-            black_rook: 0,
-            black_pawn: 0,
+    pub fn new(game_state: &GameState) -> PieceCount {
+        let board = game_state.get_board();
+        return PieceCount {
+            white_king: board.get_piece_type_count(PieceType::King, Color::White),
+            white_queen: board.get_piece_type_count(PieceType::Queen, Color::White),
+            white_bishop: board.get_piece_type_count(PieceType::Bishop, Color::White),
+            white_knight: board.get_piece_type_count(PieceType::Knight, Color::White),
+            white_rook: board.get_piece_type_count(PieceType::Rook, Color::White),
+            white_pawn: board.get_piece_type_count(PieceType::Pawn, Color::White),
+            black_king: board.get_piece_type_count(PieceType::King, Color::Black),
+            black_queen: board.get_piece_type_count(PieceType::Queen, Color::Black),
+            black_bishop: board.get_piece_type_count(PieceType::Bishop, Color::Black),
+            black_knight: board.get_piece_type_count(PieceType::Knight, Color::Black),
+            black_rook: board.get_piece_type_count(PieceType::Rook, Color::Black),
+            black_pawn: board.get_piece_type_count(PieceType::Pawn, Color::Black),
         };
-        for piece in board.get_all_pieces(Color::White) {
-            match piece.piece_type {
-                    PieceType::King => match piece.color {
-                        Color::White => piece_count.white_king = piece_count.white_king + 1,
-                        Color::Black => piece_count.black_king = piece_count.black_king + 1,
-                    },
-                    PieceType::Queen => match piece.color {
-                        Color::White => piece_count.white_queen = piece_count.white_queen + 1,
-                        Color::Black => piece_count.black_queen = piece_count.black_queen + 1,
-                    },
-                    PieceType::Bishop => match piece.color {
-                        Color::White => piece_count.white_bishop = piece_count.white_bishop + 1,
-                        Color::Black => piece_count.black_bishop = piece_count.black_bishop + 1,
-                    },
-                    PieceType::Knight => match piece.color {
-                        Color::White => piece_count.white_knight = piece_count.white_knight + 1,
-                        Color::Black => piece_count.black_knight = piece_count.black_knight + 1,
-                    },
-                    PieceType::Rook => match piece.color {
-                        Color::White => piece_count.white_rook = piece_count.white_rook + 1,
-                        Color::Black => piece_count.black_rook = piece_count.black_rook + 1,
-                    },
-                    PieceType::Pawn => match piece.color {
-                        Color::White => piece_count.white_pawn = piece_count.white_pawn + 1,
-                        Color::Black => piece_count.black_pawn = piece_count.black_pawn + 1,
-                    },
-                }
-        }
-         for piece in board.get_all_pieces(Color::Black) {
-            match piece.piece_type {
-                    PieceType::King => match piece.color {
-                        Color::White => piece_count.white_king = piece_count.white_king + 1,
-                        Color::Black => piece_count.black_king = piece_count.black_king + 1,
-                    },
-                    PieceType::Queen => match piece.color {
-                        Color::White => piece_count.white_queen = piece_count.white_queen + 1,
-                        Color::Black => piece_count.black_queen = piece_count.black_queen + 1,
-                    },
-                    PieceType::Bishop => match piece.color {
-                        Color::White => piece_count.white_bishop = piece_count.white_bishop + 1,
-                        Color::Black => piece_count.black_bishop = piece_count.black_bishop + 1,
-                    },
-                    PieceType::Knight => match piece.color {
-                        Color::White => piece_count.white_knight = piece_count.white_knight + 1,
-                        Color::Black => piece_count.black_knight = piece_count.black_knight + 1,
-                    },
-                    PieceType::Rook => match piece.color {
-                        Color::White => piece_count.white_rook = piece_count.white_rook + 1,
-                        Color::Black => piece_count.black_rook = piece_count.black_rook + 1,
-                    },
-                    PieceType::Pawn => match piece.color {
-                        Color::White => piece_count.white_pawn = piece_count.white_pawn + 1,
-                        Color::Black => piece_count.black_pawn = piece_count.black_pawn + 1,
-                    },
-                }
-        }
-        piece_count
     }
 }
 
@@ -159,14 +242,14 @@ impl PieceCount {
 fn count_doubled_pawns(white: &PawnCountByFile, black: &PawnCountByFile) -> (u8, u8) {
     let mut white_doubled: u8 = 0;
     let mut black_doubled: u8 = 0;
-    for file in white.files.iter() {
-        if *file >= 2 {
-            white_doubled = white_doubled + *file;
+    for &file in white.files.iter() {
+        if file >= 2 {
+            white_doubled += file;
         }
     }
-    for file in black.files.iter() {
-        if *file >= 2 {
-            black_doubled = black_doubled + *file;
+    for &file in black.files.iter() {
+        if file >= 2 {
+            black_doubled += file;
         }
     }
     (white_doubled, black_doubled)
@@ -202,25 +285,28 @@ fn count_blocked_pawns(board: &GameState) -> (u8, u8) {
     (white_blocked, black_blocked)
 }
 
-fn make_pawn_count_by_file(board: &GameState) -> (PawnCountByFile, PawnCountByFile) {
-    let files = board.get_files();
-    let mut white_p = PawnCountByFile { files: [0; 8] };
-    let mut black_p = PawnCountByFile { files: [0; 8] };
-    files.iter().enumerate().for_each(|(x, file)| {
-        file.iter().for_each(|&square| {
-            if square.piece().is_some() {
-                let piece = square.piece().unwrap();
-                if piece.piece_type == PieceType::Pawn {
-                    match piece.color {
-                        Color::White => white_p.files[x] = white_p.files[x] + 1,
-                        Color::Black => black_p.files[x] = black_p.files[x] + 1,
-                    }
-                }
-            }
-        });
-    });
-    (white_p, black_p)
+// test ai::evaluator::tests::bench_make_pawn_count_by_file               ... bench:      25,077 ns/iter (+/- 767)
+// after rewriting the get_pawn_count_by_file function
+// test ai::evaluator::tests::bench_make_pawn_count_by_file               ... bench:       7,547 ns/iter (+/- 233)
+// after the second rewrite
+// test ai::evaluator::tests::bench_make_pawn_count_by_file               ... bench:         242 ns/iter (+/- 8)
+fn make_pawn_count_by_file(game_state: &GameState) -> (PawnCountByFile, PawnCountByFile) {
+    return game_state.get_board_ref().get_pawn_count_by_file();
 }
+
+//test ai::evaluator::tests::bench_make_pawn_count_by_file               ... bench:         242 ns/iter (+/- 24)
+// fn make_pawn_count_by_file(game_state: &GameState) -> (PawnCountByFile, PawnCountByFile) {
+//     let board = game_state.get_board_ref();
+//     let mut white_p = PawnCountByFile { files: [0; 8] };
+//     let mut black_p = PawnCountByFile { files: [0; 8] };
+//     for idx in 0..=7u8 {
+//         white_p.files[idx as usize] =
+//             board.get_piece_count_by_file(PieceType::Pawn, Color::White, idx);
+//         black_p.files[idx as usize] =
+//             board.get_piece_count_by_file(PieceType::Pawn, Color::Black, idx);
+//     }
+//     (white_p, black_p)
+// }
 
 fn count_isolated_pawns(white: &PawnCountByFile, black: &PawnCountByFile) -> (u8, u8) {
     let mut white_p: u8 = 0;
@@ -320,11 +406,12 @@ impl Evaluation {
 // }
 
 pub fn evaluate(
-    board: &GameState,
+    game_state: &GameState,
     white_moves_ref: Option<&Vec<Move>>,
     black_moves_ref: Option<&Vec<Move>>,
 ) -> Evaluation {
-    let c = PieceCount::new(board);
+    let board = game_state.get_board_ref();
+    let c = PieceCount::new(game_state);
     let k: i32 = 200 * (c.white_king as i32 - c.black_king as i32);
     let q: i32 = 9 * (c.white_queen as i32 - c.black_queen as i32);
     let r: i32 = 5 * (c.white_rook as i32 - c.black_rook as i32);
@@ -334,33 +421,33 @@ pub fn evaluate(
     let p: i32 = 1 * (c.white_pawn as i32 - c.black_pawn as i32);
 
     // pawn structure evaluation
-    let (white_pawn_file, black_pawn_file) = make_pawn_count_by_file(board);
+    let (white_pawn_file, black_pawn_file) = make_pawn_count_by_file(game_state);
     let (white_doubled_pawns, black_doubled_pawns) =
         count_doubled_pawns(&white_pawn_file, &black_pawn_file);
     let doubled: i32 = white_doubled_pawns as i32 - black_doubled_pawns as i32;
     let (white_isolated_pawns, black_isolated_pawns) =
         count_isolated_pawns(&white_pawn_file, &black_pawn_file);
     let isolated: i32 = white_isolated_pawns as i32 - black_isolated_pawns as i32;
-    let (white_blocked_pawns, black_blocked_pawns) = count_blocked_pawns(board);
+    let (white_blocked_pawns, black_blocked_pawns) = count_blocked_pawns(game_state);
     let blocked: i32 = (white_blocked_pawns as i32) - (black_blocked_pawns as i32);
     let pawn_structure = 0.5 * (doubled + isolated + blocked) as f32;
 
     // mobility
     let white_move_count: i32 = white_moves_ref.map_or_else(
-        || move_generator::gen_legal_moves(board, Color::White).len() as i32,
+        || plmg::get_attack_mobility_count(board, Color::White) as i32,
         // || 0,
         |moves| moves.len() as i32,
     );
     let black_move_count: i32 = black_moves_ref.map_or_else(
-        || move_generator::gen_legal_moves(board, Color::Black).len() as i32,
+        || plmg::get_attack_mobility_count(board, Color::Black) as i32,
         // || 0,
         |moves| moves.len() as i32,
     );
 
     // checkmate
-    let mated_player = if board.player_to_move() == Color::White && white_move_count == 0 {
+    let mated_player = if game_state.player_to_move() == Color::White && white_move_count == 0 {
         Some(Color::White)
-    } else if board.player_to_move() == Color::Black && black_move_count == 0 {
+    } else if game_state.player_to_move() == Color::Black && black_move_count == 0 {
         Some(Color::Black)
     } else {
         None

@@ -446,6 +446,9 @@ impl GameState {
     pub fn get_board(&self) -> BitBoard {
         self.board.clone()
     }
+    pub fn get_board_ref(&self) -> &BitBoard {
+        &self.board
+    }
     pub fn get_dirty_squares(&self) -> bool {
         self.dirty_squares
     }

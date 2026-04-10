@@ -1,4 +1,7 @@
-use crate::board::{Color, Coordinate, Piece, PieceType};
+use crate::{
+    ai::evaluator::PawnCountByFile,
+    board::{Color, Coordinate, Piece, PieceType},
+};
 
 /*
  * board indices
@@ -430,8 +433,52 @@ impl BitBoard {
         return None;
     }
 
-    //@todo: test
-    pub fn get_piece_type_count(&self, piece_type: PieceType, color: Color) -> u64 {
+    pub fn get_pawn_count_by_file(&self) -> (PawnCountByFile, PawnCountByFile) {
+        let w = self.white_pieces & self.pawns;
+        let b = self.black_pieces & self.pawns;
+        return (
+            PawnCountByFile {
+                files: [
+                    u64::count_ones(w & A_FILE) as u8,
+                    u64::count_ones(w & B_FILE) as u8,
+                    u64::count_ones(w & C_FILE) as u8,
+                    u64::count_ones(w & D_FILE) as u8,
+                    u64::count_ones(w & E_FILE) as u8,
+                    u64::count_ones(w & F_FILE) as u8,
+                    u64::count_ones(w & G_FILE) as u8,
+                    u64::count_ones(w & H_FILE) as u8,
+                ],
+            },
+            PawnCountByFile {
+                files: [
+                    u64::count_ones(b & A_FILE) as u8,
+                    u64::count_ones(b & B_FILE) as u8,
+                    u64::count_ones(b & C_FILE) as u8,
+                    u64::count_ones(b & D_FILE) as u8,
+                    u64::count_ones(b & E_FILE) as u8,
+                    u64::count_ones(b & F_FILE) as u8,
+                    u64::count_ones(b & G_FILE) as u8,
+                    u64::count_ones(b & H_FILE) as u8,
+                ],
+            },
+        );
+    }
+
+    pub fn get_piece_count_by_file(&self, piece_type: PieceType, color: Color, file_idx: u8) -> u8 {
+        let file_mask = match file_idx {
+            0 => A_FILE,
+            1 => B_FILE,
+            2 => C_FILE,
+            3 => D_FILE,
+            4 => E_FILE,
+            5 => F_FILE,
+            6 => G_FILE,
+            7 => H_FILE,
+            _ => panic!(
+                "file idx should be in range [0 - 7], was given {}",
+                file_idx
+            ),
+        };
         let color_board = match color {
             Color::White => self.white_pieces,
             Color::Black => self.black_pieces,
@@ -444,7 +491,24 @@ impl BitBoard {
             PieceType::Rook => self.rooks,
             PieceType::Pawn => self.pawns,
         };
-        return color_board & piece_type_board;
+        return u64::count_ones(color_board & piece_type_board & file_mask) as u8;
+    }
+
+    //@todo: test
+    pub fn get_piece_type_count(&self, piece_type: PieceType, color: Color) -> u8 {
+        let color_board = match color {
+            Color::White => self.white_pieces,
+            Color::Black => self.black_pieces,
+        };
+        let piece_type_board = match piece_type {
+            PieceType::King => self.kings,
+            PieceType::Queen => self.queens,
+            PieceType::Bishop => self.bishops,
+            PieceType::Knight => self.knights,
+            PieceType::Rook => self.rooks,
+            PieceType::Pawn => self.pawns,
+        };
+        return u64::count_ones(color_board & piece_type_board) as u8;
     }
 
     fn compliment(bit_board: u64) -> u64 {

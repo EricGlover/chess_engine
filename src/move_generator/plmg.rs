@@ -480,9 +480,6 @@ const QUEEN_ATTACK: [u64; 64] = [
     9205534180971414145,
 ];
 
-
-
-
 pub fn test() {
     // init_gen_queen_attacks();
     // init_gen_bishop_attacks();
@@ -852,7 +849,7 @@ pub fn gen_bishop_vector(game_state: &GameState, piece: &Piece) -> Vec<Move> {
         Color::White => board.get_white_pieces_board(),
         Color::Black => board.get_black_pieces_board(),
     };
-    
+
     let less_board = start_bit - 1;
     let mut to_move_board: u64 = 0;
     let mut captures_board: u64 = 0;
@@ -1002,7 +999,6 @@ pub fn gen_queen_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
     return all_moves;
 }
 
-
 pub fn gen_rook_vector(game_state: &GameState, piece: &Piece) -> Vec<Move> {
     let board = game_state.get_board();
     let at = piece.at().unwrap();
@@ -1126,7 +1122,6 @@ pub fn gen_rook_vector(game_state: &GameState, piece: &Piece) -> Vec<Move> {
 
     return moves;
 }
-
 
 pub fn gen_bishop_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
     let board = game_state.get_board();
@@ -1343,7 +1338,7 @@ pub fn gen_rook_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
     let row = BitBoard::get_row_for_bit(start_bit);
     let left_row = less_board & row;
     let right_row = (row ^ left_row) ^ start_bit;
-    
+
     //left row == 0 then there's nowhere left
     if left_row != 0 {
         let occupied = left_row & pieces_bit_board;
@@ -1579,11 +1574,52 @@ pub fn gen_pawn_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
         let bit = BitBoard::coordinate_to_bit(to);
         let target = bit & attack_board;
         if target > 0 {
-            moves.push(make_move_to(&at, &to, piece, MoveType::EnPassant, &board, game_state));
+            moves.push(make_move_to(
+                &at,
+                &to,
+                piece,
+                MoveType::EnPassant,
+                &board,
+                game_state,
+            ));
         }
     }
 
     return moves;
+}
+
+pub fn get_attack_mobility_count(board: &BitBoard, color: Color) -> u32 {
+    let mut count = 0u32;
+    let types = [
+        PieceType::King,
+        PieceType::Queen,
+        PieceType::Bishop,
+        PieceType::Knight,
+        PieceType::Rook,
+        PieceType::Pawn,
+    ];
+    for piece_type in types.iter() {
+        for idx in board.get_piece_types_by_color_idx(*piece_type, color) {
+            count += u64::count_ones(get_piece_attack_map(idx, piece_type, color));
+        }
+    }
+
+    return count;
+}
+
+pub fn get_piece_attack_map(idx: u8, piece_type: &PieceType, color: Color) -> u64 {
+    let idx2 = idx - 1;
+    return match piece_type {
+        PieceType::King => KING_ATTACKS[idx2 as usize],
+        PieceType::Queen => QUEEN_ATTACK[idx2 as usize],
+        PieceType::Bishop => BISHOP_ATTACKS[idx2 as usize],
+        PieceType::Knight => KNIGHT_ATTACKS[idx2 as usize],
+        PieceType::Rook => ROOK_ATTACKS[idx2 as usize],
+        PieceType::Pawn => match color {
+            Color::White => WHITE_PAWN_ATTACKS[idx2 as usize],
+            Color::Black => BLACK_PAWN_ATTACKS[idx2 as usize],
+        },
+    };
 }
 
 /* HELPER FUNCTIONS  */
@@ -1679,7 +1715,6 @@ mod tests {
         let moves = plmg::gen_bishop_vector(&game_state, d_2_b);
         assert_eq!(moves.len(), 8);
 
-
         // white bishop on 6,1 should have 0 moves
         let f_1_bishop = game_state.get_piece_at(&Coordinate::new(6, 1));
         assert!(f_1_bishop.is_some(), "bishop should be on f1");
@@ -1700,11 +1735,8 @@ mod tests {
         let c_8_b = c_8_bishop.unwrap();
         let moves = plmg::gen_bishop_vector(&game_state, c_8_b);
         assert_eq!(moves.len(), 0);
-
     }
 
     #[test]
-    fn test_gen_rook_vector() {
-
-    }
+    fn test_gen_rook_vector() {}
 }
