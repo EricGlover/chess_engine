@@ -654,9 +654,6 @@ fn find_attacking_pieces<'a>(
         idx,
         attackers_color,
     );
-    for idx in candidate_indices.iter() {
-        println!("{}", idx);
-    }
     return candidate_indices
         .iter()
         .map(|idx| {
