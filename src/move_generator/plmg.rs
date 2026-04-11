@@ -279,7 +279,7 @@ const KING_ATTACKS: [u64; 64] = [
     4665729213955833856,
 ];
 
-const ROOK_ATTACKS: [u64; 64] = [
+pub const ROOK_ATTACKS: [u64; 64] = [
     72340172838076926,
     144680345676153597,
     289360691352306939,
@@ -346,7 +346,7 @@ const ROOK_ATTACKS: [u64; 64] = [
     9187484529235886208,
 ];
 
-const BISHOP_ATTACKS: [u64; 64] = [
+pub const BISHOP_ATTACKS: [u64; 64] = [
     9241421688590303744,
     36099303471056128,
     141012904249856,
@@ -817,6 +817,20 @@ fn init_gen_pawn_attacks() {
     }
 }
 
+pub fn get_attack_mask_for(idx:u8, piece_type: &PieceType, color: Color) -> u64 {
+    match piece_type {
+        PieceType::King => KING_ATTACKS[(idx - 1) as usize],
+        PieceType::Queen => QUEEN_ATTACK[(idx - 1) as usize],
+        PieceType::Bishop => BISHOP_ATTACKS[(idx - 1) as usize],
+        PieceType::Knight => KNIGHT_ATTACKS[(idx - 1) as usize],
+        PieceType::Rook => ROOK_ATTACKS[(idx - 1) as usize],
+        PieceType::Pawn => match color {
+            Color::White =>   WHITE_PAWN_ATTACKS[(idx - 1) as usize],
+            Color::Black => BLACK_PAWN_ATTACKS[(idx - 1 ) as usize],
+        }
+    }
+}
+
 pub fn gen_moves_for(game_state: &GameState, piece: &Piece) -> Vec<Move> {
     let moves = match piece.piece_type {
         PieceType::King => gen_king_moves(piece, game_state),
@@ -1159,6 +1173,7 @@ pub fn gen_bishop_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
 
     // check files or this stuff will wrap around, if the direction is off the board
     // just set it to 0
+    // above and below the board ?
     let up_right_bit = match is_h_file {
         true => 0,
         false => start_bit << 9,

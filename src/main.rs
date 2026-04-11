@@ -1,5 +1,5 @@
 #![warn(unused_extern_crates)]
-use chess_engine::bit_board;
+use chess_engine::{bit_board, search};
 use chess_engine::bit_board::BitBoard;
 use chess_engine::board::{Board, BoardTrait};
 use chess_engine::board::{Color, Coordinate, Piece, PieceType};
@@ -35,9 +35,11 @@ fn print_help_menu() {
 
 fn main() {
     env::set_var("RUST_BACKTRACE", "1");
-    let debug = false;
+    let debug = true;
     if debug {
 
+        search::test();
+        return;
         // bit_board::test();
         // return;
         // testing bit boards

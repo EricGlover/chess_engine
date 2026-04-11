@@ -201,6 +201,32 @@ impl BitBoard {
         }
     }
 
+    pub fn bit_map_to_coordinates() {
+        
+    }
+
+    pub fn get_diagonal_for_bits(start: u64, end: u64) -> u64 {
+        let diagonals = BitBoard::get_diagonals_vec_for_bit(start);
+        for diagonal in diagonals {
+            if BitBoard::bit_on_bit_board(end, diagonal) {
+                return diagonal;
+            }
+        }
+        return 0;
+    }
+
+    pub fn get_rook_path_for_bits(start: u64, end: u64) -> u64 {
+        let file = BitBoard::get_file_for_bit(start);
+        if BitBoard::bit_on_bit_board(end, file) {
+            return file;
+        }
+        let row = BitBoard::get_row_for_bit(start);
+        if BitBoard::bit_on_bit_board(end, row) {
+            return row;
+        }
+        return 0;
+    }
+
     pub fn get_diagonals_vec_for_bit(bit: u64) -> Vec<u64> {
         let mut diagonals: Vec<u64> = Vec::new();
         let color = BitBoard::get_square_color(bit);
@@ -520,7 +546,13 @@ impl BitBoard {
         }
         bit_board & (!bit_board + 1)
     }
-
+    pub fn get_coordinates_of_bit_board(mut bit_board: u64) -> Vec<Coordinate> {
+        let mut coordinates: Vec<Coordinate> = Vec::new();
+        while bit_board > 0 {
+            coordinates.push(BitBoard::bit_to_coordinate(BitBoard::pop_bit(&mut bit_board)));
+        }
+        return coordinates;
+    }
     pub fn get_indices_of_bit_board(mut bit_board: u64) -> Vec<u8> {
         let mut indices: Vec<u8> = Vec::new();
         while bit_board > 0 {

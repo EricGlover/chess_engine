@@ -4,6 +4,7 @@ pub mod pgn;
 use regex::Regex;
 
 use crate::board::*;
+use crate::chess_notation::fen_reader::make_fen;
 use crate::game_state::GameState;
 use crate::move_generator::*;
 
@@ -78,6 +79,13 @@ pub fn parse_move(str: &str, board: &GameState, color: Color) -> Option<Move> {
 }
 
 fn get_piece_specifier(m: &Move, board: &GameState) -> String {
+    if board.get_piece_at(&m.from).is_none() {
+        let fen = make_fen(board);
+        println!("{}\n {}", m, fen);
+        let is_valid = board.assert_valid_state();
+        println!("{} is valid board ", is_valid);
+    }
+
     // search for other moves , if similar moves we have to get specific about what piece is moving
     let piece = board.get_piece_at(&m.from).unwrap();
     let piece_at = piece.at().unwrap();
