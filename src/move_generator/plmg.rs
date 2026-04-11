@@ -480,6 +480,11 @@ const QUEEN_ATTACK: [u64; 64] = [
     9205534180971414145,
 ];
 
+const ATTACKERS: [u64; 64] = [
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+];
+
 pub fn test() {
     // init_gen_queen_attacks();
     // init_gen_bishop_attacks();
@@ -487,6 +492,16 @@ pub fn test() {
     // init_gen_king_attacks();
     // init_gen_knight_attacks();
     // init_gen_pawn_attacks();
+}
+
+fn init_gen_attackers() {
+    let mut bishop_attackers: Vec<u64> = vec![];
+    let mut rook_attackers: Vec<u64> = vec![];
+    let mut queen_attackers: Vec<u64> = vec![];
+    // for idx where could a bishop attack this spot from
+
+    // for idx where could a rook attack this spot from
+    // for idx where could a queen attack this spot from
 }
 
 fn init_gen_queen_attacks() {
@@ -1607,6 +1622,39 @@ pub fn get_attack_mobility_count(board: &BitBoard, color: Color) -> u32 {
     return count;
 }
 
+pub fn get_slider_pieces_indices_attacking_idx(board: &BitBoard, idx: u8, attacker_color: Color) -> Vec<u8> {
+    let mut indices: Vec<u8> = vec![];
+    let idx2 = idx - 1;
+    let color_board = match attacker_color {
+        Color::White => board.get_white_pieces_board(),
+        Color::Black => board.get_black_pieces_board(),
+    };
+    // maybe add a check for nearest?
+    // check rook attacks
+    let mut rooks_board = board.get_rooks_board() & ROOK_ATTACKS[idx2 as usize] & color_board;
+    let mut current = BitBoard::pop_bit(&mut rooks_board);
+    while current > 0 {
+        indices.push(BitBoard::get_index_of_bit(current));
+        current = BitBoard::pop_bit(&mut rooks_board);
+    }
+    // check bishop attacks
+    let mut bishop_board = board.get_bishops_board() & BISHOP_ATTACKS[idx2 as usize] & color_board;
+    let mut current = BitBoard::pop_bit(&mut bishop_board);
+    while current > 0 {
+        indices.push(BitBoard::get_index_of_bit(current));
+        current = BitBoard::pop_bit(&mut bishop_board);
+    }
+    // check queen attacks
+    let mut queen_board = board.get_queens_board() & QUEEN_ATTACK[idx2 as usize] & color_board;
+    let mut current = BitBoard::pop_bit(&mut queen_board);
+    while current > 0 {
+        indices.push(BitBoard::get_index_of_bit(current));
+        current = BitBoard::pop_bit(&mut queen_board);
+    }
+
+    return indices;
+}
+
 pub fn get_piece_attack_map(idx: u8, piece_type: &PieceType, color: Color) -> u64 {
     let idx2 = idx - 1;
     return match piece_type {
@@ -1702,6 +1750,7 @@ pub fn make_move_to(
 mod tests {
     use super::*;
     use crate::{board::BoardTrait, chess_notation::fen_reader, move_generator::plmg};
+    use std::collections::HashSet;
 
     #[test]
     fn test_gen_bishop_vector() {
@@ -1739,4 +1788,47 @@ mod tests {
 
     #[test]
     fn test_gen_rook_vector() {}
+
+    #[test]
+    fn test_get_slider_pieces_indices_attacking_idx() {
+        let white_bishop_pinned =
+            "rnbqk1nr/pppp1ppp/4p3/8/1b1P4/5N2/PPPBPPPP/RN1QKB1R b KQkq - 3 3";
+        let game_state = fen_reader::make_game_state(white_bishop_pinned);
+        let king = game_state.get_king(Color::White).unwrap();
+        let king_at = king.at().unwrap();
+        // how to make sure the pieces returned are unique ?
+        // pieces can't attack the same square twice , so we're good
+        let idx = BitBoard::coordinate_to_idx(*king_at);
+        let candidate_indices = plmg::get_slider_pieces_indices_attacking_idx(
+            game_state.get_board_ref(),
+            idx,
+            Color::Black,
+        );
+        for idx in candidate_indices.iter() {
+            println!("{}", idx);
+        }
+        assert_eq!(candidate_indices[0], 26);
+        let pos2 = "rnb1k3/pppp1ppp/4pn2/4P3/1b1Pq3/5N2/PPPB1PPP/RN1QKB1r b Qq - 3 3";
+        let game_state = fen_reader::make_game_state(pos2);
+        let king = game_state.get_king(Color::White).unwrap();
+        let king_at = king.at().unwrap();
+        // how to make sure the pieces returned are unique ?
+        // pieces can't attack the same square twice , so we're good
+        let idx = BitBoard::coordinate_to_idx(*king_at);
+        let candidate_indices = plmg::get_slider_pieces_indices_attacking_idx(
+            game_state.get_board_ref(),
+            idx,
+            Color::Black,
+        );
+        for idx in candidate_indices.iter() {
+            println!("{}", idx);
+        }
+        let mut answers:HashSet<u8> = HashSet::new();
+        answers.insert(26);
+        answers.insert(29);
+        answers.insert(8);
+        for idx in candidate_indices.iter() {
+            assert!(answers.get(idx).is_some());
+        }
+    }
 }

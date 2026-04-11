@@ -66,7 +66,7 @@ mod bench {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{chess_notation::fen_reader::{self, make_board, make_initial_board}, game_state};
+    use crate::{chess_notation::fen_reader::{self, make_board, make_initial_board}, game_state, move_generator};
     use Ai;
     use std::time::{Duration, Instant};
 
@@ -116,8 +116,24 @@ mod tests {
         // black to move
         let fen = "r3k1r1/1b1p1p2/p3pp2/B1b4p/Pp2P3/1BN2P2/1PP4P/R2K1R2 b q - 10 20";
         let mut game_state = fen_reader::make_game_state(fen);
+
+        let fen = "r3k1r1/1b1p1p2/p3pp2/B1b4p/Pp2P3/1BN2P2/1PP4P/R2K1R2 b q - 10 20";
+        let mut game_state = fen_reader::make_game_state(fen);
+        let b_moves = move_generator::gen_legal_moves(&game_state, Color::Black);
+        for b_m in b_moves.iter() {
+            println!("{}", b_m);
+            game_state.make_move_mut(b_m);
+            let mut ai = Ai::new(Color::White);
+            ai.make_move(&mut game_state, Some(3));
+        }
+
+
         let mut ai = Ai::new(Color::Black);
         ai.make_move(&mut game_state, Some(4));
+
+
+
+
     }
 }
 

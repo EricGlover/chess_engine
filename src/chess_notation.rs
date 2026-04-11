@@ -80,11 +80,12 @@ pub fn parse_move(str: &str, board: &GameState, color: Color) -> Option<Move> {
 fn get_piece_specifier(m: &Move, board: &GameState) -> String {
     // search for other moves , if similar moves we have to get specific about what piece is moving
     let piece = board.get_piece_at(&m.from).unwrap();
+    let piece_at = piece.at().unwrap();
     let mover_color = piece.color;
     let mut moves = gen_legal_moves(board, mover_color);
     let similar_moves: Vec<Move> = moves
         .drain(..)
-        .filter(|m2| m2.piece == piece.piece_type && m2.to == m.to)
+        .filter(|m2| m2.from != *piece_at && m2.piece == piece.piece_type && m2.to == m.to)
         .into_iter()
         .collect::<Vec<Move>>();
 

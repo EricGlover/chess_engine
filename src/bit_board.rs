@@ -356,17 +356,6 @@ impl BitBoard {
         return BitBoard::get_indices_of_bit_board(piece_type_board & color_board);
     }
 
-    //@todo : remove, use game_state.get_all_pieces()
-    //preferably don't call this
-    pub fn get_all_pieces(&self, color: Color) -> Vec<Piece> {
-        let pieces: Vec<Piece> = vec![];
-        let mut all_pieces = self.pieces;
-        while all_pieces > 0 {
-            let bit = BitBoard::pop_bit(&mut all_pieces);
-        }
-        return pieces;
-    }
-
     //@todo : remove, use game_state.get_pieces()
     //preferably don't call this
     pub fn get_pieces(&self, color: Color, piece_type: PieceType) -> Vec<Piece> {

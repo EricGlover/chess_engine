@@ -938,7 +938,7 @@ impl GameState {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::chess_notation::fen_reader;
+    use crate::{chess_notation::fen_reader, move_generator};
 
     fn assert_valid_state(game_state: &GameState) {
         let squares = game_state.squares_list();
@@ -961,6 +961,7 @@ mod tests {
                 } else {
                     assert!(piece_opt.is_none(), "piece should not be in bit board");
                     assert!(square.piece().is_none(), "piece should not be in square");
+                    assert!(game_state.pieces.get(&idx).is_none(), "piece should not be in hash map");
                 }
             }
         }
@@ -1033,6 +1034,35 @@ mod tests {
         assert_eq!(after_fen, result_fen, "fen should be equal");
         assert_valid_state(&game_state);
     }
+
+    fn test_make_unmake_captures_pawn_promotion() {
+        let fen = "r3k1r1/1b1p1p2/pB2pp2/P1b4p/4P3/1B3P2/1pP4P/R2K1R2 b q - 0 22";
+        let mut game_state = fen_reader::make_game_state(fen);
+        let b2  = Coordinate::new(2, 2);
+        let a1 = Coordinate::new(1, 1);
+        let m = Move::new(b2, a1, PieceType::Pawn, MoveType::Promotion(PieceType::Queen), Some(PieceType::Rook), None, None);
+        game_state.make_move_mut(&m);
+        let res_fen = "r3k1r1/1b1p1p2/pB2pp2/P1b4p/4P3/1B3P2/2P4P/q2K1R2 w q - 0 23";
+        let result_fen = fen_reader::make_fen(&game_state);
+        assert_eq!(res_fen, result_fen, "fen should be equal");
+        assert_valid_state(&game_state);
+        game_state.unmake_move_mut(&m);
+        let result_fen = fen_reader::make_fen(&game_state);
+        assert_eq!(fen, result_fen, "fen should be equal");
+        assert_valid_state(&game_state);
+
+        // try all moves 
+        let moves = move_generator::gen_legal_moves(&game_state, Color::Black);
+        for m1 in moves.iter() {
+            game_state.make_move_mut(&m1);
+            assert_valid_state(&game_state);
+            game_state.unmake_move_mut(&m1);
+            assert_valid_state(&game_state);
+        }
+
+
+    }
+
     #[test]
     fn test_unmake_move_captures_pawn_promotion() {
         let fen = "r3k1r1/1b1p1p2/p3pp2/B1b4p/P3P3/1B3P2/1pP4P/R2K1R2 b q - 1 22";
