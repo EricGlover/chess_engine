@@ -1021,11 +1021,17 @@ pub fn gen_attacks_for_square(
     let to = BitBoard::idx_to_coordinate(idx);
     let mut moves = vec![];
     let enemy_color = attacking_color.opposite();
-    let enemy_color_board = match enemy_color {
+    let attacker_color_board = match enemy_color {
         Color::Black => board.get_black_pieces_board(),
         Color::White => board.get_white_pieces_board(),
     };
-    fn found_map_to_moves(mut found: u64, to: &Coordinate, game_state: &GameState, moves: &mut Vec<Move>) {
+    fn found_map_to_moves(
+        mut found: u64,
+        to: &Coordinate,
+        game_state: &GameState,
+        moves: &mut Vec<Move>,
+    ) {
+        BitBoard::print_bitboard(found);
         let mut current_bit = BitBoard::pop_bit(&mut found);
         while (current_bit > 0) {
             let from = BitBoard::bit_to_coordinate(current_bit);
@@ -1047,25 +1053,44 @@ pub fn gen_attacks_for_square(
         Color::Black => BLACK_PAWN_ATTACKS[(idx - 1) as usize],
         Color::White => WHITE_PAWN_ATTACKS[(idx - 1) as usize],
     };
-    let mut found_pawns = pawn_attack_map & enemy_color_board & board.get_pawns_board();
-    found_map_to_moves(found_pawns, &to, game_state, &mut moves);
+    let mut found_pawns = pawn_attack_map & attacker_color_board & board.get_pawns_board();
+    if found_pawns > 0 {
+        found_map_to_moves(found_pawns, &to, game_state, &mut moves);
+    }
     // knights
     let knight_attack_map = KNIGHT_ATTACKS[(idx - 1) as usize];
-    let found_knights = knight_attack_map & enemy_color_board & board.get_knights_board();
-    found_map_to_moves(found_knights, &to, game_state, &mut moves);
+    let found_knights = knight_attack_map & attacker_color_board & board.get_knights_board();
+    if found_knights > 0 {
+        found_map_to_moves(found_knights, &to, game_state, &mut moves);
+    }
+
     // king
     let king_attack_map = KING_ATTACKS[(idx - 1) as usize];
-    let found_king = king_attack_map & enemy_color_board & board.get_kings_board();
-    found_map_to_moves(found_king, &to, game_state, &mut moves);
+    let found_king = king_attack_map & attacker_color_board & board.get_kings_board();
+    if found_king > 0 {
+        found_map_to_moves(found_king, &to, game_state, &mut moves);
+    }
+
     // bishop
-    let (bishop_move_map, bishop_capture_map) = gen_bishop_attacks_from(board, idx, enemy_color);
-    found_map_to_moves(bishop_capture_map, &to, game_state, &mut moves);
+    let (bishop_move_map, bishop_capture_map) = gen_bishop_attacks_from(board, idx, attacking_color);
+    let found_bishop = bishop_capture_map & attacker_color_board & board.get_bishops_board();
+    if found_bishop > 0 {
+        found_map_to_moves(found_bishop, &to, game_state, &mut moves);
+    }
+    
     // rook
-    let (rook_move_map, rook_attack_map) = gen_rook_attacks_from(board, idx, enemy_color);
-    found_map_to_moves(rook_attack_map, &to, game_state, &mut moves);
+    let (rook_move_map, rook_attack_map) = gen_rook_attacks_from(board, idx, attacking_color);
+    let found_rooks = rook_attack_map & attacker_color_board & board.get_rooks_board();
+    
+    if found_rooks > 0 {
+        found_map_to_moves(found_rooks, &to, game_state, &mut moves);    
+    }
     // queen
-    let (queen_move_map, queen_attack_map) = gen_queen_attacks_from(board, idx, enemy_color);
-    found_map_to_moves(queen_attack_map, &to, game_state, &mut moves);
+    let (queen_move_map, queen_attack_map) = gen_queen_attacks_from(board, idx, attacking_color);
+    let found_queens = queen_attack_map & board.get_queens_board() & attacker_color_board;
+    if found_queens > 0 {
+        found_map_to_moves(found_queens, &to, game_state, &mut moves);
+    }
 
     return moves;
 }

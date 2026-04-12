@@ -224,6 +224,19 @@ fn find_checks_from_moves<'a>(
     moves.into_iter().filter(|&m| &m.to == at).collect()
 }
 
+fn king_escapes(game_state: &GameState, m: &Move) -> bool {
+    let piece = game_state.get_piece_at(&m.from).unwrap();
+    if piece.piece_type != PieceType::King {
+        println!("NOT KING");
+        return false;
+    }
+    let mut fresh_board = &mut game_state.clone_to_game_state();
+    fresh_board.make_move_mut(m);
+    let checks = generate_checks(fresh_board, piece.color);
+    println!("{}", checks.len());
+    return checks.len() == 0;
+}
+
 // fn find_moves_to_resolve_check<'a>(board: &dyn BoardTrait, checks: &Vec<Move>, possible_moves: &'a Vec<Move>) -> Vec<&'a Move> {
 // @todo: this doesn't work in so many ways.... :/
 fn find_moves_to_resolve_check(
@@ -236,16 +249,6 @@ fn find_moves_to_resolve_check(
     let king = game_state.get_king(color_being_checked).unwrap();
     let king_at = king.at().unwrap();
 
-    fn king_safely_flees(game_state: &GameState, m: &Move) -> bool {
-        let piece = game_state.get_piece_at(&m.from).unwrap();
-        if piece.piece_type != PieceType::King {
-            return false;
-        }
-        let mut fresh_board = &mut game_state.clone_to_game_state();
-        fresh_board.make_move_mut(m);
-        return generate_checks(fresh_board, piece.color).len() == 0;
-    }
-
     // if 2 checks then the king must flee
     if checks.len() >= 2 {
         // generate safe king moves
@@ -253,7 +256,7 @@ fn find_moves_to_resolve_check(
             .into_iter()
             .filter(|m| {
                 if &m.from == king_at {
-                    return king_safely_flees(game_state, &m);
+                    return king_escapes(game_state, &m);
                 } else {
                     return false;
                 }
@@ -266,22 +269,20 @@ fn find_moves_to_resolve_check(
         let check_move = checks.get(0).unwrap();
         let check_from = check_move.from;
         let check_to = check_move.to;
-        let path =
-            path::get_path_to(&check_from, &check_to).unwrap_or_else(|| panic!("illegal move"));
-        // remove check_to from interpose_path 
-        let interpose_path = &path[1..(path.len() - 1)];
+        let path = path::make_path_bit_board(&check_from, &check_to, true, false);
         return moves
             .into_iter()
             .filter(|m| {
                 let is_capture = check_from == m.to;
                 if &m.from == king_at {
-                    return king_safely_flees(game_state, &m) || is_capture;
+                    println!("is king move\n {}", m);
+                    return king_escapes(game_state, &m) || is_capture;
                 }
+                let to_bit = BitBoard::coordinate_to_bit(m.to);
                 // if moving piece is not the king
-                let is_interposing_move =
-                    interpose_path.iter().any(|coordinate| coordinate == &m.to);
+                let is_interposing_move = BitBoard::bit_on_bit_board(to_bit, path);
 
-                return king_safely_flees(game_state, &m) || is_interposing_move || is_capture;
+                return is_interposing_move || is_capture;
             })
             .collect();
     }
@@ -332,13 +333,13 @@ pub fn gen_legal_moves(game_state: &GameState, color: Color) -> Vec<Move> {
     let mut moves = gen_pseudo_legal_moves(game_state, color);
 
     if checks.len() > 0 {
-        let resolve_checks_moves = find_moves_to_resolve_check_brute_force(
+        let resolve_checks_moves = find_moves_to_resolve_check(
             game_state,
-            checks.iter().collect(),
-            moves.iter().collect(),
+            &checks,
+            &moves,
             color,
         );
-        return resolve_checks_moves.iter().map(|m| **m).collect();
+        return resolve_checks_moves;
     }
 
     fn is_pinned(piece: &Piece, pinned_pieces: &Vec<Pin>) -> bool {
@@ -507,8 +508,10 @@ mod bench {
         let white_checks = generate_checks(&game_state, Color::Black);
         let black_checks = generate_checks(&game_state, Color::White);
         b.iter(|| {
-            let checks = find_moves_to_resolve_check(&game_state, &white_checks, &black_moves, Color::Black);
-            let checks = find_moves_to_resolve_check(&game_state, &black_checks, &white_moves, Color::White);
+            let checks =
+                find_moves_to_resolve_check(&game_state, &white_checks, &black_moves, Color::Black);
+            let checks =
+                find_moves_to_resolve_check(&game_state, &black_checks, &white_moves, Color::White);
         });
 
         let game_state = fen_reader::make_game_state(fen_reader::BLACK_IN_CHECK);
@@ -517,8 +520,10 @@ mod bench {
         let white_checks = generate_checks(&game_state, Color::Black);
         let black_checks = generate_checks(&game_state, Color::White);
         b.iter(|| {
-            let checks = find_moves_to_resolve_check(&game_state, &white_checks, &black_moves, Color::Black);
-            let checks = find_moves_to_resolve_check(&game_state, &black_checks, &white_moves, Color::White);
+            let checks =
+                find_moves_to_resolve_check(&game_state, &white_checks, &black_moves, Color::Black);
+            let checks =
+                find_moves_to_resolve_check(&game_state, &black_checks, &white_moves, Color::White);
         });
 
         let game_state = fen_reader::make_game_state(fen_reader::WHITE_IN_CHECK);
@@ -527,8 +532,10 @@ mod bench {
         let white_checks = generate_checks(&game_state, Color::Black);
         let black_checks = generate_checks(&game_state, Color::White);
         b.iter(|| {
-            let checks = find_moves_to_resolve_check(&game_state, &white_checks, &black_moves, Color::Black);
-            let checks = find_moves_to_resolve_check(&game_state, &black_checks, &white_moves, Color::White);
+            let checks =
+                find_moves_to_resolve_check(&game_state, &white_checks, &black_moves, Color::Black);
+            let checks =
+                find_moves_to_resolve_check(&game_state, &black_checks, &white_moves, Color::White);
         });
     }
 
@@ -844,6 +851,33 @@ mod tests {
     }
 
     #[test]
+    fn test_gen_checks() {
+        let game_state = GameState::starting_game();
+        let checks = generate_checks(&game_state, Color::Black);
+        assert_eq!(checks.len(), 0);
+        let checks = generate_checks(&game_state, Color::White);
+        assert_eq!(checks.len(), 0);
+        
+
+        //
+        let game_state = fen_reader::make_game_state(fen_reader::BLACK_IN_CHECK);
+        let checks = generate_checks(&game_state, Color::Black);
+        for m in checks.iter() {
+            println!("{}", m);
+        }
+        assert_eq!(checks.len(), 1);
+        let checks = generate_checks(&game_state, Color::White);
+        assert_eq!(checks.len(), 0);
+
+        //
+        let game_state = fen_reader::make_game_state(fen_reader::WHITE_IN_CHECK);
+        let checks = generate_checks(&game_state, Color::Black);
+        assert_eq!(checks.len(), 0);
+        let checks = generate_checks(&game_state, Color::White);
+        assert_eq!(checks.len(), 1);
+    }
+
+    #[test]
     fn test_find_moves_to_resolve_check_brute_force() {
         // no checks
         let game_state = GameState::starting_game();
@@ -1052,10 +1086,14 @@ mod tests {
         let possible_moves = gen_pseudo_legal_moves(&game_state, Color::Black);
         println!("possible moves");
         possible_moves.iter().for_each(|m| println!("{}", m));
-        let found_moves = find_moves_to_resolve_check(&game_state, &checks, &possible_moves, Color::Black);
+        let found_moves =
+            find_moves_to_resolve_check(&game_state, &checks, &possible_moves, Color::Black);
 
         let moves: Vec<&Move> = moves.iter().collect();
-
+        println!("Saving king with !");
+        for found_move in found_moves.iter() {
+            println!("{}", found_move);
+        }
         assert_eq!(
             found_moves.len(),
             moves.len(),
@@ -1146,6 +1184,19 @@ mod tests {
         let board = fen_reader::make_board(
             "rnb1kbnr/pppp1p1p/4pp2/8/8/3BP3/PPPP1PPP/RNB1K1NR b KQkq - 1 4",
         );
+    }
+
+    #[test]
+    fn test_king_escapes() {
+        let white_queen_checks = "rnb1k1nr/pp2pp1p/6pb/1Qpp4/qPPP4/N7/P3PPPP/R1B1KBNR b KQkq - 2 7";
+        let game_state = fen_reader::make_game_state(white_queen_checks);
+        let king = game_state.get_king(Color::Black).unwrap();
+        let king_moves = plmg::gen_king_moves(king, &game_state);
+        let successful_moves: Vec<&Move> = king_moves
+            .iter()
+            .filter(|&m| king_escapes(&game_state, m))
+            .collect();
+        assert_eq!(successful_moves.len(), 2);
     }
 
     #[test]
