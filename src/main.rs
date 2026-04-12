@@ -1,4 +1,5 @@
 #![warn(unused_extern_crates)]
+#![allow(warnings)]
 use chess_engine::{bit_board, search};
 use chess_engine::bit_board::BitBoard;
 use chess_engine::board::{Board, BoardTrait};

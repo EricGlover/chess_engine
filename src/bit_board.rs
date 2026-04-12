@@ -1,6 +1,7 @@
 use crate::{
     ai::evaluator::PawnCountByFile,
     board::{Color, Coordinate, Piece, PieceType},
+    move_generator::path::Direction,
 };
 
 /*
@@ -201,9 +202,7 @@ impl BitBoard {
         }
     }
 
-    pub fn bit_map_to_coordinates() {
-        
-    }
+    pub fn bit_map_to_coordinates() {}
 
     pub fn get_diagonal_for_bits(start: u64, end: u64) -> u64 {
         let diagonals = BitBoard::get_diagonals_vec_for_bit(start);
@@ -445,7 +444,6 @@ impl BitBoard {
         } else {
             return None;
         }
-        return None;
     }
 
     pub fn get_pawn_count_by_file(&self) -> (PawnCountByFile, PawnCountByFile) {
@@ -539,6 +537,19 @@ impl BitBoard {
         return high_bit >> go_right;
     }
 
+    pub fn shift_bit_board(direction: &Direction, board: &u64) -> u64 {
+        match direction {
+            Direction::Up => board << 8,
+            Direction::Down => board >> 8,
+            Direction::Right => board << 1,
+            Direction::Left => board >> 1,
+            Direction::UpLeft => board << 7,
+            Direction::UpRight => board << 9,
+            Direction::DownLeft => board >> 9,
+            Direction::DownRight => board >> 7,
+        }
+    }
+
     //@todo ::
     pub fn lsb(bit_board: u64) -> u64 {
         if bit_board == 0 {
@@ -549,7 +560,9 @@ impl BitBoard {
     pub fn get_coordinates_of_bit_board(mut bit_board: u64) -> Vec<Coordinate> {
         let mut coordinates: Vec<Coordinate> = Vec::new();
         while bit_board > 0 {
-            coordinates.push(BitBoard::bit_to_coordinate(BitBoard::pop_bit(&mut bit_board)));
+            coordinates.push(BitBoard::bit_to_coordinate(BitBoard::pop_bit(
+                &mut bit_board,
+            )));
         }
         return coordinates;
     }
@@ -1425,6 +1438,7 @@ mod bench {
 #[cfg(test)]
 mod test {
     use crate::{bit_board::BitBoard, board::*};
+    use super::*;
 
     // pub fn bit_to_coordinate(bit: u64) -> Coordinate {
     //     let idx = BitBoard::get_index_of_bit(bit);
@@ -1496,5 +1510,40 @@ mod test {
         for (i, c) in coordinates.iter().enumerate() {
             assert_eq!(BitBoard::coordinate_to_idx(*c), indices[i]);
         }
+    }
+    #[test]
+    fn test_shift_bit_board() {
+        let d4 = 28;
+        let idx = 29;   //e4
+        let f4 = 30;
+        //
+        let d5 = 36;
+        let e5 = 37;
+        let f5 = 38;
+        //
+        let d3 = 20;
+        let e3  = 21;
+        let f3 = 22;
+        let start_bit = BitBoard::idx_to_bit(idx);
+        // row 3
+        let mut shifted = BitBoard::shift_bit_board(&Direction::DownLeft, &start_bit);
+        assert_eq!(shifted, BitBoard::idx_to_bit(d3));
+        shifted = BitBoard::shift_bit_board(&Direction::Down, &start_bit);
+        assert_eq!(shifted, BitBoard::idx_to_bit(e3));
+        shifted = BitBoard::shift_bit_board(&Direction::DownRight, &start_bit);
+        assert_eq!(shifted, BitBoard::idx_to_bit(f3));
+        // row 4
+        shifted = BitBoard::shift_bit_board(&Direction::Left, &start_bit);
+        assert_eq!(shifted, BitBoard::idx_to_bit(d4));
+        shifted = BitBoard::shift_bit_board(&Direction::Right, &start_bit);
+        assert_eq!(shifted, BitBoard::idx_to_bit(f4));
+
+        // row 5
+        shifted = BitBoard::shift_bit_board(&Direction::UpLeft, &start_bit);
+        assert_eq!(shifted, BitBoard::idx_to_bit(d5));
+        shifted = BitBoard::shift_bit_board(&Direction::Up, &start_bit);
+        assert_eq!(shifted, BitBoard::idx_to_bit(e5));
+        shifted = BitBoard::shift_bit_board(&Direction::UpRight, &start_bit);
+        assert_eq!(shifted, BitBoard::idx_to_bit(f5));
     }
 }

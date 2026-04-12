@@ -271,7 +271,7 @@ impl BoardTrait for GameState {
         if piece.at().is_none() {
             //error
             panic!("tried to remove piece without coordinate \n{}", piece);
-            return Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(1, 1)));
+            // return Piece::new(Color::White, PieceType::Pawn, Some(Coordinate::new(1, 1)));
         }
         let at = *piece.at().unwrap();
         return self.remove_piece_at(&at);
@@ -950,8 +950,8 @@ impl GameState {
         let piece_map = self.get_piece_map();
         let bit_board = self.get_board();
         let mut is_valid = true;
-        for x in (1..=8u8) {
-            for y in (1..=8u8) {
+        for x in 1..=8u8 {
+            for y in 1..=8u8 {
                 let at = Coordinate::new(x, y);
                 let idx = BitBoard::coordinate_to_idx(at);
                 let square_opt = squares.iter().map(|s| *s).find(|&s| *s.coordinate() == at);

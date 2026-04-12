@@ -2,9 +2,8 @@ use std::collections::HashMap;
 use std::time::Instant;
 
 use crate::board::BoardTrait;
-use crate::board_console_printer::{print_bit_board, print_board};
-use crate::chess_notation::{fen_reader, print_move};
-use crate::game_state::{self, GameState};
+use crate::chess_notation::{ print_move};
+use crate::game_state::{ GameState};
 use crate::move_generator::gen_legal_moves;
 /*
 a2a3: 8928
@@ -122,7 +121,6 @@ pub fn test() {
 
 mod test {
     use super::*;
-    use crate::search::perft;
 
     #[test]
     fn test_init_perft() {
@@ -148,7 +146,6 @@ mod test {
 
 mod bench {
     use ::test::Bencher;
-
     use super::*;
 
     #[bench]

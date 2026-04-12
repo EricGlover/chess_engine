@@ -1,7 +1,9 @@
 // use test::Bencher;
 
 mod chess_move;
-mod path;
+pub mod move_log;
+pub mod path;
+pub mod pin;
 pub mod plmg;
 pub mod pseudo_legal_move_generator;
 
@@ -19,11 +21,395 @@ use crate::move_generator::path::*;
 use crate::move_generator::plmg::gen_attacks_for_square;
 use crate::move_generator::plmg::ROOK_ATTACKS;
 use crate::move_generator::pseudo_legal_move_generator::*;
+use move_log::MoveLog;
+use pin::Pin;
 use std::fmt;
 use std::fmt::Formatter;
 use std::iter::Iterator;
 
-// @todo : test
+pub fn print_move(m: &Move) {
+    println!(
+        "{:?} moving from ({}, {}) to ({},{}) ",
+        m.piece,
+        m.from.x(),
+        m.from.y(),
+        m.to.x(),
+        m.to.y()
+    );
+}
+
+pub fn print_move_list(moves: &Vec<&Move>) {
+    for m in moves.iter() {
+        print_move(m);
+    }
+}
+
+// later this could become more generalized, but right now
+// it's only used for finding pinned pieces
+// same for attack vectors
+// ignores blocking pieces
+// don't ignore same color pieces that are in the way
+fn find_attacking_pieces<'a>(
+    game_state: &'a GameState,
+    attackers_color: Color,
+    attack_coordinate: &Coordinate,
+) -> Vec<&'a Piece> {
+    let mut attacking_pieces: Vec<&Piece> = vec![];
+    // how to make sure the pieces returned are unique ?
+    // pieces can't attack the same square twice , so we're good
+    let idx = BitBoard::coordinate_to_idx(*attack_coordinate);
+    let candidate_indices = plmg::get_slider_pieces_indices_attacking_idx(
+        game_state.get_board_ref(),
+        idx,
+        attackers_color,
+    );
+    return candidate_indices
+        .iter()
+        .map(|idx| {
+            let c = BitBoard::idx_to_coordinate(*idx);
+            let piece = game_state.get_piece_at(&c).unwrap();
+            return plmg::gen_vectors_for(game_state, &piece);
+        })
+        .flatten()
+        .filter(|m| {
+            return &m.to == attack_coordinate;
+        })
+        .map(|m| {
+            return game_state.get_piece_at(&m.from).unwrap();
+        })
+        .collect();
+}
+
+// is path empty
+// if only one piece get the piece
+// if only one piece find the path of coordinates it can move to
+// from is attacker
+// to is king
+pub fn get_attack_path_from_to<'a>(
+    game_state: &'a GameState,
+    from: &Coordinate,
+    to: &Coordinate,
+) -> (bool, Option<&'a Piece>, u64) {
+    let mut is_empty = true;
+    let mut pinned_piece = None;
+    let from_idx = BitBoard::coordinate_to_idx(*from);
+    let to_idx = BitBoard::coordinate_to_idx(*to);
+    let start_bit = BitBoard::coordinate_to_bit(*from);
+    let end_bit = BitBoard::coordinate_to_bit(*to);
+    let board = game_state.get_board_ref();
+    let all_pieces_board = board.get_piece_board();
+    let mut path = 0;
+    let mut pieces_found = 0;
+    //rook path ?
+    let mut attack_path: u64 = 0;
+    let line = BitBoard::get_rook_path_for_bits(start_bit, end_bit);
+    if line > 0 {
+        attack_path = line;
+    }
+    let diagonal = BitBoard::get_diagonal_for_bits(start_bit, end_bit);
+    if diagonal > 0 {
+        attack_path = diagonal;
+    }
+    if to_idx > from_idx {
+        let up_board: u64 = !(start_bit - 1);
+        let down_board = end_bit - 1;
+        path = up_board & attack_path & down_board;
+        pieces_found = all_pieces_board & path;
+    } else {
+        // we want the right shifted stuff , include the attacker
+        let up_board: u64 = !(end_bit - 1) ^ end_bit;
+        let down_board = (start_bit - 1) | start_bit;
+
+        path = up_board & attack_path & down_board;
+        pieces_found = all_pieces_board & path;
+    }
+    if u64::count_ones(pieces_found) == 1 {
+        return (true, None, 0);
+    } else if u64::count_ones(pieces_found) == 2 {
+        let other_piece_bit = pieces_found & !start_bit;
+        let piece = game_state.get_piece_at_idx(BitBoard::get_index_of_bit(other_piece_bit));
+        return (false, piece, path);
+    } else {
+        return (is_empty, pinned_piece, 0);
+    }
+}
+
+fn find_pinned_pieces(game_state: &GameState, defender_color: Color) -> Vec<Pin> {
+    let attacker_color = defender_color.opposite();
+    //@todo generate legal? moves
+
+    // get defender king
+    let king = game_state.get_king(defender_color).unwrap();
+
+    // get pieces that can attack king (ignoring our own pieces)
+    let attacking_pieces = find_attacking_pieces(game_state, attacker_color, &king.at().unwrap());
+
+    // use piece.at and king.at to generate a range of Coordinates where pieces can interpose at
+    let mut pins = vec![];
+    for &attacking_piece in attacking_pieces.iter() {
+        // if piece is knight skip
+        // if piece is one square away from the king then skip
+        // assume King and Pawn can't attack the enemy king / from more than a square away
+        let t = attacking_piece.piece_type;
+        if t == PieceType::Queen || t == PieceType::Bishop || t == PieceType::Rook {
+            let from = attacking_piece.at().unwrap();
+            let to = king.at().unwrap();
+            let (is_empty, piece_opt, path) = get_attack_path_from_to(game_state, from, to);
+            if !is_empty {
+                let pinned_piece = piece_opt.unwrap();
+                pins.push(Pin {
+                    pinned_piece,
+                    pinned_at: *pinned_piece.at().unwrap(),
+                    pinned_by: attacking_piece,
+                    pinned_to: king,
+                    can_move_to_board: path,
+                })
+            }
+        }
+    }
+    pins
+}
+
+pub fn generate_checks(game_state: &GameState, color_being_checked: Color) -> Vec<Move> {
+    let king = game_state.get_king(color_being_checked).unwrap();
+    let idx = BitBoard::coordinate_to_idx(*king.at().unwrap());
+    return gen_attacks_for_square(game_state, idx, color_being_checked);
+}
+
+// @todo : sort this nonsense out
+// @todo: consider using a board_get_all_pieces_ref instead of cloning the pieces
+//@todo : find_checks_from_moves()
+// @todo: piece lists for fast lookups
+
+pub fn find_checks<'a, I>(
+    game_state: &GameState,
+    color_being_checked: Color,
+    moves: I,
+) -> Vec<&'a Move>
+where
+    I: Iterator<Item = &'a Move>,
+{
+    let m = vec![];
+    if let Some(king) = game_state.get_king(color_being_checked) {
+        if let Some(king_at) = king.at() {
+            return moves.filter(|&m| m.to == *king_at).collect();
+        }
+    }
+    return m;
+}
+
+// get checks against color
+pub fn get_checks(game_state: &GameState, color_being_checked: Color) -> Vec<Move> {
+    let moves = gen_pseudo_legal_moves(game_state, color_being_checked.opposite());
+    let king_pieces = game_state.get_pieces(color_being_checked, PieceType::King);
+    if king_pieces.len() == 0 {
+        return vec![];
+    }
+    let king = king_pieces.get(0).unwrap();
+    let at = king.at().unwrap();
+    moves.into_iter().filter(|m| &m.to == at).collect()
+}
+
+fn find_checks_from_moves<'a>(
+    game_state: &GameState,
+    moves: &'a Vec<Move>,
+    color_being_checked: Color,
+) -> Vec<&'a Move> {
+    let king_pieces = game_state.get_pieces(color_being_checked, PieceType::King);
+    if king_pieces.len() == 0 {
+        return vec![];
+    }
+    let king = king_pieces.get(0).unwrap();
+    let at = king.at().unwrap();
+    moves.into_iter().filter(|&m| &m.to == at).collect()
+}
+
+// fn find_moves_to_resolve_check<'a>(board: &dyn BoardTrait, checks: &Vec<Move>, possible_moves: &'a Vec<Move>) -> Vec<&'a Move> {
+// @todo: this doesn't work in so many ways.... :/
+fn find_moves_to_resolve_check(
+    game_state: &GameState,
+    checks: &Vec<Move>,
+    possible_moves: &Vec<Move>,
+    color_being_checked: Color,
+) -> Vec<Move> {
+    let moves: Vec<Move> = possible_moves.iter().map(|&m| m.clone()).collect();
+    let king = game_state.get_king(color_being_checked).unwrap();
+    let king_at = king.at().unwrap();
+
+    fn king_safely_flees(game_state: &GameState, m: &Move) -> bool {
+        let piece = game_state.get_piece_at(&m.from).unwrap();
+        if piece.piece_type != PieceType::King {
+            return false;
+        }
+        let mut fresh_board = &mut game_state.clone_to_game_state();
+        fresh_board.make_move_mut(m);
+        return generate_checks(fresh_board, piece.color).len() == 0;
+    }
+
+    // if 2 checks then the king must flee
+    if checks.len() >= 2 {
+        // generate safe king moves
+        return moves
+            .into_iter()
+            .filter(|m| {
+                if &m.from == king_at {
+                    return king_safely_flees(game_state, &m);
+                } else {
+                    return false;
+                }
+            })
+            .collect();
+    }
+
+    // if it's only one check then you can interpose, flee, or capture
+    if checks.len() == 1 {
+        let check_move = checks.get(0).unwrap();
+        let check_from = check_move.from;
+        let check_to = check_move.to;
+        let path =
+            path::get_path_to(&check_from, &check_to).unwrap_or_else(|| panic!("illegal move"));
+        // remove check_to from interpose_path 
+        let interpose_path = &path[1..(path.len() - 1)];
+        return moves
+            .into_iter()
+            .filter(|m| {
+                let is_capture = check_from == m.to;
+                if &m.from == king_at {
+                    return king_safely_flees(game_state, &m) || is_capture;
+                }
+                // if moving piece is not the king
+                let is_interposing_move =
+                    interpose_path.iter().any(|coordinate| coordinate == &m.to);
+
+                return king_safely_flees(game_state, &m) || is_interposing_move || is_capture;
+            })
+            .collect();
+    }
+    return moves;
+}
+
+fn find_moves_to_resolve_check_brute_force<'a>(
+    game_state: &GameState,
+    checks: Vec<&Move>,
+    possible_moves: Vec<&'a Move>,
+    color: Color,
+) -> Vec<&'a Move> {
+    let mut new_game_state = game_state.clone_to_game_state();
+    return possible_moves
+        .into_iter()
+        .filter(|&m| {
+            // @todo pins
+            if m.is_king_side_castle() || m.is_queen_side_castle() {
+                return false;
+            }
+            if game_state.get_piece_at(&m.from).is_none() {
+                // board_console_printer::print_bit_board(&game_state.get_board());
+                println!("{:?}", m);
+                panic!("attempting to move a piece that's not there");
+            }
+            new_game_state.make_move_mut(m);
+            let enemy_moves = gen_pseudo_legal_moves(&new_game_state, color.opposite());
+            let remaining_checks = find_checks(&new_game_state, color, enemy_moves.iter());
+            let no_checks = remaining_checks.len() == 0;
+            // println!("{}", m);
+            // println!("{}", remaining_checks.len());
+            new_game_state.unmake_move_mut(m);
+            return no_checks;
+        })
+        .collect();
+
+    // return *possible_moves;
+}
+
+// @todo pass attacker moves so you only calculate it once
+pub fn gen_legal_moves(game_state: &GameState, color: Color) -> Vec<Move> {
+    // generate enemy moves
+    // let enemy_moves = gen_pseudo_legal_moves(game_state, color.opposite());
+    // look for pins
+    let pinned_pieces = find_pinned_pieces(game_state, color);
+    // look for checks
+    let checks = generate_checks(game_state, color);
+    let mut moves = gen_pseudo_legal_moves(game_state, color);
+
+    if checks.len() > 0 {
+        let resolve_checks_moves = find_moves_to_resolve_check_brute_force(
+            game_state,
+            checks.iter().collect(),
+            moves.iter().collect(),
+            color,
+        );
+        return resolve_checks_moves.iter().map(|m| **m).collect();
+    }
+
+    fn is_pinned(piece: &Piece, pinned_pieces: &Vec<Pin>) -> bool {
+        let at = *piece.at().unwrap();
+        pinned_pieces.iter().any(|p| p.pinned_at == at)
+    }
+    fn get_pin<'a, 'b>(piece: &'b Piece, pinned_pieces: &'a Vec<Pin>) -> Option<&'a Pin<'a>> {
+        let at = *piece.at().unwrap();
+        pinned_pieces.iter().find(|p| p.pinned_at == at)
+    }
+
+    // if not in check, will this move expose my king ?
+    return moves
+        .into_iter()
+        .filter(|m| {
+            let opt = game_state.get_piece_at(&m.from);
+            if opt.is_none() {
+                // board_console_printer::print_bit_board(&game_state.get_board());
+                println!("{:?}", m);
+                panic!("attempting to move a piece that's not there");
+            }
+            // is this piece pinned ?
+            let piece = opt.unwrap();
+            if is_pinned(&piece, &pinned_pieces) {
+                let pin = get_pin(&piece, &pinned_pieces).unwrap();
+                // check if the pinned piece can move here
+                let to_bit = BitBoard::coordinate_to_bit(m.to);
+                return BitBoard::bit_on_bit_board(to_bit, pin.can_move_to_board);
+            }
+            true
+        })
+        .collect();
+    // add pgn notation
+}
+
+// @todo : write tests and benchmarks
+// ignores enemy captures
+pub fn gen_attack_vectors(game_state: &GameState, color: Color) -> Vec<Move> {
+    let mut vector_moves: Vec<Move> = game_state
+        .get_pieces(color, PieceType::Bishop)
+        .into_iter()
+        .map(|piece| plmg::gen_vectors_for(game_state, &piece))
+        .flatten()
+        .collect();
+    game_state
+        .get_pieces(color, PieceType::Rook)
+        .into_iter()
+        .map(|piece| plmg::gen_vectors_for(game_state, &piece))
+        .flatten()
+        .for_each(|m| vector_moves.push(m));
+    game_state
+        .get_pieces(color, PieceType::Queen)
+        .into_iter()
+        .map(|piece| plmg::gen_vectors_for(game_state, &piece))
+        .flatten()
+        .for_each(|m| vector_moves.push(m));
+    return vector_moves;
+}
+
+// PSEUDO LEGAL MOVE GENERATION
+// determines what moves the pieces can legally do
+// does not check whether the player can legally do that move
+// for instance : no checking pins or checks , etc...
+pub fn gen_pseudo_legal_moves(game_state: &GameState, color: Color) -> Vec<Move> {
+    game_state
+        .get_all_pieces(color)
+        .into_iter()
+        .map(|p| plmg::gen_moves_for(game_state, &p))
+        .flatten()
+        .collect()
+}
 
 #[cfg(test)]
 mod bench {
@@ -121,8 +507,8 @@ mod bench {
         let white_checks = generate_checks(&game_state, Color::Black);
         let black_checks = generate_checks(&game_state, Color::White);
         b.iter(|| {
-            let checks = find_moves_to_resolve_check(&game_state, &white_checks, &black_moves);
-            let checks = find_moves_to_resolve_check(&game_state, &black_checks, &white_moves);
+            let checks = find_moves_to_resolve_check(&game_state, &white_checks, &black_moves, Color::Black);
+            let checks = find_moves_to_resolve_check(&game_state, &black_checks, &white_moves, Color::White);
         });
 
         let game_state = fen_reader::make_game_state(fen_reader::BLACK_IN_CHECK);
@@ -131,8 +517,8 @@ mod bench {
         let white_checks = generate_checks(&game_state, Color::Black);
         let black_checks = generate_checks(&game_state, Color::White);
         b.iter(|| {
-            let checks = find_moves_to_resolve_check(&game_state, &white_checks, &black_moves);
-            let checks = find_moves_to_resolve_check(&game_state, &black_checks, &white_moves);
+            let checks = find_moves_to_resolve_check(&game_state, &white_checks, &black_moves, Color::Black);
+            let checks = find_moves_to_resolve_check(&game_state, &black_checks, &white_moves, Color::White);
         });
 
         let game_state = fen_reader::make_game_state(fen_reader::WHITE_IN_CHECK);
@@ -141,8 +527,8 @@ mod bench {
         let white_checks = generate_checks(&game_state, Color::Black);
         let black_checks = generate_checks(&game_state, Color::White);
         b.iter(|| {
-            let checks = find_moves_to_resolve_check(&game_state, &white_checks, &black_moves);
-            let checks = find_moves_to_resolve_check(&game_state, &black_checks, &white_moves);
+            let checks = find_moves_to_resolve_check(&game_state, &white_checks, &black_moves, Color::Black);
+            let checks = find_moves_to_resolve_check(&game_state, &black_checks, &white_moves, Color::White);
         });
     }
 
@@ -666,7 +1052,7 @@ mod tests {
         let possible_moves = gen_pseudo_legal_moves(&game_state, Color::Black);
         println!("possible moves");
         possible_moves.iter().for_each(|m| println!("{}", m));
-        let found_moves = find_moves_to_resolve_check(&game_state, &checks, &possible_moves);
+        let found_moves = find_moves_to_resolve_check(&game_state, &checks, &possible_moves, Color::Black);
 
         let moves: Vec<&Move> = moves.iter().collect();
 
@@ -775,433 +1161,3 @@ mod tests {
         assert_eq!(moves.len(), 0, "Black has no moves");
     }
 }
-
-#[derive(Debug, Eq, PartialEq, Copy, Clone)]
-pub struct MoveLog {
-    pub piece_type: PieceType,
-    pub from: Coordinate,
-    pub to: Coordinate,
-    pub promoted_to: Option<PieceType>,
-    // pub captured: PieceType,
-    // pub is_check : bool,
-    // pub is_checkmate: bool,
-    // pub is_king_side_castle: bool,
-    // pub is_queen_side_castle: bool,
-}
-
-impl MoveLog {
-    pub fn new(m: &Move) -> MoveLog {
-        let promoted_to = match m.move_type() {
-            MoveType::Promotion(t) => Some(t.clone()),
-            _ => None,
-        };
-        MoveLog {
-            piece_type: m.piece,
-            from: m.from.clone(),
-            to: m.to.clone(),
-            promoted_to,
-        }
-    }
-}
-
-pub fn print_move(m: &Move) {
-    println!(
-        "{:?} moving from ({}, {}) to ({},{}) ",
-        m.piece,
-        m.from.x(),
-        m.from.y(),
-        m.to.x(),
-        m.to.y()
-    );
-}
-
-pub fn print_move_list(moves: &Vec<&Move>) {
-    for m in moves.iter() {
-        print_move(m);
-    }
-}
-
-#[derive(Eq, PartialEq, Debug)]
-struct Pin<'a> {
-    pub pinned_piece: &'a Piece,
-    pub pinned_by: &'a Piece,
-    pub pinned_at: Coordinate,
-    pub pinned_to: &'a Piece,
-    pub can_move_to_board: u64,
-}
-
-// later this could become more generalized, but right now
-// it's only used for finding pinned pieces
-// same for attack vectors
-// ignores blocking pieces
-// don't ignore same color pieces that are in the way
-fn find_attacking_pieces<'a>(
-    game_state: &'a GameState,
-    attackers_color: Color,
-    attack_coordinate: &Coordinate,
-) -> Vec<&'a Piece> {
-    let mut attacking_pieces: Vec<&Piece> = vec![];
-    // how to make sure the pieces returned are unique ?
-    // pieces can't attack the same square twice , so we're good
-    let idx = BitBoard::coordinate_to_idx(*attack_coordinate);
-    let candidate_indices = plmg::get_slider_pieces_indices_attacking_idx(
-        game_state.get_board_ref(),
-        idx,
-        attackers_color,
-    );
-    return candidate_indices
-        .iter()
-        .map(|idx| {
-            let c = BitBoard::idx_to_coordinate(*idx);
-            let piece = game_state.get_piece_at(&c).unwrap();
-            return plmg::gen_vectors_for(game_state, &piece);
-        })
-        .flatten()
-        .filter(|m| {
-            return &m.to == attack_coordinate;
-        })
-        .map(|m| {
-            return game_state.get_piece_at(&m.from).unwrap();
-        })
-        .collect();
-}
-
-// is path empty
-// if only one piece get the piece
-// if only one piece find the path of coordinates it can move to
-// from is attacker
-// to is king
-pub fn get_attack_path_from_to<'a>(
-    game_state: &'a GameState,
-    from: &Coordinate,
-    to: &Coordinate,
-) -> (bool, Option<&'a Piece>, u64) {
-    let mut is_empty = true;
-    let mut pinned_piece = None;
-    let from_idx = BitBoard::coordinate_to_idx(*from);
-    let to_idx = BitBoard::coordinate_to_idx(*to);
-    let start_bit = BitBoard::coordinate_to_bit(*from);
-    let end_bit = BitBoard::coordinate_to_bit(*to);
-    let board = game_state.get_board_ref();
-    let all_pieces_board = board.get_piece_board();
-    let mut path = 0;
-    let mut pieces_found = 0;
-    //rook path ?
-    let mut attack_path: u64 = 0;
-    let line = BitBoard::get_rook_path_for_bits(start_bit, end_bit);
-    if line > 0 {
-        attack_path = line;
-    }
-    let diagonal = BitBoard::get_diagonal_for_bits(start_bit, end_bit);
-    if diagonal > 0 {
-        attack_path = diagonal;
-    }
-    if to_idx > from_idx {
-        let up_board: u64 = !(start_bit - 1);
-        let down_board = end_bit - 1;
-        path = up_board & attack_path & down_board;
-        pieces_found = all_pieces_board & path;
-    } else {
-        // we want the right shifted stuff , include the attacker
-        let up_board: u64 = !(end_bit - 1) ^ end_bit;
-        let down_board = (start_bit - 1) | start_bit;
-
-        path = up_board & attack_path & down_board;
-        pieces_found = all_pieces_board & path;
-    }
-    if u64::count_ones(pieces_found) == 1 {
-        return (true, None, 0);
-    } else if u64::count_ones(pieces_found) == 2 {
-        let other_piece_bit = pieces_found & !start_bit;
-        let piece = game_state.get_piece_at_idx(BitBoard::get_index_of_bit(other_piece_bit));
-        return (false, piece, path);
-    } else {
-        return (is_empty, pinned_piece, 0);
-    }
-}
-
-fn find_pinned_pieces(game_state: &GameState, defender_color: Color) -> Vec<Pin> {
-    let attacker_color = defender_color.opposite();
-    //@todo generate legal? moves
-
-    // get defender king
-    let king = game_state.get_king(defender_color).unwrap();
-
-    // get pieces that can attack king (ignoring our own pieces)
-    let attacking_pieces = find_attacking_pieces(game_state, attacker_color, &king.at().unwrap());
-
-    // use piece.at and king.at to generate a range of Coordinates where pieces can interpose at
-    let mut pins = vec![];
-    for &attacking_piece in attacking_pieces.iter() {
-        // if piece is knight skip
-        // if piece is one square away from the king then skip
-        // assume King and Pawn can't attack the enemy king / from more than a square away
-        let t = attacking_piece.piece_type;
-        if t == PieceType::Queen || t == PieceType::Bishop || t == PieceType::Rook {
-            let from = attacking_piece.at().unwrap();
-            let to = king.at().unwrap();
-            let (is_empty, piece_opt, path) = get_attack_path_from_to(game_state, from, to);
-            if !is_empty {
-                let pinned_piece = piece_opt.unwrap();
-                pins.push(Pin {
-                    pinned_piece,
-                    pinned_at: *pinned_piece.at().unwrap(),
-                    pinned_by: attacking_piece,
-                    pinned_to: king,
-                    can_move_to_board: path,
-                })
-            }
-        }
-    }
-    pins
-}
-
-pub fn generate_checks(game_state: &GameState, color_being_checked: Color) -> Vec<Move> {
-    let king = game_state.get_king(color_being_checked).unwrap();
-    let idx = BitBoard::coordinate_to_idx(*king.at().unwrap());
-    return gen_attacks_for_square(game_state, idx, color_being_checked);
-}
-
-// @todo : sort this nonsense out
-// @todo: consider using a board_get_all_pieces_ref instead of cloning the pieces
-//@todo : find_checks_from_moves()
-// @todo: piece lists for fast lookups
-
-pub fn find_checks<'a, I>(
-    game_state: &GameState,
-    color_being_checked: Color,
-    moves: I,
-) -> Vec<&'a Move>
-where
-    I: Iterator<Item = &'a Move>,
-{
-    let m = vec![];
-    if let Some(king) = game_state.get_king(color_being_checked) {
-        if let Some(king_at) = king.at() {
-            return moves.filter(|&m| m.to == *king_at).collect();
-        }
-    }
-    return m;
-}
-
-// get checks against color
-pub fn get_checks(game_state: &GameState, color_being_checked: Color) -> Vec<Move> {
-    let moves = gen_pseudo_legal_moves(game_state, color_being_checked.opposite());
-    let king_pieces = game_state.get_pieces(color_being_checked, PieceType::King);
-    if king_pieces.len() == 0 {
-        return vec![];
-    }
-    let king = king_pieces.get(0).unwrap();
-    let at = king.at().unwrap();
-    moves.into_iter().filter(|m| &m.to == at).collect()
-}
-
-fn find_checks_from_moves<'a>(
-    game_state: &GameState,
-    moves: &'a Vec<Move>,
-    color_being_checked: Color,
-) -> Vec<&'a Move> {
-    let king_pieces = game_state.get_pieces(color_being_checked, PieceType::King);
-    if king_pieces.len() == 0 {
-        return vec![];
-    }
-    let king = king_pieces.get(0).unwrap();
-    let at = king.at().unwrap();
-    moves.into_iter().filter(|&m| &m.to == at).collect()
-}
-
-// fn find_moves_to_resolve_check<'a>(board: &dyn BoardTrait, checks: &Vec<Move>, possible_moves: &'a Vec<Move>) -> Vec<&'a Move> {
-// @todo: this doesn't work in so many ways.... :/
-fn find_moves_to_resolve_check(
-    game_state: &GameState,
-    checks: &Vec<Move>,
-    possible_moves: &Vec<Move>,
-) -> Vec<Move> {
-    let moves: Vec<Move> = possible_moves.iter().map(|&m| m.clone()).collect();
-
-    // if no checks , BOOM problem is solved
-    if checks.len() == 0 {
-        return moves;
-    }
-    // if 2 checks then the king must flee
-    if checks.len() >= 2 {
-        // generate safe king moves
-    }
-    // if it's only one check then you can interpose
-    if checks.len() == 1 {}
-
-    // worry about the king fleeing into an attack from another piece later
-    // @todo
-    fn king_safely_flees(game_state: &GameState, m: &Move) -> bool {
-        let piece = game_state.get_piece_at(&m.from).unwrap();
-        if piece.piece_type != PieceType::King {
-            return false;
-        }
-        let mut fresh_board = &mut game_state.clone_to_game_state();
-        fresh_board.make_move_mut(m);
-        get_checks(fresh_board, piece.color).len() == 0
-    }
-    moves
-        .into_iter()
-        .filter(|m| {
-            checks.iter().all(|check| {
-                let piece = game_state.get_piece_at(&m.from).unwrap();
-                let path = path::get_path_to(&check.from, &check.to)
-                    .unwrap_or_else(|| panic!("illegal move"));
-                let interpose_path = &path[1..(path.len() - 1)];
-                let is_interposing_move =
-                    interpose_path.iter().any(|coordinate| coordinate == &m.to);
-                let is_capture = check.from == m.to;
-                king_safely_flees(game_state, &m)
-                    || (is_interposing_move && piece.piece_type != PieceType::King)
-                    || is_capture
-            })
-        })
-        .collect()
-}
-
-fn find_moves_to_resolve_check_brute_force<'a>(
-    game_state: &GameState,
-    checks: Vec<&Move>,
-    possible_moves: Vec<&'a Move>,
-    color: Color,
-) -> Vec<&'a Move> {
-    let mut new_game_state = game_state.clone_to_game_state();
-    return possible_moves
-        .into_iter()
-        .filter(|&m| {
-            // @todo pins
-            if m.is_king_side_castle() || m.is_queen_side_castle() {
-                return false;
-            }
-            if game_state.get_piece_at(&m.from).is_none() {
-                // board_console_printer::print_bit_board(&game_state.get_board());
-                println!("{:?}", m);
-                panic!("attempting to move a piece that's not there");
-            }
-            new_game_state.make_move_mut(m);
-            let enemy_moves = gen_pseudo_legal_moves(&new_game_state, color.opposite());
-            let remaining_checks = find_checks(&new_game_state, color, enemy_moves.iter());
-            let no_checks = remaining_checks.len() == 0;
-            // println!("{}", m);
-            // println!("{}", remaining_checks.len());
-            new_game_state.unmake_move_mut(m);
-            return no_checks;
-        })
-        .collect();
-
-    // return *possible_moves;
-}
-
-// @todo pass attacker moves so you only calculate it once
-pub fn gen_legal_moves(game_state: &GameState, color: Color) -> Vec<Move> {
-    // generate enemy moves
-    // let enemy_moves = gen_pseudo_legal_moves(game_state, color.opposite());
-    // look for pins
-    let pinned_pieces = find_pinned_pieces(game_state, color);
-    // look for checks
-    let checks = generate_checks(game_state, color);
-    let mut moves = gen_pseudo_legal_moves(game_state, color);
-
-    if checks.len() > 0 {
-        let resolve_checks_moves = find_moves_to_resolve_check_brute_force(
-            game_state,
-            checks.iter().collect(),
-            moves.iter().collect(),
-            color,
-        );
-        return resolve_checks_moves.iter().map(|m| **m).collect();
-    }
-
-    fn is_pinned(piece: &Piece, pinned_pieces: &Vec<Pin>) -> bool {
-        let at = *piece.at().unwrap();
-        pinned_pieces.iter().any(|p| p.pinned_at == at)
-    }
-    fn get_pin<'a, 'b>(piece: &'b Piece, pinned_pieces: &'a Vec<Pin>) -> Option<&'a Pin<'a>> {
-        let at = *piece.at().unwrap();
-        pinned_pieces.iter().find(|p| p.pinned_at == at)
-    }
-
-    // if not in check, will this move expose my king ?
-    return moves
-        .into_iter()
-        .filter(|m| {
-            let opt = game_state.get_piece_at(&m.from);
-            if opt.is_none() {
-                // board_console_printer::print_bit_board(&game_state.get_board());
-                println!("{:?}", m);
-                panic!("attempting to move a piece that's not there");
-            }
-            // is this piece pinned ?
-            let piece = opt.unwrap();
-            if is_pinned(&piece, &pinned_pieces) {
-                let pin = get_pin(&piece, &pinned_pieces).unwrap();
-                // check if the pinned piece can move here
-                let to_bit = BitBoard::coordinate_to_bit(m.to);
-                return BitBoard::bit_on_bit_board(to_bit, pin.can_move_to_board);
-            }
-            true
-        })
-        .collect();
-    // add pgn notation
-}
-
-// @todo : write tests and benchmarks
-// ignores enemy captures
-pub fn gen_attack_vectors(game_state: &GameState, color: Color) -> Vec<Move> {
-    let mut vector_moves: Vec<Move> = game_state
-        .get_pieces(color, PieceType::Bishop)
-        .into_iter()
-        .map(|piece| plmg::gen_vectors_for(game_state, &piece))
-        .flatten()
-        .collect();
-    game_state
-        .get_pieces(color, PieceType::Rook)
-        .into_iter()
-        .map(|piece| plmg::gen_vectors_for(game_state, &piece))
-        .flatten()
-        .for_each(|m| vector_moves.push(m));
-    game_state
-        .get_pieces(color, PieceType::Queen)
-        .into_iter()
-        .map(|piece| plmg::gen_vectors_for(game_state, &piece))
-        .flatten()
-        .for_each(|m| vector_moves.push(m));
-    return vector_moves;
-}
-
-// PSEUDO LEGAL MOVE GENERATION
-// determines what moves the pieces can legally do
-// does not check whether the player can legally do that move
-// for instance : no checking pins or checks , etc...
-// pub fn gen_pseudo_legal_moves(board: &dyn BoardTrait, color: Color) -> Vec<Move> {
-//     board
-//         .get_all_pieces(color)
-//         .into_iter()
-//         .map(|p| gen_moves_for(board, &p))
-//         .flatten()
-//         .collect()
-// }
-
-pub fn gen_pseudo_legal_moves(game_state: &GameState, color: Color) -> Vec<Move> {
-    game_state
-        .get_all_pieces(color)
-        .into_iter()
-        .map(|p| plmg::gen_moves_for(game_state, &p))
-        .flatten()
-        .collect()
-}
-
-// pub fn make_short_castles(board: &dyn BoardTrait, color: Color) -> Move {
-//     let kings = board.get_kings();
-//     let &king = kings.iter().find(|&&k|  k.color == color).unwrap();
-//     return Move::new(from, to, piece, move_type, captured, castling_rights_removed, castling_rights_removed_opponent)
-// }
-// pub fn make_long_castles(board: &dyn BoardTrait, color: Color) ->Move {
-
-// }
-
-// //@todo:: this would be so cool
-// fn generate_path(starting_at: Coordinate, x: i32, y: i32) -> Iterator {
-//
-// }
