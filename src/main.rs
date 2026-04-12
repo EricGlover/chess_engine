@@ -36,7 +36,7 @@ fn print_help_menu() {
 
 fn main() {
     env::set_var("RUST_BACKTRACE", "1");
-    let debug = true;
+    let debug = false;
     if debug {
         plmg::test();
         // search::test();

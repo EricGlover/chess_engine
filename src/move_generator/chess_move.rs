@@ -19,6 +19,9 @@ pub struct Move {
     pub from: Coordinate,
     pub to: Coordinate,
     move_type: MoveType,
+    pub en_passant_target: Option<Coordinate>,
+    pub old_en_passant_target: Option<Coordinate>,
+    pub old_half_move_clock: Option<u16>,
     pub captured: Option<PieceType>,
     // @todo : make this white && black castling rights removed because taking a rook removes castling rights
     castling_rights_removed: CastlingRights,
@@ -53,6 +56,9 @@ impl Move {
             to,
             move_type,
             captured,
+            en_passant_target: None,
+            old_en_passant_target: None,
+            old_half_move_clock: None,
             castling_rights_removed: castling_rights_removed
                 .map_or(CastlingRights::new(false, false), |r| r),
             castling_rights_removed_opponent: castling_rights_removed_opponent
@@ -91,6 +97,9 @@ impl Move {
             piece: PieceType::King,
             from,
             to,
+            en_passant_target: None,
+            old_en_passant_target: None,
+            old_half_move_clock: None,
             move_type: MoveType::Castling { rook_from, rook_to },
             castling_rights_removed: CastlingRights::new(true, true),
             castling_rights_removed_opponent: CastlingRights::new(false, false),

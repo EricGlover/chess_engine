@@ -21,9 +21,9 @@ pub trait BoardTrait {
 
     // moves
     // fn make_move(&self, m: &Move) -> Self where Self: Sized ;
-    fn make_move_mut(&mut self, m: &Move);
+    fn make_move_mut(&mut self, m: &mut Move);
     // fn unmake_move(&self, m: &Move) -> Self where Self: Sized ;
-    fn unmake_move_mut(&mut self, m: &Move);
+    fn unmake_move_mut(&mut self, m: &mut Move);
 
     // getting and setting pieces
     fn place_piece(&mut self, piece: Piece, at: &Coordinate);

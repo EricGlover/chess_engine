@@ -83,18 +83,18 @@ impl Game {
         self.moves.clone()
     }
 
-    pub fn make_move(&mut self, move_: &Move) {
+    pub fn make_move(&mut self, move_: &mut Move) {
         let log = print_move(&move_, &self.board);
         println!("move = \n{}", log);
         self.moves.push(log);
-        self.board.make_move_mut(&move_);
+        self.board.make_move_mut(move_);
     }
 
     pub fn make_moves(&mut self, moves: Vec<(Move, Option<Move>)>) {
-        for (w_move, b_move) in moves {
-            self.make_move(&w_move);
+        for (mut w_move, mut b_move) in moves {
+            self.make_move(&mut w_move);
             if b_move.is_some() {
-                self.make_move(b_move.as_ref().unwrap())
+                self.make_move(&mut b_move.unwrap())
             }
         }
     }
@@ -138,19 +138,19 @@ impl Game {
         println!("{} to move", ai.color());
         print_board(&self.board);
 
-        let m = ai.make_move(&mut self.board, None).unwrap();
+        let mut m = ai.make_move(&mut self.board, None).unwrap();
         let log = print_move(&m, &self.board);
         println!("{} transposition table hits", ai.transposition_table_hits);
         println!("{} moves \n{}", ai.color(), log);
         self.moves.push(log);
-        self.board.make_move_mut(&m);
+        self.board.make_move_mut(&mut m);
     }
 
     fn ai1_make_move(&mut self) {
         println!("{} to move", self.ai.color());
         print_board(&self.board);
 
-        let m = self.ai.make_move(&mut self.board, None).unwrap();
+        let mut m = self.ai.make_move(&mut self.board, None).unwrap();
         let log = print_move(&m, &self.board);
         println!(
             "{} transposition table hits",
@@ -158,13 +158,13 @@ impl Game {
         );
         println!("{} moves \n{}", self.ai.color(), log);
         self.moves.push(log);
-        self.board.make_move_mut(&m);
+        self.board.make_move_mut(&mut m);
     }
     fn ai2_make_move(&mut self) {
         println!("{} to move", self.ai2.color());
         print_board(&self.board);
 
-        let m = self.ai2.make_move(&mut self.board, None).unwrap();
+        let mut m = self.ai2.make_move(&mut self.board, None).unwrap();
         let log = print_move(&m, &self.board);
         println!(
             "{} transposition table hits",
@@ -172,7 +172,7 @@ impl Game {
         );
         println!("{} moves \n{}", self.ai2.color(), log);
         self.moves.push(log);
-        self.board.make_move_mut(&m);
+        self.board.make_move_mut(&mut m);
     }
 
     fn end_game(&mut self, winner: Color) {
@@ -196,9 +196,9 @@ impl Game {
         );
     }
 
-    pub fn run_sim_game(mut self, moves: Vec<Move>) {
+    pub fn run_sim_game(mut self, mut moves: Vec<Move>) {
         let mut white_to_move = true;
-        for _move in moves {
+        for _move in moves.iter_mut() {
             println!("Game time elasped : {:?}", self.get_time_elapsed());
             if (white_to_move) {
                 //PLAYER 1'S TURN
@@ -214,7 +214,7 @@ impl Game {
                 let log = print_move(&_move, &self.board);
                 println!("{} player choose move \n{}", self.ai2.color(), log);
                 self.moves.push(log);
-                self.board.make_move_mut(&_move);
+                self.board.make_move_mut(_move);
                 white_to_move = false;
             } else {
                 //PLAYER 2'S TURN
@@ -228,7 +228,7 @@ impl Game {
                 let log = print_move(&_move, &self.board);
                 println!("{} player choose move \n{}", self.ai.color(), log);
                 self.moves.push(log);
-                self.board.make_move_mut(&_move);
+                self.board.make_move_mut( _move);
 
                 // if evaluation.is_checkmate() {
                 //     self.end_game(evaluation.mated_player.unwrap().opposite());
@@ -283,16 +283,16 @@ impl Game {
         for line in stdin.lock().lines() {
             // white move
             let command = line.unwrap().clone();
-            let m = parse_move(command.as_str(), &self.board, Color::White);
+            let mut m = parse_move(command.as_str(), &self.board, Color::White);
             if m.is_none() {
                 println!("That move is illegal!");
                 continue;
             }
-            let m = m.unwrap();
+            let mut m = m.unwrap();
             let log = print_move(&m, &self.board);
             println!("move = \n{}", log);
             self.moves.push(log);
-            self.board.make_move_mut(&m);
+            self.board.make_move_mut(&mut m);
             self.write_log();
 
             // print eval
@@ -305,11 +305,11 @@ impl Game {
 
             print_board(&self.board);
             // black moves now
-            let m = self.ai.make_move(&mut self.board, None).unwrap();
+            let mut m = self.ai.make_move(&mut self.board, None).unwrap();
             let log = print_move(&m, &self.board);
             println!("move = \n{}", log);
             self.moves.push(log);
-            self.board.make_move_mut(&m);
+            self.board.make_move_mut(&mut m);
             // self.moves.push(m);
             println!("Black moves... {}", m);
             let eval = ai::evaluator::evaluate(&self.board, None, None);

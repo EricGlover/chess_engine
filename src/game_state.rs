@@ -92,7 +92,7 @@ impl BoardTrait for GameState {
     }
 
     // moves
-    fn make_move_mut(&mut self, m: &Move) {
+    fn make_move_mut(&mut self, mut m: &mut Move) {
         let from_idx = BitBoard::coordinate_to_idx(m.from);
         let to_idx = BitBoard::coordinate_to_idx(m.to);
         if let Some(mut piece_to_move) = self.pieces.remove(&from_idx) {
@@ -137,6 +137,10 @@ impl BoardTrait for GameState {
             }
 
             // get piece to move
+            // en passant
+            m.old_en_passant_target = self.en_passant_target;
+            self.en_passant_target = m.en_passant_target;
+            m.old_half_move_clock = Some(self.half_move_clock);
             match m.move_type() {
                 MoveType::Castling { rook_from, rook_to } => {
                     // self.move_piece(rook_from, rook_to);
@@ -163,7 +167,7 @@ impl BoardTrait for GameState {
             panic!("trying to remove a piece that isn't there.");
         }
     }
-    fn unmake_move_mut(&mut self, m: &Move) {
+    fn unmake_move_mut(&mut self, mut m: &mut Move) {
         let from_idx = BitBoard::coordinate_to_idx(m.from);
         let to_idx = BitBoard::coordinate_to_idx(m.to);
         if let Some(mut piece_to_move) = self.pieces.remove(&to_idx) {
@@ -207,6 +211,10 @@ impl BoardTrait for GameState {
             if piece_to_move.color == Color::Black {
                 self.full_move_number = self.full_move_number - 1;
             }
+
+            // en passant 
+            self.en_passant_target = m.old_en_passant_target;
+            self.half_move_clock = m.old_half_move_clock.unwrap();
 
             // get piece to move
             match m.move_type() {
@@ -1049,7 +1057,7 @@ mod tests {
         //exd5
         let from = Coordinate::new(5, 4);
         let to = from.add(-1, 1);
-        let takes_move = Move::new(
+        let mut takes_move = Move::new(
             from,
             to,
             PieceType::Pawn,
@@ -1058,8 +1066,8 @@ mod tests {
             None,
             None,
         );
-        game_state.make_move_mut(&takes_move);
-        game_state.unmake_move_mut(&takes_move);
+        game_state.make_move_mut(&mut takes_move);
+        game_state.unmake_move_mut(&mut takes_move);
         assert_valid_state(&game_state);
 
         // check with fen
@@ -1072,7 +1080,7 @@ mod tests {
         let mut game_state = fen_reader::make_game_state(captures_fen);
         let a4 = Coordinate::new(1, 4);
         let d1 = Coordinate::new(4, 1);
-        let takes_move = Move::new(
+        let mut takes_move = Move::new(
             a4,
             d1,
             PieceType::Queen,
@@ -1081,8 +1089,8 @@ mod tests {
             None,
             None,
         );
-        game_state.make_move_mut(&takes_move);
-        game_state.unmake_move_mut(&takes_move);
+        game_state.make_move_mut(&mut takes_move);
+        game_state.unmake_move_mut(&mut takes_move);
         assert_valid_state(&game_state);
         let result_fen = fen_reader::make_fen(&game_state);
         assert_eq!(captures_fen, result_fen, "fen should be equal");
@@ -1094,7 +1102,7 @@ mod tests {
         let mut game_state = fen_reader::make_game_state(fen);
         let b2 = Coordinate::new(2, 2);
         let a1 = Coordinate::new(1, 1);
-        let m = Move::new(
+        let mut m = Move::new(
             b2,
             a1,
             PieceType::Pawn,
@@ -1103,7 +1111,7 @@ mod tests {
             None,
             None,
         );
-        game_state.make_move_mut(&m);
+        game_state.make_move_mut(&mut m);
         let result_fen = fen_reader::make_fen(&game_state);
         let after_fen = "r3k1r1/1b1p1p2/p3pp2/B1b4p/P3P3/1B3P2/2P4P/q2K1R2 w q - 0 23";
         assert_eq!(after_fen, result_fen, "fen should be equal");
@@ -1115,7 +1123,7 @@ mod tests {
         let mut game_state = fen_reader::make_game_state(fen);
         let b2 = Coordinate::new(2, 2);
         let a1 = Coordinate::new(1, 1);
-        let m = Move::new(
+        let mut m = Move::new(
             b2,
             a1,
             PieceType::Pawn,
@@ -1124,22 +1132,22 @@ mod tests {
             None,
             None,
         );
-        game_state.make_move_mut(&m);
+        game_state.make_move_mut(&mut m);
         let res_fen = "r3k1r1/1b1p1p2/pB2pp2/P1b4p/4P3/1B3P2/2P4P/q2K1R2 w q - 0 23";
         let result_fen = fen_reader::make_fen(&game_state);
         assert_eq!(res_fen, result_fen, "fen should be equal");
         assert_valid_state(&game_state);
-        game_state.unmake_move_mut(&m);
+        game_state.unmake_move_mut(&mut m);
         let result_fen = fen_reader::make_fen(&game_state);
         assert_eq!(fen, result_fen, "fen should be equal");
         assert_valid_state(&game_state);
 
         // try all moves
-        let moves = move_generator::gen_legal_moves(&game_state, Color::Black);
-        for m1 in moves.iter() {
-            game_state.make_move_mut(&m1);
+        let mut moves = move_generator::gen_legal_moves(&game_state, Color::Black);
+        for m1 in moves.iter_mut() {
+            game_state.make_move_mut(m1);
             assert_valid_state(&game_state);
-            game_state.unmake_move_mut(&m1);
+            game_state.unmake_move_mut(m1);
             assert_valid_state(&game_state);
         }
     }
@@ -1158,7 +1166,7 @@ mod tests {
         //exd5
         let from = Coordinate::new(5, 4);
         let to = from.add(-1, 1);
-        let takes_move = Move::new(
+        let mut takes_move = Move::new(
             from,
             to,
             PieceType::Pawn,
@@ -1167,7 +1175,7 @@ mod tests {
             None,
             None,
         );
-        game_state.make_move_mut(&takes_move);
+        game_state.make_move_mut(&mut takes_move);
         assert_valid_state(&game_state);
 
         // check with fen
@@ -1179,7 +1187,7 @@ mod tests {
         let mut game_state = fen_reader::make_game_state(captures_fen);
         let a4 = Coordinate::new(1, 4);
         let d1 = Coordinate::new(4, 1);
-        let takes_move = Move::new(
+        let mut takes_move = Move::new(
             a4,
             d1,
             PieceType::Queen,
@@ -1188,7 +1196,7 @@ mod tests {
             None,
             None,
         );
-        game_state.make_move_mut(&takes_move);
+        game_state.make_move_mut(&mut takes_move);
         assert_valid_state(&game_state);
         let fen_after = "4kb1r/1pp2ppp/4pn2/2rp4/2BPP1b1/p1Pn1N1P/4KPP1/RNBq3R w k - 0 16";
         let result_fen = fen_reader::make_fen(&game_state);
@@ -1203,8 +1211,8 @@ mod tests {
         let from = Coordinate::new(5, 2);
         let to = from.add(0, 2);
         // let piece = Piece::new(Color::White, PieceType::Pawn, Some(from));
-        let e4_move = Move::new(from, to, PieceType::Pawn, MoveType::Move, None, None, None);
-        game_state.make_move_mut(&e4_move);
+        let mut e4_move = Move::new(from, to, PieceType::Pawn, MoveType::Move, None, None, None);
+        game_state.make_move_mut(&mut e4_move);
 
         assert_valid_state(&game_state);
 
@@ -1282,8 +1290,8 @@ mod tests {
         // E5
         let from = Coordinate::new(5, 7);
         let to = from.add(0, -2);
-        let e5_move = Move::new(from, to, PieceType::Pawn, MoveType::Move, None, None, None);
-        game_state.make_move_mut(&e5_move);
+        let mut e5_move = Move::new(from, to, PieceType::Pawn, MoveType::Move, None, None, None);
+        game_state.make_move_mut(&mut e5_move);
         let e5_pawn = game_state.get_piece_at(&to);
         assert!(e5_pawn.is_some(), "pawn not found at e5");
         let e7 = game_state.get_piece_at(&from);
@@ -1302,10 +1310,10 @@ mod tests {
         let from = Coordinate::new(5, 2);
         let to = from.add(0, 2);
         // let piece = Piece::new(Color::White, PieceType::Pawn, Some(from));
-        let e4_move = Move::new(from, to, PieceType::Pawn, MoveType::Move, None, None, None);
+        let mut e4_move = Move::new(from, to, PieceType::Pawn, MoveType::Move, None, None, None);
 
-        game_state.make_move_mut(&e4_move);
-        game_state.unmake_move_mut(&e4_move);
+        game_state.make_move_mut(&mut e4_move);
+        game_state.unmake_move_mut(&mut e4_move);
         assert_eq!(
             fen_reader::make_fen(&game_state),
             start_fen,

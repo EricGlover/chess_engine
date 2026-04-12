@@ -119,8 +119,8 @@ mod tests {
 
         let fen = "r3k1r1/1b1p1p2/p3pp2/B1b4p/Pp2P3/1BN2P2/1PP4P/R2K1R2 b q - 10 20";
         let mut game_state = fen_reader::make_game_state(fen);
-        let b_moves = move_generator::gen_legal_moves(&game_state, Color::Black);
-        for b_m in b_moves.iter() {
+        let mut b_moves = move_generator::gen_legal_moves(&game_state, Color::Black);
+        for b_m in b_moves.iter_mut() {
             println!("{}", b_m);
             game_state.make_move_mut(b_m);
             let mut ai = Ai::new(Color::White);
@@ -252,7 +252,7 @@ impl Ai {
             return (evaluator::evaluate(board, None, None), None);
         }
         // search moves
-        let moves_to_try = gen_legal_moves(board, player_moving);
+        let mut moves_to_try = gen_legal_moves(board, player_moving);
         // this should cover checkmates so we don't try to search further,
 
         // attempting to pass moves to evaluator
@@ -273,11 +273,11 @@ impl Ai {
         // find the best move out of the legal moves
         let mut best_move: Option<Move> = None;
         let mut best_eval: Option<Evaluation> = None;
-        for a_move in moves_to_try {
+        for mut a_move in moves_to_try.iter_mut() {
             // player takes move , examine this board
             // assuming this player and the opponent make optimal moves
             // what's the evaluation of the best board state starting from here ?
-            board.make_move_mut(&a_move);
+            board.make_move_mut(a_move);
             let (eval, _m) = self.alpha_beta(
                 board,
                 player_moving.opposite(),
@@ -285,11 +285,11 @@ impl Ai {
                 lower_bound,
                 upper_bound,
             );
-            board.unmake_move_mut(&a_move);
+            board.unmake_move_mut(a_move);
 
             // set best_move and best eval if they're not set
             if best_move.is_none() {
-                best_move = Some(a_move);
+                best_move = Some(*a_move);
             }
             if best_eval.is_none() {
                 best_eval = Some(eval);
@@ -298,12 +298,12 @@ impl Ai {
             // look for best move at this depth, like in minimax
             if Color::White == player_moving && eval.score > best_eval.unwrap().score {
                 // println!("setting lower bound {:?} , {:?}", eval, a_move);
-                best_move = Some(a_move);
+                best_move = Some(*a_move);
                 best_eval = Some(eval.clone());
             }
             if Color::Black == player_moving && eval.score < best_eval.unwrap().score {
                 // println!("setting upper bound {:?} , {:?}", eval, a_move);
-                best_move = Some(a_move);
+                best_move = Some(*a_move);
                 best_eval = Some(eval.clone());
             }
 
@@ -328,11 +328,11 @@ impl Ai {
             // if no bounds set, then set them
             if Color::White == player_moving && lower_bound.is_none() {
                 lower_bound = Some(eval.clone());
-                best_move = Some(a_move);
+                best_move = Some(*a_move);
             }
             if Color::Black == player_moving && upper_bound.is_none() {
                 upper_bound = Some(eval.clone());
-                best_move = Some(a_move);
+                best_move = Some(*a_move);
             }
         }
         let result = (best_eval.unwrap(), best_move);
@@ -385,7 +385,7 @@ impl Ai {
         }
 
         // dfs with recursion time
-        let best = moves_to_try.into_iter().fold(None, |acc, move_to_try| {
+        let best = moves_to_try.into_iter().fold(None, |acc, mut move_to_try| {
             // @todo : if this move takes the king return
             let piece_captured = board.get_piece_at(&move_to_try.to);
             if piece_captured.is_some() && piece_captured.unwrap().piece_type == PieceType::King {
@@ -396,9 +396,9 @@ impl Ai {
             // player takes move , examine this board
             // assuming this player and the opponent make optimal moves
             // what's the evaluation of the best board state starting from here ?
-            board.make_move_mut(&move_to_try);
+            board.make_move_mut(&mut move_to_try);
             let (eval, _) = self.minimax(board, color.opposite(), depth - 1);
-            board.unmake_move_mut(&move_to_try);
+            board.unmake_move_mut(&mut move_to_try);
 
             if acc.is_none() {
                 return Some((eval, move_to_try));

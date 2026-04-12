@@ -1630,6 +1630,8 @@ pub fn gen_pawn_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
         PieceType::Bishop,
         PieceType::Knight,
     ];
+
+    // quiet pawn moves
     let up_one = at.add(0, 1 * direction);
     let up_two = at.add(0, 2 * direction);
     if square_is_empty(&board, &up_one) {
@@ -1650,7 +1652,9 @@ pub fn gen_pawn_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
         } else {
             moves.push(make_quiet_move(at, &up_one, piece));
             if square_is_empty(&board, &up_two) && at.y() == start_y {
-                moves.push(make_quiet_move(at, &up_two, piece));
+                let mut m = make_quiet_move(at, &up_two, piece);
+                m.en_passant_target = Some(up_one);
+                moves.push(m);
             }
         }
     }

@@ -177,14 +177,14 @@ pub fn moves_from_pgn(pgn: &str) -> Vec<Move> {
             {
                 // @todo :: handle castles
                 // println!("Castles move found ");
-                let new_move = match parsed_move {
+                let mut new_move = match parsed_move {
                     ParsedMoveType::LongCastles => Move::castle_queen_side(color_to_move),
                     ParsedMoveType::ShortCastles => Move::castle_king_side(color_to_move),
                     ParsedMoveType::Promotion => break,
                     ParsedMoveType::Move => break,
                 };
                 moves.push(new_move);
-                scrap_game_state.make_move_mut(&new_move);
+                scrap_game_state.make_move_mut(&mut new_move);
                 color_to_move = match color_to_move {
                     Color::White => Color::Black,
                     Color::Black => Color::White,
@@ -217,9 +217,9 @@ pub fn moves_from_pgn(pgn: &str) -> Vec<Move> {
                 ParsedMoveType::Promotion => MoveType::Promotion(promotion_type.unwrap()),
                 ParsedMoveType::Move => MoveType::Move,
             };
-            let new_move = p_gen::make_move_to(from, &to, found_piece, move_type, &scrap_game_state);
+            let mut new_move = p_gen::make_move_to(from, &to, found_piece, move_type, &scrap_game_state);
             moves.push(new_move);
-            scrap_game_state.make_move_mut(&new_move);
+            scrap_game_state.make_move_mut(&mut new_move);
             //@todo :: this roughly works
 
             // flip color to move

@@ -59,28 +59,28 @@ const FEN_1:&str = "rnbqkbnr/pppppppp/8/8/8/P7/1PPPPPPP/RNBQKBNR b KQkq - 0 1";
 
 
 pub fn perft(game_state: &mut GameState, depth: u8) -> u64 {
-    let moves = gen_legal_moves(game_state, game_state.get_player_to_move());
+    let mut moves = gen_legal_moves(game_state, game_state.get_player_to_move());
     if depth == 1 {
         return moves.len() as u64;
     }
     let mut nodes_searched = 0u64;
-    for current_move in moves {
-        game_state.make_move_mut(&current_move);
+    for mut current_move in moves.iter_mut() {
+        game_state.make_move_mut(current_move);
         nodes_searched += perft(game_state, depth - 1);
-        game_state.unmake_move_mut(&current_move);
+        game_state.unmake_move_mut(current_move);
     }
     return nodes_searched;
 }
 
 pub fn perft_divided(game_state: &mut GameState, depth: u8) -> (u64, Option<HashMap<String, u64>>) {
-    let moves = gen_legal_moves(game_state, game_state.get_player_to_move());
+    let mut moves = gen_legal_moves(game_state, game_state.get_player_to_move());
     if depth == 1 {
         return (moves.len() as u64, None);
     }
     let mut move_map: HashMap<String, u64> = HashMap::new();
     let mut nodes_searched = 0u64;
-    for current_move in moves {
-        game_state.make_move_mut(&current_move);
+    for mut current_move in moves.iter_mut() {
+        game_state.make_move_mut(&mut current_move);
 
         // println!("\n");
         // print_bit_board(game_state.get_board_ref());
@@ -88,7 +88,7 @@ pub fn perft_divided(game_state: &mut GameState, depth: u8) -> (u64, Option<Hash
 
         let (current_searched, map) = perft_divided(game_state, depth - 1);
 
-        game_state.unmake_move_mut(&current_move);
+        game_state.unmake_move_mut(&mut current_move);
         // println!("UNMAKE\n");
         // print_bit_board(game_state.get_board_ref());
         // println!("UNMAKE\n");
