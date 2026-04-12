@@ -4,8 +4,9 @@ use crate::bit_board::{
     B_FILE, DARK_DIAGONALS_UP_RIGHT, G_FILE, H_FILE, ROW_1, ROW_2, ROW_7, ROW_8,
     WHITE_KINGSIDE_CASTLE_BLOCKERS, WHITE_QUEENSIDE_CASTLE_BLOCKERS,
 };
-use crate::board::{Color, Coordinate, Piece, PieceType};
+use crate::board::{BoardTrait, Color, Coordinate, Piece, PieceType};
 use crate::board::{HIGH_X, HIGH_Y, LOW_X, LOW_Y};
+use crate::chess_notation::fen_reader;
 use crate::game_state::GameState;
 use crate::move_generator::{Move, MoveType};
 
@@ -485,15 +486,6 @@ const ATTACKERS: [u64; 64] = [
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 ];
 
-pub fn test() {
-    // init_gen_queen_attacks();
-    // init_gen_bishop_attacks();
-    // init_gen_rook_attacks();
-    // init_gen_king_attacks();
-    // init_gen_knight_attacks();
-    // init_gen_pawn_attacks();
-}
-
 fn init_gen_attackers() {
     let mut bishop_attackers: Vec<u64> = vec![];
     let mut rook_attackers: Vec<u64> = vec![];
@@ -817,7 +809,7 @@ fn init_gen_pawn_attacks() {
     }
 }
 
-pub fn get_attack_mask_for(idx:u8, piece_type: &PieceType, color: Color) -> u64 {
+pub fn get_attack_mask_for(idx: u8, piece_type: &PieceType, color: Color) -> u64 {
     match piece_type {
         PieceType::King => KING_ATTACKS[(idx - 1) as usize],
         PieceType::Queen => QUEEN_ATTACK[(idx - 1) as usize],
@@ -825,9 +817,9 @@ pub fn get_attack_mask_for(idx:u8, piece_type: &PieceType, color: Color) -> u64 
         PieceType::Knight => KNIGHT_ATTACKS[(idx - 1) as usize],
         PieceType::Rook => ROOK_ATTACKS[(idx - 1) as usize],
         PieceType::Pawn => match color {
-            Color::White =>   WHITE_PAWN_ATTACKS[(idx - 1) as usize],
-            Color::Black => BLACK_PAWN_ATTACKS[(idx - 1 ) as usize],
-        }
+            Color::White => WHITE_PAWN_ATTACKS[(idx - 1) as usize],
+            Color::Black => BLACK_PAWN_ATTACKS[(idx - 1) as usize],
+        },
     }
 }
 
@@ -1019,6 +1011,65 @@ pub fn gen_bishop_vector(game_state: &GameState, piece: &Piece) -> Vec<Move> {
     return moves;
 }
 
+// this ignores pins, which works for checks
+pub fn gen_attacks_for_square(
+    game_state: &GameState,
+    idx: u8,
+    attacking_color: Color,
+) -> Vec<Move> {
+    let board = game_state.get_board_ref();
+    let to = BitBoard::idx_to_coordinate(idx);
+    let mut moves = vec![];
+    let enemy_color = attacking_color.opposite();
+    let enemy_color_board = match enemy_color {
+        Color::Black => board.get_black_pieces_board(),
+        Color::White => board.get_white_pieces_board(),
+    };
+    fn found_map_to_moves(mut found: u64, to: &Coordinate, game_state: &GameState, moves: &mut Vec<Move>) {
+        let mut current_bit = BitBoard::pop_bit(&mut found);
+        while (current_bit > 0) {
+            let from = BitBoard::bit_to_coordinate(current_bit);
+            let piece = game_state.get_piece_at(&from).unwrap();
+            moves.push(make_move_to(
+                &from,
+                &to,
+                piece,
+                MoveType::Move,
+                game_state.get_board_ref(),
+                game_state,
+            ));
+            current_bit = BitBoard::pop_bit(&mut found);
+        }
+    }
+    // for each piece type check their attack array
+    // pawns
+    let pawn_attack_map = match attacking_color {
+        Color::Black => BLACK_PAWN_ATTACKS[(idx - 1) as usize],
+        Color::White => WHITE_PAWN_ATTACKS[(idx - 1) as usize],
+    };
+    let mut found_pawns = pawn_attack_map & enemy_color_board & board.get_pawns_board();
+    found_map_to_moves(found_pawns, &to, game_state, &mut moves);
+    // knights
+    let knight_attack_map = KNIGHT_ATTACKS[(idx - 1) as usize];
+    let found_knights = knight_attack_map & enemy_color_board & board.get_knights_board();
+    found_map_to_moves(found_knights, &to, game_state, &mut moves);
+    // king
+    let king_attack_map = KING_ATTACKS[(idx - 1) as usize];
+    let found_king = king_attack_map & enemy_color_board & board.get_kings_board();
+    found_map_to_moves(found_king, &to, game_state, &mut moves);
+    // bishop
+    let (bishop_move_map, bishop_capture_map) = gen_bishop_attacks_from(board, idx, enemy_color);
+    found_map_to_moves(bishop_capture_map, &to, game_state, &mut moves);
+    // rook
+    let (rook_move_map, rook_attack_map) = gen_rook_attacks_from(board, idx, enemy_color);
+    found_map_to_moves(rook_attack_map, &to, game_state, &mut moves);
+    // queen
+    let (queen_move_map, queen_attack_map) = gen_queen_attacks_from(board, idx, enemy_color);
+    found_map_to_moves(queen_attack_map, &to, game_state, &mut moves);
+
+    return moves;
+}
+
 pub fn gen_queen_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
     let mut all_moves = gen_rook_moves(piece, game_state);
     let bishop_moves = gen_bishop_moves(piece, game_state);
@@ -1152,22 +1203,125 @@ pub fn gen_rook_vector(game_state: &GameState, piece: &Piece) -> Vec<Move> {
     return moves;
 }
 
-pub fn gen_bishop_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
-    let board = game_state.get_board();
-    let at = piece.at().unwrap();
-    let idx = BitBoard::coordinate_to_idx(*at);
-    let start_bit = BitBoard::coordinate_to_bit(*at);
-    let enemy_bits = match piece.color {
+fn gen_queen_attacks_from(board: &BitBoard, idx: u8, color: Color) -> (u64, u64) {
+    let (rook_move, rook_captures) = gen_rook_attacks_from(board, idx, color);
+    let (bishop_move, bishop_captures) = gen_bishop_attacks_from(board, idx, color);
+    (bishop_move | rook_move, bishop_captures | rook_captures)
+}
+
+fn gen_rook_attacks_from(board: &BitBoard, idx: u8, color: Color) -> (u64, u64) {
+    let pieces_bit_board = board.get_piece_board();
+    //plan get the ray, remove this piece, check for nearest other piece
+    //going up or right the nearest piece is the lsb
+    let start_bit = BitBoard::idx_to_bit(idx);
+    let enemy_bits = match color {
         Color::White => board.get_black_pieces_board(),
         Color::Black => board.get_white_pieces_board(),
     };
-    let pieces_bit_board = board.get_piece_board();
     let less_board = start_bit - 1;
     let mut to_move_board: u64 = 0;
     let mut captures_board: u64 = 0;
+
+    // break up the file into up/below sections
+    let file = BitBoard::get_file_for_bit(start_bit);
+    let above_me_file = (file ^ (less_board | start_bit)) & file;
+    let below_me_file = (file ^ above_me_file) ^ start_bit;
+
+    // above_me_file == 0 then there's no where up to go
+    if above_me_file != 0 {
+        let occuppied = above_me_file & pieces_bit_board;
+        let nearest = BitBoard::lsb(occuppied);
+        if nearest == 0 {
+            to_move_board = to_move_board | above_me_file;
+        } else {
+            // if the nearest piece is an enemy we include it
+            let is_enemy = BitBoard::bit_on_bit_board(nearest, enemy_bits);
+            // now get everything below this on the file
+            let mut below_nearest = (nearest - 1) & above_me_file;
+            if is_enemy {
+                below_nearest = ((nearest - 1) | nearest) & above_me_file;
+                captures_board = captures_board | nearest;
+            }
+            to_move_board = to_move_board | below_nearest;
+        }
+    }
+    // below_me_file == 0 then there's no where down to go
+    if below_me_file != 0 {
+        let occuppied = below_me_file & pieces_bit_board;
+        let nearest = BitBoard::msb(occuppied);
+        if nearest == 0 {
+            to_move_board = to_move_board | below_me_file;
+        } else {
+            // if the nearest piece is an enemy we include it
+            let is_enemy = BitBoard::bit_on_bit_board(nearest, enemy_bits);
+            let mut above_nearest = (!(nearest - 1) & below_me_file) ^ nearest;
+            if is_enemy {
+                above_nearest = !(nearest - 1) & below_me_file;
+                captures_board = captures_board | nearest;
+            }
+            to_move_board = to_move_board | above_nearest;
+        }
+    }
+
+    // break up the row into left/right sections
+    let row = BitBoard::get_row_for_bit(start_bit);
+    let left_row = less_board & row;
+    let right_row = (row ^ left_row) ^ start_bit;
+
+    //left row == 0 then there's nowhere left
+    if left_row != 0 {
+        let occupied = left_row & pieces_bit_board;
+        let nearest = BitBoard::msb(occupied);
+        if nearest == 0 {
+            to_move_board = to_move_board | left_row;
+        } else {
+            // if the nearest piece is an enemy we include it
+            let is_enemy = BitBoard::bit_on_bit_board(nearest, enemy_bits);
+            let mut right_of_nearest = (!(nearest - 1) & left_row) ^ nearest;
+            if is_enemy {
+                right_of_nearest = !(nearest - 1) & left_row;
+                captures_board = captures_board | nearest;
+            }
+            to_move_board = to_move_board | right_of_nearest;
+        }
+    }
+    // right row == 0 then there's nowhere right
+    if right_row != 0 {
+        let occupied = right_row & pieces_bit_board;
+        let nearest = BitBoard::lsb(occupied);
+        if nearest == 0 {
+            to_move_board = to_move_board | right_row;
+        } else {
+            // if the nearest piece is an enemy we include it
+            let is_enemy = BitBoard::bit_on_bit_board(nearest, enemy_bits);
+            let mut left_of_nearest = (nearest - 1) & right_row;
+            if is_enemy {
+                left_of_nearest = ((nearest - 1) | nearest) & right_row;
+                captures_board = captures_board | nearest;
+            }
+            to_move_board = to_move_board | left_of_nearest;
+        }
+    }
+    (to_move_board, captures_board)
+}
+
+fn gen_bishop_attacks_from(board: &BitBoard, idx: u8, color: Color) -> (u64, u64) {
+    let start_bit = BitBoard::idx_to_bit(idx);
+    let friendly_bits = match color {
+        Color::White => board.get_white_pieces_board(),
+        Color::Black => board.get_black_pieces_board(),
+    };
+    let pieces_bit_board = board.get_piece_board();
+    let enemy_bits = match color {
+        Color::White => board.get_black_pieces_board(),
+        Color::Black => board.get_white_pieces_board(),
+    };
+    let less_board = start_bit - 1;
+    let mut to_move_board: u64 = 0;
+    let mut captures_board: u64 = 0;
+
     // length for diagonals == 1 || 2
     let diagonals = BitBoard::get_diagonals_vec_for_bit(start_bit);
-
     let is_a_file = BitBoard::on_file(start_bit, A_FILE);
     let is_h_file = BitBoard::on_file(start_bit, H_FILE);
 
@@ -1278,8 +1432,16 @@ pub fn gen_bishop_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
             }
         }
     }
+    return (to_move_board, captures_board);
+}
+
+pub fn gen_bishop_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
+    let board = game_state.get_board_ref();
+    let at = piece.at().unwrap();
+    let idx = BitBoard::coordinate_to_idx(*at);
+
+    let (mut to_move_board, mut captures_board) = gen_bishop_attacks_from(board, idx, piece.color);
     let mut moves: Vec<Move> = vec![];
-    let color = piece.color;
 
     while to_move_board > 0 {
         let to_bit = BitBoard::pop_bit(&mut to_move_board);
@@ -1307,102 +1469,12 @@ pub fn gen_bishop_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
 // this isn't precalculated / using magic numbers yet
 // for the moment I'm just calculating it with fancy smancy bit manips
 pub fn gen_rook_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
-    let board = game_state.get_board();
+    let board = game_state.get_board_ref();
     let at = piece.at().unwrap();
     let idx: u8 = BitBoard::coordinate_to_idx(*at);
     let pieces_bit_board = board.get_piece_board();
 
-    //plan get the ray, remove this piece, check for nearest other piece
-    //going up or right the nearest piece is the lsb
-    let start_bit = BitBoard::coordinate_to_bit(*at);
-    let enemy_bits = match piece.color {
-        Color::White => board.get_black_pieces_board(),
-        Color::Black => board.get_white_pieces_board(),
-    };
-    let less_board = start_bit - 1;
-    let mut to_move_board: u64 = 0;
-    let mut captures_board: u64 = 0;
-
-    // break up the file into up/below sections
-    let file = BitBoard::get_file_for_bit(start_bit);
-    let above_me_file = (file ^ (less_board | start_bit)) & file;
-    let below_me_file = (file ^ above_me_file) ^ start_bit;
-
-    // above_me_file == 0 then there's no where up to go
-    if above_me_file != 0 {
-        let occuppied = above_me_file & pieces_bit_board;
-        let nearest = BitBoard::lsb(occuppied);
-        if nearest == 0 {
-            to_move_board = to_move_board | above_me_file;
-        } else {
-            // if the nearest piece is an enemy we include it
-            let is_enemy = BitBoard::bit_on_bit_board(nearest, enemy_bits);
-            // now get everything below this on the file
-            let mut below_nearest = (nearest - 1) & above_me_file;
-            if is_enemy {
-                below_nearest = ((nearest - 1) | nearest) & above_me_file;
-                captures_board = captures_board | nearest;
-            }
-            to_move_board = to_move_board | below_nearest;
-        }
-    }
-    // below_me_file == 0 then there's no where down to go
-    if below_me_file != 0 {
-        let occuppied = below_me_file & pieces_bit_board;
-        let nearest = BitBoard::msb(occuppied);
-        if nearest == 0 {
-            to_move_board = to_move_board | below_me_file;
-        } else {
-            // if the nearest piece is an enemy we include it
-            let is_enemy = BitBoard::bit_on_bit_board(nearest, enemy_bits);
-            let mut above_nearest = (!(nearest - 1) & below_me_file) ^ nearest;
-            if is_enemy {
-                above_nearest = !(nearest - 1) & below_me_file;
-                captures_board = captures_board | nearest;
-            }
-            to_move_board = to_move_board | above_nearest;
-        }
-    }
-
-    // break up the row into left/right sections
-    let row = BitBoard::get_row_for_bit(start_bit);
-    let left_row = less_board & row;
-    let right_row = (row ^ left_row) ^ start_bit;
-
-    //left row == 0 then there's nowhere left
-    if left_row != 0 {
-        let occupied = left_row & pieces_bit_board;
-        let nearest = BitBoard::msb(occupied);
-        if nearest == 0 {
-            to_move_board = to_move_board | left_row;
-        } else {
-            // if the nearest piece is an enemy we include it
-            let is_enemy = BitBoard::bit_on_bit_board(nearest, enemy_bits);
-            let mut right_of_nearest = (!(nearest - 1) & left_row) ^ nearest;
-            if is_enemy {
-                right_of_nearest = !(nearest - 1) & left_row;
-                captures_board = captures_board | nearest;
-            }
-            to_move_board = to_move_board | right_of_nearest;
-        }
-    }
-    // right row == 0 then there's nowhere right
-    if right_row != 0 {
-        let occupied = right_row & pieces_bit_board;
-        let nearest = BitBoard::lsb(occupied);
-        if nearest == 0 {
-            to_move_board = to_move_board | right_row;
-        } else {
-            // if the nearest piece is an enemy we include it
-            let is_enemy = BitBoard::bit_on_bit_board(nearest, enemy_bits);
-            let mut left_of_nearest = (nearest - 1) & right_row;
-            if is_enemy {
-                left_of_nearest = ((nearest - 1) | nearest) & right_row;
-                captures_board = captures_board | nearest;
-            }
-            to_move_board = to_move_board | left_of_nearest;
-        }
-    }
+    let (mut to_move_board, mut captures_board) = gen_rook_attacks_from(board, idx, piece.color);
     let mut moves: Vec<Move> = vec![];
     let color = piece.color;
 
@@ -1637,7 +1709,11 @@ pub fn get_attack_mobility_count(board: &BitBoard, color: Color) -> u32 {
     return count;
 }
 
-pub fn get_slider_pieces_indices_attacking_idx(board: &BitBoard, idx: u8, attacker_color: Color) -> Vec<u8> {
+pub fn get_slider_pieces_indices_attacking_idx(
+    board: &BitBoard,
+    idx: u8,
+    attacker_color: Color,
+) -> Vec<u8> {
     let mut indices: Vec<u8> = vec![];
     let idx2 = idx - 1;
     let color_board = match attacker_color {
@@ -1761,11 +1837,53 @@ pub fn make_move_to(
     )
 }
 
+pub fn test() {
+    let black_in_check_fen = "6k1/ppp1p3/2qr3p/5K2/8/1B5P/PP3PP1/8 b - - 2 22";
+    let game_state = fen_reader::make_game_state(black_in_check_fen);
+    let g8 = Coordinate::new(7, 8);
+    let idx = BitBoard::coordinate_to_idx(g8);
+    gen_attacks_for_square(&game_state, idx, Color::White);
+
+    // init_gen_queen_attacks();
+    // init_gen_bishop_attacks();
+    // init_gen_rook_attacks();
+    // init_gen_king_attacks();
+    // init_gen_knight_attacks();
+    // init_gen_pawn_attacks();
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{board::BoardTrait, chess_notation::fen_reader, move_generator::plmg};
+    use crate::{
+        board::BoardTrait, chess_notation::fen_reader, game, game_state, move_generator::plmg,
+    };
     use std::collections::HashSet;
+
+    #[test]
+    fn test_gen_bishop_moves() {
+        let fen = "6k1/ppp1p3/2qr3p/5K2/8/1B5P/PP3PP1/8 b - - 2 22";
+        let game_state = fen_reader::make_game_state(fen);
+        let b3 = Coordinate::new(2, 3);
+        let white_bishop = game_state.get_piece_at(&b3).unwrap();
+        let moves = gen_bishop_moves(white_bishop, &game_state);
+        assert_eq!(moves.len(), 8);
+
+        let fen = "1b4kb/ppp1p3/2qr3p/5K2/3Bb3/7P/PP3PP1/B5BB w - - 2 22";
+        let game_state = fen_reader::make_game_state(fen);
+        let a1 = Coordinate::new(1, 1);
+        let b8 = Coordinate::new(2, 8);
+        let h8 = Coordinate::new(8, 8);
+        let b = game_state.get_piece_at(&a1).unwrap();
+        let b8_bish = game_state.get_piece_at(&b8).unwrap();
+        let h8_bish = game_state.get_piece_at(&h8).unwrap();
+        let moves = gen_bishop_moves(b, &game_state);
+        assert_eq!(moves.len(), 0);
+        let moves = gen_bishop_moves(b8_bish, &game_state);
+        assert_eq!(moves.len(), 0);
+        let moves = gen_bishop_moves(h8_bish, &game_state);
+        assert_eq!(moves.len(), 4);
+    }
 
     #[test]
     fn test_gen_bishop_vector() {
@@ -1838,7 +1956,7 @@ mod tests {
         for idx in candidate_indices.iter() {
             println!("{}", idx);
         }
-        let mut answers:HashSet<u8> = HashSet::new();
+        let mut answers: HashSet<u8> = HashSet::new();
         answers.insert(26);
         answers.insert(29);
         answers.insert(8);
