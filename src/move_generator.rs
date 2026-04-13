@@ -173,7 +173,7 @@ fn find_pinned_pieces(game_state: &GameState, defender_color: Color) -> Vec<Pin>
 pub fn generate_checks(game_state: &GameState, color_being_checked: Color) -> Vec<Move> {
     let king = game_state.get_king(color_being_checked).unwrap();
     let idx = BitBoard::coordinate_to_idx(*king.at().unwrap());
-    return gen_attacks_for_square(game_state, idx, color_being_checked);
+    return gen_attacks_for_square(game_state.get_board_ref(), idx, color_being_checked.opposite());
 }
 
 // @todo : sort this nonsense out
@@ -231,11 +231,14 @@ fn king_escapes(game_state: &GameState, m: &Move) -> bool {
         println!("NOT KING");
         return false;
     }
-    let mut fresh_board = &mut game_state.clone_to_game_state();
-    fresh_board.make_move_mut(&mut m);
-    let checks = generate_checks(fresh_board, piece.color);
-    println!("{}", checks.len());
-    return checks.len() == 0;
+    // is the square we're going to attacked?
+    let to_idx = BitBoard::coordinate_to_idx(m.to);
+    // remove king 
+    let mut new_bit_board = game_state.get_board();
+    new_bit_board.remove_piece(PieceType::King, piece.color, m.from);
+
+    let attacks = plmg::gen_attacks_for_square(&new_bit_board, to_idx, piece.color.opposite());
+    return attacks.len() == 0;
 }
 
 // fn find_moves_to_resolve_check<'a>(board: &dyn BoardTrait, checks: &Vec<Move>, possible_moves: &'a Vec<Move>) -> Vec<&'a Move> {
@@ -276,18 +279,22 @@ fn find_moves_to_resolve_check(
         let pins = pins.unwrap();
         // is the attacker defended?
         let checker_idx = BitBoard::coordinate_to_idx(check_from);
-        let checker_is_defended = plmg::gen_attacks_for_square(game_state, checker_idx, color_being_checked.opposite()).len() > 0;
+        let checker_is_defended = plmg::gen_attacks_for_square(game_state.get_board_ref(), checker_idx, color_being_checked.opposite()).len() > 0;
         return moves
             .into_iter()
             .filter(|m| {
                 let is_capture = check_from == m.to;
+                // if it's a king move
                 if &m.from == king_at {
+                    // no castling out of check
                     if m.is_king_side_castle() || m.is_queen_side_castle() {
                         return false;
                     }
+                    // king can only capture undefended checking pieces
                     if !checker_is_defended && is_capture {
                         return true;
                     } else {
+                        // check if the king is moving to a valid escape square
                         return king_escapes(game_state, m);
                     }
                 }
@@ -387,7 +394,7 @@ pub fn gen_legal_moves(game_state: &GameState, color: Color) -> Vec<Move> {
                 return BitBoard::bit_on_bit_board(to_bit, pin.can_move_to_board);
             }
             if m.is_king_side_castle() || m.is_queen_side_castle() {
-
+                // @todo:: find out if squares are attacked on the kings path 
             }
             true
         })
@@ -1224,6 +1231,16 @@ mod tests {
             .filter(|&m| king_escapes(&game_state, m))
             .collect();
         assert_eq!(successful_moves.len(), 2);
+
+        let fen = "rnb3nr/pp1kpp1p/6pb/1Qpp4/qPPP4/N7/P3PPPP/R1B1KBNR b KQ - 2 7";
+        let game_state = fen_reader::make_game_state(fen);
+        let king = game_state.get_king(Color::Black).unwrap();
+        let king_moves = plmg::gen_king_moves(king, &game_state);
+        let successful_moves: Vec<&Move> = king_moves
+            .iter()
+            .filter(|&m| king_escapes(&game_state, m))
+            .collect();
+        assert_eq!(successful_moves.len(), 4);
     }
 
     #[test]

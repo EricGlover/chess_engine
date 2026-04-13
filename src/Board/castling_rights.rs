@@ -16,6 +16,9 @@ impl CastlingRights {
     pub fn none(&self) -> bool {
         !self.king_side && !self.queen_side
     }
+    pub fn some(&self) -> bool {
+        self.king_side || self.queen_side
+    }
     pub fn king_side(&self) -> bool {
         self.king_side
     }

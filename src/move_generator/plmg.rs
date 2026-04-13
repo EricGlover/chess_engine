@@ -993,18 +993,17 @@ pub fn gen_bishop_vector(game_state: &GameState, piece: &Piece) -> Vec<Move> {
         let to = BitBoard::bit_to_coordinate(to_bit);
 
         if BitBoard::bit_on_bit_board(to_bit, captures_board) {
-            moves.push(make_move_to(
+            moves.push(make_captures_move(
                 at,
                 &to,
                 piece,
                 MoveType::Move,
                 &board,
                 game_state,
+                None,
             ));
         } else {
-            moves.push(make_quiet_move_with_castle_rights(
-                at, &to, piece, game_state,
-            ));
+            moves.push(make_quiet_move(at, &to, piece, MoveType::Move));
         }
     }
 
@@ -1012,84 +1011,80 @@ pub fn gen_bishop_vector(game_state: &GameState, piece: &Piece) -> Vec<Move> {
 }
 
 // this ignores pins, which works for checks
+// note the moves this generates aren't really valid, they just indicate from -> to
 pub fn gen_attacks_for_square(
-    game_state: &GameState,
+    bit_board: &BitBoard,
     idx: u8,
     attacking_color: Color,
 ) -> Vec<Move> {
-    let board = game_state.get_board_ref();
     let to = BitBoard::idx_to_coordinate(idx);
     let mut moves = vec![];
     let enemy_color = attacking_color.opposite();
-    let attacker_color_board = match enemy_color {
-        Color::Black => board.get_black_pieces_board(),
-        Color::White => board.get_white_pieces_board(),
+    let attacker_color_board = match attacking_color {
+        Color::Black => bit_board.get_black_pieces_board(),
+        Color::White => bit_board.get_white_pieces_board(),
     };
     fn found_map_to_moves(
         mut found: u64,
         to: &Coordinate,
-        game_state: &GameState,
+        bit_board: &BitBoard,
         moves: &mut Vec<Move>,
     ) {
-        BitBoard::print_bitboard(found);
         let mut current_bit = BitBoard::pop_bit(&mut found);
         while (current_bit > 0) {
             let from = BitBoard::bit_to_coordinate(current_bit);
-            let piece = game_state.get_piece_at(&from).unwrap();
-            moves.push(make_move_to(
-                &from,
-                &to,
-                piece,
-                MoveType::Move,
-                game_state.get_board_ref(),
-                game_state,
-            ));
+            let piece = bit_board.get_piece_at(&from).unwrap();
+            moves.push(make_quiet_move(&from, &to, &piece, MoveType::Move));
             current_bit = BitBoard::pop_bit(&mut found);
         }
     }
     // for each piece type check their attack array
     // pawns
-    let pawn_attack_map = match attacking_color {
+    let pawn_attack_map = match attacking_color.opposite() {
         Color::Black => BLACK_PAWN_ATTACKS[(idx - 1) as usize],
         Color::White => WHITE_PAWN_ATTACKS[(idx - 1) as usize],
     };
-    let mut found_pawns = pawn_attack_map & attacker_color_board & board.get_pawns_board();
+    let mut found_pawns = pawn_attack_map & attacker_color_board & bit_board.get_pawns_board();
     if found_pawns > 0 {
-        found_map_to_moves(found_pawns, &to, game_state, &mut moves);
+        found_map_to_moves(found_pawns, &to, bit_board, &mut moves);
     }
+    // @todo : en passant ?
     // knights
     let knight_attack_map = KNIGHT_ATTACKS[(idx - 1) as usize];
-    let found_knights = knight_attack_map & attacker_color_board & board.get_knights_board();
+    let found_knights = knight_attack_map & attacker_color_board & bit_board.get_knights_board();
     if found_knights > 0 {
-        found_map_to_moves(found_knights, &to, game_state, &mut moves);
+        found_map_to_moves(found_knights, &to, bit_board, &mut moves);
     }
 
     // king
     let king_attack_map = KING_ATTACKS[(idx - 1) as usize];
-    let found_king = king_attack_map & attacker_color_board & board.get_kings_board();
+    let found_king = king_attack_map & attacker_color_board & bit_board.get_kings_board();
     if found_king > 0 {
-        found_map_to_moves(found_king, &to, game_state, &mut moves);
+        found_map_to_moves(found_king, &to, bit_board, &mut moves);
     }
 
     // bishop
-    let (bishop_move_map, bishop_capture_map) = gen_bishop_attacks_from(board, idx, attacking_color);
-    let found_bishop = bishop_capture_map & attacker_color_board & board.get_bishops_board();
+    let (bishop_move_map, bishop_capture_map, bishop_defenders_map) =
+        gen_bishop_attacks_from(bit_board, idx, attacking_color, true, true);
+    let found_bishop = bishop_move_map & attacker_color_board & bit_board.get_bishops_board();
     if found_bishop > 0 {
-        found_map_to_moves(found_bishop, &to, game_state, &mut moves);
+        found_map_to_moves(found_bishop, &to, bit_board, &mut moves);
     }
-    
+
     // rook
-    let (rook_move_map, rook_attack_map) = gen_rook_attacks_from(board, idx, attacking_color);
-    let found_rooks = rook_attack_map & attacker_color_board & board.get_rooks_board();
-    
+    let (rook_move_map, rook_attack_map, rook_defenders_map) =
+        gen_rook_attacks_from(bit_board, idx, attacking_color, true, true);
+    let found_rooks = rook_move_map & attacker_color_board & bit_board.get_rooks_board();
+
     if found_rooks > 0 {
-        found_map_to_moves(found_rooks, &to, game_state, &mut moves);    
+        found_map_to_moves(found_rooks, &to, bit_board, &mut moves);
     }
     // queen
-    let (queen_move_map, queen_attack_map) = gen_queen_attacks_from(board, idx, attacking_color);
-    let found_queens = queen_attack_map & board.get_queens_board() & attacker_color_board;
+    let (queen_move_map, queen_attack_map, queen_defenders_map) =
+        gen_queen_attacks_from(bit_board, idx, attacking_color, true, true);
+    let found_queens = queen_move_map & bit_board.get_queens_board() & attacker_color_board;
     if found_queens > 0 {
-        found_map_to_moves(found_queens, &to, game_state, &mut moves);
+        found_map_to_moves(found_queens, &to, bit_board, &mut moves);
     }
 
     return moves;
@@ -1210,13 +1205,14 @@ pub fn gen_rook_vector(game_state: &GameState, piece: &Piece) -> Vec<Move> {
         let to = BitBoard::bit_to_coordinate(to_bit);
 
         if BitBoard::bit_on_bit_board(to_bit, captures_board) {
-            moves.push(make_move_to(
+            moves.push(make_captures_move(
                 at,
                 &to,
                 piece,
                 MoveType::Move,
                 &board,
                 game_state,
+                None,
             ));
         } else {
             moves.push(make_quiet_move_with_castle_rights(
@@ -1228,17 +1224,39 @@ pub fn gen_rook_vector(game_state: &GameState, piece: &Piece) -> Vec<Move> {
     return moves;
 }
 
-fn gen_queen_attacks_from(board: &BitBoard, idx: u8, color: Color) -> (u64, u64) {
-    let (rook_move, rook_captures) = gen_rook_attacks_from(board, idx, color);
-    let (bishop_move, bishop_captures) = gen_bishop_attacks_from(board, idx, color);
-    (bishop_move | rook_move, bishop_captures | rook_captures)
+fn gen_queen_attacks_from(
+    board: &BitBoard,
+    idx: u8,
+    color: Color,
+    captures: bool,
+    defenders: bool,
+) -> (u64, u64, u64) {
+    let (rook_move, rook_captures, rook_defenders) =
+        gen_rook_attacks_from(board, idx, color, captures, defenders);
+    let (bishop_move, bishop_captures, bishop_defenders) =
+        gen_bishop_attacks_from(board, idx, color, captures, defenders);
+    (
+        bishop_move | rook_move,
+        bishop_captures | rook_captures,
+        bishop_defenders | rook_defenders,
+    )
 }
 
-fn gen_rook_attacks_from(board: &BitBoard, idx: u8, color: Color) -> (u64, u64) {
+fn gen_rook_attacks_from(
+    board: &BitBoard,
+    idx: u8,
+    color: Color,
+    captures: bool,
+    defenders: bool,
+) -> (u64, u64, u64) {
     let pieces_bit_board = board.get_piece_board();
     //plan get the ray, remove this piece, check for nearest other piece
     //going up or right the nearest piece is the lsb
     let start_bit = BitBoard::idx_to_bit(idx);
+    let friendly_bits = match color {
+        Color::White => board.get_white_pieces_board(),
+        Color::Black => board.get_black_pieces_board(),
+    };
     let enemy_bits = match color {
         Color::White => board.get_black_pieces_board(),
         Color::Black => board.get_white_pieces_board(),
@@ -1246,11 +1264,66 @@ fn gen_rook_attacks_from(board: &BitBoard, idx: u8, color: Color) -> (u64, u64) 
     let less_board = start_bit - 1;
     let mut to_move_board: u64 = 0;
     let mut captures_board: u64 = 0;
+    let mut defenders_board: u64 = 0;
 
     // break up the file into up/below sections
     let file = BitBoard::get_file_for_bit(start_bit);
     let above_me_file = (file ^ (less_board | start_bit)) & file;
     let below_me_file = (file ^ above_me_file) ^ start_bit;
+
+    fn above(
+        nearest: u64,
+        enemy_bits: u64,
+        friendly_bits: u64,
+        below_me: u64,
+        captures: bool,
+        defenders: bool,
+    ) -> (u64, u64, u64) {
+        let mut to_move = 0;
+        let mut to_cap = 0;
+        let mut to_def = 0;
+        let is_enemy = BitBoard::bit_on_bit_board(nearest, enemy_bits);
+        let is_friendly = BitBoard::bit_on_bit_board(nearest, friendly_bits);
+        let is_enemy = BitBoard::bit_on_bit_board(nearest, enemy_bits);
+
+        //
+        let mut above_nearest = (!(nearest - 1) & below_me) ^ nearest;
+        if is_enemy && captures {
+            above_nearest = !(nearest - 1) & below_me;
+            to_cap = nearest;
+        } else if is_friendly && defenders {
+            above_nearest = !(nearest - 1) & below_me;
+            to_def = nearest;
+        }
+        to_move = above_nearest;
+        (to_move, to_cap, to_def)
+    }
+
+    fn below(
+        nearest: u64,
+        enemy_bits: u64,
+        friendly_bits: u64,
+        above_me: u64,
+        captures: bool,
+        defenders: bool,
+    ) -> (u64, u64, u64) {
+        let mut to_move = 0;
+        let mut to_cap = 0;
+        let mut to_def = 0;
+        let is_enemy = BitBoard::bit_on_bit_board(nearest, enemy_bits);
+        let is_friendly = BitBoard::bit_on_bit_board(nearest, friendly_bits);
+        //
+        let mut below_nearest = (nearest - 1) & above_me;
+        if is_enemy && captures {
+            below_nearest = ((nearest - 1) | nearest) & above_me;
+            to_cap = nearest;
+        } else if is_friendly && defenders {
+            below_nearest = ((nearest - 1) | nearest) & above_me;
+            to_def = nearest;
+        }
+        to_move = below_nearest;
+        (to_move, to_cap, to_def)
+    }
 
     // above_me_file == 0 then there's no where up to go
     if above_me_file != 0 {
@@ -1259,15 +1332,17 @@ fn gen_rook_attacks_from(board: &BitBoard, idx: u8, color: Color) -> (u64, u64) 
         if nearest == 0 {
             to_move_board = to_move_board | above_me_file;
         } else {
-            // if the nearest piece is an enemy we include it
-            let is_enemy = BitBoard::bit_on_bit_board(nearest, enemy_bits);
-            // now get everything below this on the file
-            let mut below_nearest = (nearest - 1) & above_me_file;
-            if is_enemy {
-                below_nearest = ((nearest - 1) | nearest) & above_me_file;
-                captures_board = captures_board | nearest;
-            }
-            to_move_board = to_move_board | below_nearest;
+            let (to_move, to_cap, to_def) = below(
+                nearest,
+                enemy_bits,
+                friendly_bits,
+                above_me_file,
+                captures,
+                defenders,
+            );
+            to_move_board |= to_move;
+            captures_board |= to_cap;
+            defenders_board |= to_def;
         }
     }
     // below_me_file == 0 then there's no where down to go
@@ -1277,14 +1352,17 @@ fn gen_rook_attacks_from(board: &BitBoard, idx: u8, color: Color) -> (u64, u64) 
         if nearest == 0 {
             to_move_board = to_move_board | below_me_file;
         } else {
-            // if the nearest piece is an enemy we include it
-            let is_enemy = BitBoard::bit_on_bit_board(nearest, enemy_bits);
-            let mut above_nearest = (!(nearest - 1) & below_me_file) ^ nearest;
-            if is_enemy {
-                above_nearest = !(nearest - 1) & below_me_file;
-                captures_board = captures_board | nearest;
-            }
-            to_move_board = to_move_board | above_nearest;
+            let (to_move, to_cap, to_def) = above(
+                nearest,
+                enemy_bits,
+                friendly_bits,
+                below_me_file,
+                captures,
+                defenders,
+            );
+            to_move_board |= to_move;
+            captures_board |= to_cap;
+            defenders_board |= to_def;
         }
     }
 
@@ -1300,14 +1378,17 @@ fn gen_rook_attacks_from(board: &BitBoard, idx: u8, color: Color) -> (u64, u64) 
         if nearest == 0 {
             to_move_board = to_move_board | left_row;
         } else {
-            // if the nearest piece is an enemy we include it
-            let is_enemy = BitBoard::bit_on_bit_board(nearest, enemy_bits);
-            let mut right_of_nearest = (!(nearest - 1) & left_row) ^ nearest;
-            if is_enemy {
-                right_of_nearest = !(nearest - 1) & left_row;
-                captures_board = captures_board | nearest;
-            }
-            to_move_board = to_move_board | right_of_nearest;
+            let (to_move, to_cap, to_def) = above(
+                nearest,
+                enemy_bits,
+                friendly_bits,
+                left_row,
+                captures,
+                defenders,
+            );
+            to_move_board |= to_move;
+            captures_board |= to_cap;
+            defenders_board |= to_def;
         }
     }
     // right row == 0 then there's nowhere right
@@ -1317,20 +1398,33 @@ fn gen_rook_attacks_from(board: &BitBoard, idx: u8, color: Color) -> (u64, u64) 
         if nearest == 0 {
             to_move_board = to_move_board | right_row;
         } else {
-            // if the nearest piece is an enemy we include it
-            let is_enemy = BitBoard::bit_on_bit_board(nearest, enemy_bits);
-            let mut left_of_nearest = (nearest - 1) & right_row;
-            if is_enemy {
-                left_of_nearest = ((nearest - 1) | nearest) & right_row;
-                captures_board = captures_board | nearest;
-            }
-            to_move_board = to_move_board | left_of_nearest;
+            let (to_move, to_cap, to_def) = below(
+                nearest,
+                enemy_bits,
+                friendly_bits,
+                right_row,
+                captures,
+                defenders,
+            );
+            to_move_board |= to_move;
+            captures_board |= to_cap;
+            defenders_board |= to_def;
         }
     }
-    (to_move_board, captures_board)
+    (to_move_board, captures_board, defenders_board)
 }
 
-fn gen_bishop_attacks_from(board: &BitBoard, idx: u8, color: Color) -> (u64, u64) {
+/*
+if captures, then include capture moves
+if defendrs, then include friendly pieces
+ */
+fn gen_bishop_attacks_from(
+    board: &BitBoard,
+    idx: u8,
+    color: Color,
+    captures: bool,
+    defenders: bool,
+) -> (u64, u64, u64) {
     let start_bit = BitBoard::idx_to_bit(idx);
     let friendly_bits = match color {
         Color::White => board.get_white_pieces_board(),
@@ -1344,31 +1438,96 @@ fn gen_bishop_attacks_from(board: &BitBoard, idx: u8, color: Color) -> (u64, u64
     let less_board = start_bit - 1;
     let mut to_move_board: u64 = 0;
     let mut captures_board: u64 = 0;
+    let mut defenders_board: u64 = 0;
 
     // length for diagonals == 1 || 2
     let diagonals = BitBoard::get_diagonals_vec_for_bit(start_bit);
     let is_a_file = BitBoard::on_file(start_bit, A_FILE);
     let is_h_file = BitBoard::on_file(start_bit, H_FILE);
+    let is_row_8 = BitBoard::on_row(start_bit, ROW_8);
+    let is_row_1 = BitBoard::on_row(start_bit, ROW_1);
 
     // check files or this stuff will wrap around, if the direction is off the board
     // just set it to 0
     // above and below the board ?
     let up_right_bit = match is_h_file {
         true => 0,
-        false => start_bit << 9,
+        false => match is_row_8 {
+            true => 0,
+            false => start_bit << 9,
+        },
     };
     let up_left_bit = match is_a_file {
         true => 0,
-        false => start_bit << 7,
+        false => match is_row_8 {
+            true => 0,
+            false => start_bit << 7,
+        },
     };
     let down_right_bit = match is_h_file {
         true => 0,
-        false => start_bit >> 7,
+        false => match is_row_1 {
+            true => 0,
+            false => start_bit >> 7,
+        },
     };
     let down_left_bit = match is_a_file {
         true => 0,
-        false => start_bit >> 9,
+        false => match is_row_1 {
+            true => 0,
+            false => start_bit >> 9,
+        },
     };
+
+    fn get_nearest_below(
+        nearest: u64,
+        friendly_bits: u64,
+        enemy_bits: u64,
+        up_path: u64,
+        captures: bool,
+        defenders: bool,
+    ) -> (u64, u64, u64) {
+        let is_enemy = BitBoard::bit_on_bit_board(nearest, enemy_bits);
+        let is_friendly = BitBoard::bit_on_bit_board(nearest, friendly_bits);
+        let mut below_nearest = (nearest - 1) & up_path;
+
+        let mut to_move = 0;
+        let mut to_capture = 0;
+        let mut to_defend = 0;
+        if is_enemy && captures {
+            below_nearest = ((nearest - 1) & up_path) | nearest;
+            to_capture = nearest;
+        } else if is_friendly && defenders {
+            below_nearest = ((nearest - 1) & up_path) | nearest;
+            to_defend = nearest;
+        }
+        to_move = below_nearest;
+        (to_move, to_capture, to_defend)
+    }
+    fn get_nearest_above(
+        nearest: u64,
+        friendly_bits: u64,
+        enemy_bits: u64,
+        down_path: u64,
+        captures: bool,
+        defenders: bool,
+    ) -> (u64, u64, u64) {
+        let is_enemy = BitBoard::bit_on_bit_board(nearest, enemy_bits);
+        let is_friendly = BitBoard::bit_on_bit_board(nearest, friendly_bits);
+        let mut above_nearest = (!(nearest - 1) & down_path) ^ nearest;
+        let mut to_move = 0;
+        let mut to_capture = 0;
+        let mut to_defend = 0;
+        if is_enemy && captures {
+            above_nearest = !(nearest - 1) & down_path;
+            to_capture = nearest;
+        } else if is_friendly && defenders {
+            above_nearest = !(nearest - 1) & down_path;
+            to_defend = nearest;
+        }
+        to_move = above_nearest;
+        (to_move, to_capture, to_defend)
+    }
 
     for diagonal in diagonals {
         /* UP RIGHT DIAGONAL */
@@ -1386,13 +1545,17 @@ fn gen_bishop_attacks_from(board: &BitBoard, idx: u8, color: Color) -> (u64, u64
                     // add all
                     to_move_board = to_move_board | up_path;
                 } else {
-                    let is_enemy = BitBoard::bit_on_bit_board(nearest, enemy_bits);
-                    let mut below_nearest = (nearest - 1) & up_path;
-                    if is_enemy {
-                        below_nearest = ((nearest - 1) & up_path) | nearest;
-                        captures_board = captures_board | nearest;
-                    }
-                    to_move_board = to_move_board | below_nearest;
+                    let (to_move, to_cap, to_def) = get_nearest_below(
+                        nearest,
+                        friendly_bits,
+                        enemy_bits,
+                        up_path,
+                        captures,
+                        defenders,
+                    );
+                    to_move_board |= to_move;
+                    captures_board |= to_cap;
+                    defenders_board |= to_def;
                 }
             }
             if down_path > 0 {
@@ -1403,13 +1566,17 @@ fn gen_bishop_attacks_from(board: &BitBoard, idx: u8, color: Color) -> (u64, u64
                     // add all
                     to_move_board = to_move_board | down_path;
                 } else {
-                    let is_enemy = BitBoard::bit_on_bit_board(nearest, enemy_bits);
-                    let mut above_nearest = (!(nearest - 1) & down_path) ^ nearest;
-                    if is_enemy {
-                        above_nearest = !(nearest - 1) & down_path;
-                        captures_board = captures_board | nearest;
-                    }
-                    to_move_board = to_move_board | above_nearest;
+                    let (to_move, to_cap, to_def) = get_nearest_above(
+                        nearest,
+                        friendly_bits,
+                        enemy_bits,
+                        down_path,
+                        captures,
+                        defenders,
+                    );
+                    to_move_board |= to_move;
+                    captures_board |= to_cap;
+                    defenders_board |= to_def;
                 }
             }
         }
@@ -1429,13 +1596,17 @@ fn gen_bishop_attacks_from(board: &BitBoard, idx: u8, color: Color) -> (u64, u64
                     // add all
                     to_move_board = to_move_board | up_path;
                 } else {
-                    let is_enemy = BitBoard::bit_on_bit_board(nearest, enemy_bits);
-                    let mut below_nearest = (nearest - 1) & up_path;
-                    if is_enemy {
-                        below_nearest = ((nearest - 1) & up_path) | nearest;
-                        captures_board = captures_board | nearest;
-                    }
-                    to_move_board = to_move_board | below_nearest;
+                    let (to_move, to_cap, to_def) = get_nearest_below(
+                        nearest,
+                        friendly_bits,
+                        enemy_bits,
+                        up_path,
+                        captures,
+                        defenders,
+                    );
+                    to_move_board |= to_move;
+                    captures_board |= to_cap;
+                    defenders_board |= to_def;
                 }
             }
             if down_path > 0 {
@@ -1446,18 +1617,22 @@ fn gen_bishop_attacks_from(board: &BitBoard, idx: u8, color: Color) -> (u64, u64
                     // add all
                     to_move_board = to_move_board | down_path;
                 } else {
-                    let is_enemy = BitBoard::bit_on_bit_board(nearest, enemy_bits);
-                    let mut above_nearest = (!(nearest - 1) & down_path) ^ nearest;
-                    if is_enemy {
-                        above_nearest = !(nearest - 1) & down_path;
-                        captures_board = captures_board | nearest;
-                    }
-                    to_move_board = to_move_board | above_nearest;
+                    let (to_move, to_cap, to_def) = get_nearest_above(
+                        nearest,
+                        friendly_bits,
+                        enemy_bits,
+                        down_path,
+                        captures,
+                        defenders,
+                    );
+                    to_move_board |= to_move;
+                    captures_board |= to_cap;
+                    defenders_board |= to_def;
                 }
             }
         }
     }
-    return (to_move_board, captures_board);
+    return (to_move_board, captures_board, defenders_board);
 }
 
 pub fn gen_bishop_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
@@ -1465,7 +1640,8 @@ pub fn gen_bishop_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
     let at = piece.at().unwrap();
     let idx = BitBoard::coordinate_to_idx(*at);
 
-    let (mut to_move_board, mut captures_board) = gen_bishop_attacks_from(board, idx, piece.color);
+    let (mut to_move_board, mut captures_board, _) =
+        gen_bishop_attacks_from(board, idx, piece.color, true, false);
     let mut moves: Vec<Move> = vec![];
 
     while to_move_board > 0 {
@@ -1473,18 +1649,17 @@ pub fn gen_bishop_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
         let to = BitBoard::bit_to_coordinate(to_bit);
 
         if BitBoard::bit_on_bit_board(to_bit, captures_board) {
-            moves.push(make_move_to(
+            moves.push(make_captures_move(
                 at,
                 &to,
                 piece,
                 MoveType::Move,
                 &board,
                 game_state,
+                None,
             ));
         } else {
-            moves.push(make_quiet_move_with_castle_rights(
-                at, &to, piece, game_state,
-            ));
+            moves.push(make_quiet_move(at, &to, piece, MoveType::Move));
         }
     }
 
@@ -1499,7 +1674,8 @@ pub fn gen_rook_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
     let idx: u8 = BitBoard::coordinate_to_idx(*at);
     let pieces_bit_board = board.get_piece_board();
 
-    let (mut to_move_board, mut captures_board) = gen_rook_attacks_from(board, idx, piece.color);
+    let (mut to_move_board, mut captures_board, _) =
+        gen_rook_attacks_from(board, idx, piece.color, true, false);
     let mut moves: Vec<Move> = vec![];
     let color = piece.color;
 
@@ -1508,13 +1684,14 @@ pub fn gen_rook_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
         let to = BitBoard::bit_to_coordinate(to_bit);
 
         if BitBoard::bit_on_bit_board(to_bit, captures_board) {
-            moves.push(make_move_to(
+            moves.push(make_captures_move(
                 at,
                 &to,
                 piece,
                 MoveType::Move,
                 &board,
                 game_state,
+                None,
             ));
         } else {
             moves.push(make_quiet_move_with_castle_rights(
@@ -1527,24 +1704,41 @@ pub fn gen_rook_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
 }
 
 pub fn gen_king_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
-    let board = game_state.get_board();
+    let board = game_state.get_board_ref();
     let at = piece.at().unwrap();
     let idx = BitBoard::coordinate_to_idx(*at);
     let attack_board: u64 = KING_ATTACKS[(idx - 1) as usize];
-    let mut moves: Vec<Move> = vec![];
     let color = piece.color;
+    let enemy_board = match color {
+        Color::White => board.get_black_pieces_board(),
+        Color::Black => board.get_white_pieces_board(),
+    };
+    let friendly_board = match color {
+        Color::White => board.get_white_pieces_board(),
+        Color::Black => board.get_black_pieces_board(),
+    };
+    let quiet_moves_board: u64 = attack_board & !friendly_board & !enemy_board;
+    let captures_moves_board: u64 = attack_board & enemy_board;
+    let mut moves: Vec<Move> = vec![];
 
-    for to in BitBoard::attack_map_to_coordinates(attack_board) {
-        if square_occupiable_by(&board, &to, color) {
-            moves.push(make_move_to(
-                at,
-                &to,
-                piece,
-                MoveType::Move,
-                &board,
-                game_state,
-            ));
-        }
+    // Quiet Moves
+    for to in BitBoard::attack_map_to_coordinates(quiet_moves_board) {
+        moves.push(make_quiet_move_with_castle_rights(
+            at, &to, piece, game_state,
+        ));
+    }
+
+    // Captures
+    for to in BitBoard::attack_map_to_coordinates(captures_moves_board) {
+        moves.push(make_captures_move(
+            at,
+            &to,
+            piece,
+            MoveType::Move,
+            board,
+            game_state,
+            None,
+        ));
     }
 
     // castling
@@ -1569,24 +1763,39 @@ pub fn gen_king_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
 
 /*@todo : test  */
 pub fn gen_knight_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
-    let board = game_state.get_board();
+    let board = game_state.get_board_ref();
     let at = piece.at().unwrap();
     let idx = BitBoard::coordinate_to_idx(*at);
     let attack_board: u64 = KNIGHT_ATTACKS[(idx - 1) as usize];
-    let mut moves: Vec<Move> = vec![];
     let color = piece.color;
-    //@todo : get captured piece type
-    for to in BitBoard::attack_map_to_coordinates(attack_board) {
-        if square_occupiable_by(&board, &to, color) {
-            moves.push(make_move_to(
-                at,
-                &to,
-                piece,
-                MoveType::Move,
-                &board,
-                game_state,
-            ));
-        }
+    let enemy_board = match color {
+        Color::White => board.get_black_pieces_board(),
+        Color::Black => board.get_white_pieces_board(),
+    };
+    let friendly_board = match color {
+        Color::White => board.get_white_pieces_board(),
+        Color::Black => board.get_black_pieces_board(),
+    };
+    let quiet_moves_board: u64 = attack_board & !friendly_board & !enemy_board;
+    let captures_moves_board: u64 = attack_board & enemy_board;
+    let mut moves: Vec<Move> = vec![];
+
+    //Quiet Moves
+    for to in BitBoard::attack_map_to_coordinates(quiet_moves_board) {
+        moves.push(make_quiet_move(at, &to, piece, MoveType::Move));
+    }
+
+    // Captures
+    for to in BitBoard::attack_map_to_coordinates(captures_moves_board) {
+        moves.push(make_captures_move(
+            at,
+            &to,
+            piece,
+            MoveType::Move,
+            board,
+            game_state,
+            None,
+        ));
     }
 
     return moves;
@@ -1597,7 +1806,8 @@ pub fn gen_knight_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
 one square move, two square move, capturing diagonally forward, pawn promotion, en passant
 **/
 pub fn gen_pawn_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
-    let board = game_state.get_board();
+    let board = game_state.get_board_ref();
+    let pieces_board = board.get_white_pieces_board() | board.get_black_pieces_board();
     let at = piece.at().unwrap();
     let idx = BitBoard::coordinate_to_idx(*at);
     let mut moves: Vec<Move> = vec![];
@@ -1634,25 +1844,27 @@ pub fn gen_pawn_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
     // quiet pawn moves
     let up_one = at.add(0, 1 * direction);
     let up_two = at.add(0, 2 * direction);
-    if square_is_empty(&board, &up_one) {
-        //promotion
+    let up_one_bit = BitBoard::coordinate_to_bit(up_one);
+    let up_two_bit = BitBoard::coordinate_to_bit(up_two);
+
+    // move up 1
+    if (up_one_bit & !pieces_board) > 0 {
         if up_one.y() == promotion_y {
             // make promotion moves
             for promotion_type in promotion_pieces.iter() {
-                moves.push(Move::new(
-                    *at,
-                    up_one,
-                    piece.piece_type,
+                moves.push(make_quiet_move(
+                    at,
+                    &up_one,
+                    &piece,
                     MoveType::Promotion(*promotion_type),
-                    None,
-                    None,
-                    None,
                 ));
             }
         } else {
-            moves.push(make_quiet_move(at, &up_one, piece));
-            if square_is_empty(&board, &up_two) && at.y() == start_y {
-                let mut m = make_quiet_move(at, &up_two, piece);
+            moves.push(make_quiet_move(at, &up_one, piece, MoveType::Move));
+
+            // move up 2
+            if ((up_two_bit & !pieces_board) > 0) && at.y() == start_y {
+                let mut m = make_quiet_move(at, &up_two, piece, MoveType::Move);
                 m.en_passant_target = Some(up_one);
                 moves.push(m);
             }
@@ -1676,23 +1888,25 @@ pub fn gen_pawn_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
             if to.y() == promotion_y {
                 // make promotion moves
                 for promotion_type in promotion_pieces.iter() {
-                    moves.push(make_move_to(
+                    moves.push(make_captures_move(
                         at,
                         &to,
                         piece,
                         MoveType::Promotion(*promotion_type),
                         &board,
                         game_state,
+                        None,
                     ));
                 }
             } else {
-                moves.push(make_move_to(
+                moves.push(make_captures_move(
                     at,
                     &to,
                     piece,
                     MoveType::Move,
                     &board,
                     game_state,
+                    None,
                 ));
             }
         }
@@ -1702,16 +1916,18 @@ pub fn gen_pawn_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
     let en_passant_opt = game_state.get_en_passant_target();
     if en_passant_opt.is_some() {
         let to = en_passant_opt.unwrap();
+        let enemy_location = to.add(0, -direction);
         let bit = BitBoard::coordinate_to_bit(to);
         let target = bit & attack_board;
         if target > 0 {
-            moves.push(make_move_to(
+            moves.push(make_captures_move(
                 &at,
                 &to,
                 piece,
                 MoveType::EnPassant,
                 &board,
                 game_state,
+                Some(enemy_location),
             ));
         }
     }
@@ -1814,12 +2030,17 @@ fn is_on_board(c: &Coordinate) -> bool {
 }
 
 /* works if no castling rights have changed and no captures */
-pub fn make_quiet_move(from: &Coordinate, to: &Coordinate, piece: &Piece) -> Move {
+pub fn make_quiet_move(
+    from: &Coordinate,
+    to: &Coordinate,
+    piece: &Piece,
+    move_type: MoveType,
+) -> Move {
     return Move::new(
         from.clone(),
         to.clone(),
         piece.piece_type,
-        MoveType::Move,
+        move_type,
         None,
         None,
         None,
@@ -1843,26 +2064,31 @@ pub fn make_quiet_move_with_castle_rights(
     );
 }
 
-pub fn make_move_to(
+pub fn make_captures_move(
     from: &Coordinate,
     to: &Coordinate,
     piece: &Piece,
     move_type: MoveType,
     board: &BitBoard,
     game_state: &GameState,
+    en_passant_pawn_at: Option<Coordinate>,
 ) -> Move {
-    let captured = board.get_piece_at(&to);
+    //@todo : bug unwrap issue
+    let mut captured_opt = None;
+    if let Some(target) = en_passant_pawn_at {
+        captured_opt = Some(game_state.get_piece_at(&target).unwrap());
+    } else {
+        captured_opt = game_state.get_piece_at(&to);
+    }
+    let captured = captured_opt.unwrap();
     Move::new(
         from.clone(),
         to.clone(),
         piece.piece_type,
         move_type,
-        captured.map(|p| p.piece_type.clone()),
+        Some(captured.piece_type),
         game_state.get_castling_rights_changes_if_piece_moves(piece),
-        captured.map_or_else(
-            || None,
-            |p| game_state.get_castling_rights_changes_if_piece_moves(&p),
-        ),
+        game_state.get_castling_rights_changes_if_piece_moves(captured),
     )
 }
 
@@ -1871,7 +2097,7 @@ pub fn test() {
     let game_state = fen_reader::make_game_state(black_in_check_fen);
     let g8 = Coordinate::new(7, 8);
     let idx = BitBoard::coordinate_to_idx(g8);
-    gen_attacks_for_square(&game_state, idx, Color::White);
+    gen_attacks_for_square(game_state.get_board_ref(), idx, Color::White);
 
     // init_gen_queen_attacks();
     // init_gen_bishop_attacks();
@@ -1888,6 +2114,45 @@ mod tests {
         board::BoardTrait, chess_notation::fen_reader, game, game_state, move_generator::plmg,
     };
     use std::collections::HashSet;
+
+    #[test]
+    fn test_gen_attacks_for_square() {
+        let white_queen_checks = "rnb1k1nr/pp2pp1p/6pb/1Qpp4/qPPP4/N7/P3PPPP/R1B1KBNR b KQkq - 2 7";
+        let game_state = fen_reader::make_game_state(white_queen_checks);
+        let bit_board = game_state.get_board_ref();
+        let king = game_state.get_king(Color::Black).unwrap();
+        let e8 = Coordinate::new(5, 8);
+        let d7 = Coordinate::new(4, 7);
+        let c6 = Coordinate::new(3, 6);
+        let b1 = Coordinate::new(2, 1);
+        let c2 = Coordinate::new(3, 2);
+        let c4 = Coordinate::new(3, 4);
+        let c5 = Coordinate::new(3, 5);
+        // white queen attacks
+        let attacks =
+            gen_attacks_for_square(bit_board, BitBoard::coordinate_to_idx(e8), Color::White);
+        assert_eq!(attacks.len(), 1);
+        let attacks =
+            gen_attacks_for_square(bit_board, BitBoard::coordinate_to_idx(d7), Color::White);
+        assert_eq!(attacks.len(), 1);
+        let attacks =
+            gen_attacks_for_square(bit_board, BitBoard::coordinate_to_idx(c6), Color::White);
+        assert_eq!(attacks.len(), 1);
+        // rook and knight attacks
+        let attacks =
+            gen_attacks_for_square(bit_board, BitBoard::coordinate_to_idx(b1), Color::White);
+        assert_eq!(attacks.len(), 2);
+        // knight defends
+        let attacks =
+            gen_attacks_for_square(bit_board, BitBoard::coordinate_to_idx(c2), Color::White);
+        assert_eq!(attacks.len(), 1);
+        let attacks =
+            gen_attacks_for_square(bit_board, BitBoard::coordinate_to_idx(c4), Color::White);
+        assert_eq!(attacks.len(), 2);
+        let attacks =
+            gen_attacks_for_square(bit_board, BitBoard::coordinate_to_idx(c5), Color::White);
+        assert_eq!(attacks.len(), 3);
+    }
 
     #[test]
     fn test_gen_bishop_moves() {

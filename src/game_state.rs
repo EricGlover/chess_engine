@@ -23,6 +23,7 @@ pub struct GameState {
     dirty_pieces: bool,
     squares: Vec<Square>,
     pieces: HashMap<u8, Piece>,
+    is_drawn: bool,
 }
 
 // @todo :: test
@@ -106,8 +107,12 @@ impl BoardTrait for GameState {
                 self.half_move_clock = 0;
             }
 
+            if self.half_move_clock >= 50 {
+                self.is_drawn = true;
+            }
+
             // update castling rights
-            if !m.castling_rights_removed().none() {
+            if m.castling_rights_removed().some() {
                 let removed = m.castling_rights_removed();
                 if removed.king_side() {
                     match piece_to_move.color {
@@ -183,7 +188,7 @@ impl BoardTrait for GameState {
             // }
 
             // roll back castling rights changes
-            if !m.castling_rights_removed().none() {
+            if m.castling_rights_removed().some() {
                 let removed = m.castling_rights_removed();
                 if removed.king_side() {
                     match piece_to_move.color {
@@ -201,6 +206,8 @@ impl BoardTrait for GameState {
                             *self.white_castling_rights.queen_side_mut() = true;
                         }
                         Color::Black => {
+                            println!("SETTING QUEENSIDE TO TRUE");
+                            println!("{}", m);
                             *self.black_castling_rights.queen_side_mut() = true;
                         }
                     }
@@ -212,7 +219,7 @@ impl BoardTrait for GameState {
                 self.full_move_number = self.full_move_number - 1;
             }
 
-            // en passant 
+            // en passant
             self.en_passant_target = m.old_en_passant_target;
             self.half_move_clock = m.old_half_move_clock.unwrap();
 
@@ -294,8 +301,6 @@ impl BoardTrait for GameState {
         return self.pieces.get(&idx);
     }
 
-    
-
     fn get_kings(&self) -> Vec<&Piece> {
         let mut kings: Vec<&Piece> = Vec::new();
         for idx in self.board.get_piece_types_idx(PieceType::King) {
@@ -375,6 +380,7 @@ impl GameState {
             dirty_pieces: true,
             squares: Vec::new(),
             pieces: HashMap::new(),
+            is_drawn: false,
         };
         g.update_pieces();
         g.update_squares();
@@ -409,6 +415,7 @@ impl GameState {
             dirty_pieces: true,
             squares: Vec::new(),
             pieces: HashMap::new(),
+            is_drawn: false,
         };
         g.update_pieces();
         g.update_squares();
@@ -427,6 +434,7 @@ impl GameState {
             dirty_pieces: true,
             squares: Vec::new(),
             pieces: HashMap::new(),
+            is_drawn: false,
         };
         g.update_pieces();
         g.update_squares();
@@ -446,7 +454,11 @@ impl GameState {
             dirty_pieces: self.dirty_pieces,
             squares: self.squares.iter().map(|s| s._clone()).collect(),
             pieces: self.pieces.clone(),
+            is_drawn: false,
         }
+    }
+    pub fn get_is_draw(&self) -> bool {
+        self.is_drawn
     }
     pub fn get_player_to_move(&self) -> Color {
         self.player_to_move
@@ -819,15 +831,38 @@ impl GameState {
         if current.none() {
             None
         } else if piece.piece_type == PieceType::King {
-            Some(CastlingRights::new(
-                current.king_side(),
-                current.queen_side(),
-            ))
+            if current.both() {
+                Some(CastlingRights::new(
+                    true,
+                    true,
+                ))
+            } else if current.king_side() {
+                Some(CastlingRights::new(
+                    true,
+                    false,
+                ))
+            } else if current.queen_side() {
+                Some(CastlingRights::new(
+                    false,
+                    true,
+                ))
+            } else {
+                None
+            }
         } else if piece.piece_type == PieceType::Rook {
             // which rook bro ?
-            if current.king_side() && piece.at().unwrap().x() == 8 {
+            let piece_at = piece.at().unwrap();
+            let rook_at_kingside = match piece.color {
+                Color::White => &Coordinate::new(8,1) == piece_at,
+                Color::Black => &Coordinate::new(8,8) == piece_at,
+            };
+            let rook_at_queenside = match piece.color {
+                Color::White => &Coordinate::new(1,1) == piece_at,
+                Color::Black => &Coordinate::new(1,8) == piece_at,
+            };
+            if current.king_side() && rook_at_kingside {
                 Some(CastlingRights::new(true, false))
-            } else if current.queen_side() && piece.at().unwrap().x() == 1 {
+            } else if current.queen_side() && rook_at_queenside {
                 Some(CastlingRights::new(false, true))
             } else {
                 None
@@ -997,7 +1032,10 @@ impl GameState {
                         is_valid = false;
                     }
                     if self.pieces.get(&idx).is_some() {
-                        println!("piece should not be in hash map\n{}", self.pieces.get(&idx).is_none());
+                        println!(
+                            "piece should not be in hash map\n{}",
+                            self.pieces.get(&idx).is_none()
+                        );
                         is_valid = false;
                     }
                 }
@@ -1589,6 +1627,26 @@ mod tests {
             "total pieces found should be equal."
         );
         for piece in black_pieces.iter() {}
+    }
+
+    #[test]
+    fn test_en_passant() {
+        let fen = "r2q1rk1/p2p1ppp/1pn1pn2/2p1P1B1/1b1P4/2N2N1P/PPP2PP1/R2Q1RK1 b - - 0 6";
+        let mut game_state = fen_reader::make_game_state(fen);
+        let d7 = Coordinate::new(4, 7);
+        let d5 = d7.add(0, -2);
+        let b_moves = gen_legal_moves(&game_state, Color::Black);
+        let mut p_move = b_moves.into_iter().find(|m| {
+            return m.from == d7 && m.to == d5;
+        });
+        assert!(p_move.is_some());
+        let mut p_move = p_move.unwrap();
+        game_state.make_move_mut(&mut p_move);
+        let w_moves = gen_legal_moves(&game_state, Color::White);
+        let en_passant = w_moves
+            .into_iter()
+            .find(|m| m.move_type() == &MoveType::EnPassant);
+        assert!(en_passant.is_some());
     }
     #[test]
     fn test_get_castling_rights_changes_if_piece_moves() {}

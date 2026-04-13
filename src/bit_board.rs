@@ -202,8 +202,6 @@ impl BitBoard {
         }
     }
 
-    pub fn bit_map_to_coordinates() {}
-
     pub fn get_diagonal_for_bits(start: u64, end: u64) -> u64 {
         let diagonals = BitBoard::get_diagonals_vec_for_bit(start);
         for diagonal in diagonals {
@@ -1437,8 +1435,8 @@ mod bench {
 
 #[cfg(test)]
 mod test {
-    use crate::{bit_board::BitBoard, board::*};
     use super::*;
+    use crate::{bit_board::BitBoard, board::*, game_state::GameState};
 
     // pub fn bit_to_coordinate(bit: u64) -> Coordinate {
     //     let idx = BitBoard::get_index_of_bit(bit);
@@ -1512,9 +1510,37 @@ mod test {
         }
     }
     #[test]
+    fn test_get_piece_at() {
+        let game_state = GameState::starting_game();
+        let board = game_state.get_board_ref();
+        for y in 7..=8 {
+            for x in 1..=8 {
+                let at = Coordinate::new(x, y);
+                let piece = board.get_piece_at(&at);
+                assert!(piece.is_some());
+            }
+        }
+        for y in 3..=6 {
+            for x in 1..=8 {
+                let at = Coordinate::new(x, y);
+                let at = Coordinate::new(x, y);
+                let piece = board.get_piece_at(&at);
+                assert!(piece.is_none());
+            }
+        }
+        for y in 1..=2 {
+            for x in 1..=8 {
+                let at = Coordinate::new(x, y);
+                let at = Coordinate::new(x, y);
+                let piece = board.get_piece_at(&at);
+                assert!(piece.is_some());
+            }
+        }
+    }
+    #[test]
     fn test_shift_bit_board() {
         let d4 = 28;
-        let idx = 29;   //e4
+        let idx = 29; //e4
         let f4 = 30;
         //
         let d5 = 36;
@@ -1522,7 +1548,7 @@ mod test {
         let f5 = 38;
         //
         let d3 = 20;
-        let e3  = 21;
+        let e3 = 21;
         let f3 = 22;
         let start_bit = BitBoard::idx_to_bit(idx);
         // row 3

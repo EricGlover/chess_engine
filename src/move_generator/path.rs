@@ -321,31 +321,26 @@ mod tests {
         let a = Coordinate::new(1, 1);
         let b = Coordinate::new(8, 8);
         let path = make_path_bit_board(&a, &b, true, true);
-        BitBoard::print_bitboard(path);
         assert_eq!(u64::count_ones(path), 8);
         let path = make_path_bit_board(&a, &b, false, false);
-        BitBoard::print_bitboard(path);
         assert_eq!(u64::count_ones(path), 6);
 
         // right
         let a = Coordinate::new(1, 1);
         let b = Coordinate::new(2, 1);
         let path = make_path_bit_board(&a, &b, true, true);
-        BitBoard::print_bitboard(path);
         assert_eq!(u64::count_ones(path), 2);
 
         // up
         let a = Coordinate::new(1, 1);
         let b = Coordinate::new(1, 2);
         let path = make_path_bit_board(&a, &b, true, true);
-        BitBoard::print_bitboard(path);
         assert_eq!(u64::count_ones(path), 2);
 
         // test no path
         let a = Coordinate::new(1, 1);
         let b = Coordinate::new(2, 3);
         let path = make_path_bit_board(&a, &b, true, true);
-        BitBoard::print_bitboard(path);
         assert_eq!(u64::count_ones(path), 0);
     }
 }

@@ -46,7 +46,7 @@ pub struct Game {
     start_time: String,
     result: GameResult,
     enable_logging: bool,
-    game_start: Instant
+    game_start: Instant,
 }
 
 impl Game {
@@ -63,12 +63,12 @@ impl Game {
             start_time: Local::now().format("%Y-%m-%d_%H%M%S").to_string(),
             result: GameResult::InProgress,
             enable_logging: false,
-            game_start: Instant::now()
+            game_start: Instant::now(),
         }
     }
 
     pub fn get_turn(&self) -> u32 {
-        return (self.moves.len() as u32 / 2 ) + 1
+        return (self.moves.len() as u32 / 2) + 1;
     }
 
     pub fn get_time_elapsed(&self) -> Duration {
@@ -175,20 +175,23 @@ impl Game {
         self.board.make_move_mut(&mut m);
     }
 
-    fn end_game(&mut self, winner: Color) {
-        self.result = GameResult::Win {
-            winning_player: winner,
-        };
+    fn end_game(&mut self, winner: Option<Color>) {
         print_board(&self.board);
-        self.write_log();
-        println!("{} wins", winner);
+        if self.board.get_is_draw() {
+            self.result = GameResult::Draw;
+            println!("DRAW...EVERYONE LOSES. CONGRATS.");
+            self.write_log();
+        } else {
+            self.result = GameResult::Win {
+                winning_player: winner.unwrap(),
+            };
+            println!("{} wins", winner.unwrap());
+            self.write_log();
+        }
     }
 
     pub fn print_ai_stats_for_last_move(&self, ai: &ai::Ai) {
-        println!(
-            "{} transposition table hits",
-            ai.transposition_table_hits
-        );
+        println!("{} transposition table hits", ai.transposition_table_hits);
         println!(
             "moves evaluated {}, time elapsed {:?}",
             ai.minimax_calls(),
@@ -228,7 +231,7 @@ impl Game {
                 let log = print_move(&_move, &self.board);
                 println!("{} player choose move \n{}", self.ai.color(), log);
                 self.moves.push(log);
-                self.board.make_move_mut( _move);
+                self.board.make_move_mut(_move);
 
                 // if evaluation.is_checkmate() {
                 //     self.end_game(evaluation.mated_player.unwrap().opposite());
@@ -237,25 +240,42 @@ impl Game {
             }
         }
         println!("The game ended here ");
-        let t1 = match  self.ai.total_time_elapsed_during_search() {
+        let t1 = match self.ai.total_time_elapsed_during_search() {
             Some(duration) => duration.as_secs(),
-            None => 0
+            None => 0,
         };
-        let t2 = match  self.ai2.total_time_elapsed_during_search() {
+        let t2 = match self.ai2.total_time_elapsed_during_search() {
             Some(duration) => duration.as_secs(),
-            None => 0
+            None => 0,
         };
         if t1 > 0 {
-            println!("AI searched {} moves, over {} seconds, at a rate of {} moves / second ", self.ai.total_minimax_calls(), t1, self.ai.total_minimax_calls() / t1 as u128);
+            println!(
+                "AI searched {} moves, over {} seconds, at a rate of {} moves / second ",
+                self.ai.total_minimax_calls(),
+                t1,
+                self.ai.total_minimax_calls() / t1 as u128
+            );
         } else {
-            println!("AI searched {} moves, over {} seconds", self.ai.total_minimax_calls(), t1);
+            println!(
+                "AI searched {} moves, over {} seconds",
+                self.ai.total_minimax_calls(),
+                t1
+            );
         }
         if t2 > 0 {
-            println!("AI searched {} moves, over {} seconds, at a rate of {} moves / second ", self.ai2.total_minimax_calls(), t2, self.ai2.total_minimax_calls() / t2 as u128);
+            println!(
+                "AI searched {} moves, over {} seconds, at a rate of {} moves / second ",
+                self.ai2.total_minimax_calls(),
+                t2,
+                self.ai2.total_minimax_calls() / t2 as u128
+            );
         } else {
-            println!("AI searched {} moves, over {} seconds", self.ai2.total_minimax_calls(), t2);
+            println!(
+                "AI searched {} moves, over {} seconds",
+                self.ai2.total_minimax_calls(),
+                t2
+            );
         }
-        
     }
 
     pub fn run_ai_versus_ai(mut self) {
@@ -263,13 +283,23 @@ impl Game {
             self.ai2_make_move();
             let evaluation = evaluate(&self.board, None, None);
             if evaluation.is_checkmate() {
-                self.end_game(evaluation.mated_player.unwrap().opposite());
+                self.end_game(Some(evaluation.mated_player.unwrap().opposite()));
+                break;
+            }
+            if self.board.get_is_draw() {
+                self.end_game(None);
+                break;
             }
             self.write_log();
             self.ai1_make_move();
             let evaluation = evaluate(&self.board, None, None);
+            if self.board.get_is_draw() {
+                self.end_game(None);
+                break;
+            }
             if evaluation.is_checkmate() {
-                self.end_game(evaluation.mated_player.unwrap().opposite());
+                self.end_game(Some(evaluation.mated_player.unwrap().opposite()));
+                break;
             }
             self.write_log();
         }
@@ -299,7 +329,7 @@ impl Game {
             let eval = ai::evaluator::evaluate(&self.board, None, None);
             println!("eval {}", eval.score);
             if eval.is_checkmate() {
-                self.end_game(eval.mated_player.unwrap().opposite());
+                self.end_game(Some(eval.mated_player.unwrap().opposite()));
                 break;
             }
 
@@ -316,7 +346,7 @@ impl Game {
             println!("eval {}", eval.score);
             self.print_ai_stats_for_last_move(&self.ai);
             if eval.is_checkmate() {
-                self.end_game(eval.mated_player.unwrap().opposite());
+                self.end_game(Some(eval.mated_player.unwrap().opposite()));
                 break;
             }
             print_board(&self.board);

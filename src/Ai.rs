@@ -11,132 +11,6 @@ use std::ops::Add;
 // use std::iter::Map;
 use std::time::{Duration, Instant};
 
-#[cfg(test)]
-mod bench {
-    use super::*;
-    use crate::{chess_notation::fen_reader::{make_board, make_initial_board}, game_state};
-    use Ai;
-    use std::time::{Duration, Instant};
-    use test::Bencher;
-
-    #[bench]
-    fn alpha_beta_0(b:&mut Bencher) {
-        let mut game_state = GameState::starting_game();
-        let mut ai = Ai::new_with_search(Color::White, AiSearch::AlphaBeta);
-        b.iter(|| {
-            ai.make_move(&mut game_state, Some(0));
-        })
-    }
-    #[bench]
-    fn alpha_beta_1(b:&mut Bencher) {
-        let mut game_state = GameState::starting_game();
-        let mut ai = Ai::new_with_search(Color::White, AiSearch::AlphaBeta);
-        b.iter(|| {
-            ai.make_move(&mut game_state, Some(1));
-        })
-    }
-    #[bench]
-    fn alpha_beta_2(b:&mut Bencher) {
-        let mut game_state = GameState::starting_game();
-        let mut ai = Ai::new_with_search(Color::White, AiSearch::AlphaBeta);
-        b.iter(|| {
-            ai.make_move(&mut game_state, Some(2));
-        })
-    }
-    #[bench]
-    fn alpha_beta_3(b:&mut Bencher) {
-        let mut game_state = GameState::starting_game();
-        let mut ai = Ai::new_with_search(Color::White, AiSearch::AlphaBeta);
-        b.iter(|| {
-            ai.make_move(&mut game_state, Some(3));
-        })
-    }
-    // takes way to long
-    // #[bench]
-    // fn alpha_beta_4(b:&mut Bencher) {
-    //     let board = make_initial_board();
-    //     let mut ai = ai::new_with_search(Color::White, AiSearch::AlphaBeta);
-    //     b.iter(|| {
-    //         ai.make_move(&board, Some(4));
-    //     })
-    // }
-}
-
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::{chess_notation::fen_reader::{self, make_board, make_initial_board}, game_state, move_generator};
-    use Ai;
-    use std::time::{Duration, Instant};
-
-    // #[test]
-    // fn bug_alpha_beta() {
-    //     let fen = "rnb1kbnr/pppp1p1p/4pp2/8/8/3BP3/PPPP1PPP/RNB1K1NR b KQkq - 3 4";
-    //     let board = make_board(fen);
-    //     let mut ai = Ai::new(Color::Black);
-    //     ai.make_move(&board, Some(4));
-    // }
-
-    #[test]
-    fn search() {
-        //@todo :  don't search past a checkmate
-    }
-
-    #[test]
-    fn test_alpha_beta() {
-        //@todo : test more boards.... use pgn ????
-        fn test_initial_board_at_depth(depth: u8) {
-            let mut ai = Ai::new(Color::White);
-            let mut game_state = GameState::starting_game();
-            let (eval, best_move) =
-                ai.alpha_beta(&mut game_state, Color::White, depth, None, None);
-            let (expected_eval, expected_best_move) = ai.minimax(&mut game_state, Color::White, depth);
-
-            assert!(best_move.is_some(), "there is a best move");
-            assert_eq!(
-                best_move.unwrap(),
-                expected_best_move.unwrap(),
-                "alpha beta and minimax find the same move"
-            );
-            assert_eq!(
-                eval.score, expected_eval.score,
-                "alpha beta and minimax evaluate the same"
-            );
-        }
-        test_initial_board_at_depth(1);
-        test_initial_board_at_depth(2);
-        test_initial_board_at_depth(3);
-        // this takes forever...
-        // test_initial_board_at_depth(4);
-    }
-
-    #[test]
-    fn bug_unwrap() {
-        // black to move
-        let fen = "r3k1r1/1b1p1p2/p3pp2/B1b4p/Pp2P3/1BN2P2/1PP4P/R2K1R2 b q - 10 20";
-        let mut game_state = fen_reader::make_game_state(fen);
-
-        let fen = "r3k1r1/1b1p1p2/p3pp2/B1b4p/Pp2P3/1BN2P2/1PP4P/R2K1R2 b q - 10 20";
-        let mut game_state = fen_reader::make_game_state(fen);
-        let mut b_moves = move_generator::gen_legal_moves(&game_state, Color::Black);
-        for b_m in b_moves.iter_mut() {
-            println!("{}", b_m);
-            game_state.make_move_mut(b_m);
-            let mut ai = Ai::new(Color::White);
-            ai.make_move(&mut game_state, Some(3));
-        }
-
-
-        let mut ai = Ai::new(Color::Black);
-        ai.make_move(&mut game_state, Some(4));
-
-
-
-
-    }
-}
-
 pub enum AiSearch {
     AlphaBeta,
     Minimax,
@@ -231,6 +105,7 @@ impl Ai {
         mut lower_bound: Option<evaluator::Evaluation>,
         mut upper_bound: Option<evaluator::Evaluation>,
     ) -> (evaluator::Evaluation, Option<Move>) {
+        println!("alpha beta {}", depth_to_go);
         // transposition table
         let hash = self.hasher.hash_board(board);
         if self.transposition_table.contains_key(&hash) {
@@ -277,7 +152,10 @@ impl Ai {
             // player takes move , examine this board
             // assuming this player and the opponent make optimal moves
             // what's the evaluation of the best board state starting from here ?
+            println!("trying move {}", a_move);
+            // println!("black castle rights\n{:?}", board.get_castling_rights(Color::Black));
             board.make_move_mut(a_move);
+            // println!("after make \nblack castle rights\n{:?}", board.get_castling_rights(Color::Black));
             let (eval, _m) = self.alpha_beta(
                 board,
                 player_moving.opposite(),
@@ -286,6 +164,7 @@ impl Ai {
                 upper_bound,
             );
             board.unmake_move_mut(a_move);
+            // println!("after unmake\n black castle rights\n{:?}", board.get_castling_rights(Color::Black));
 
             // set best_move and best eval if they're not set
             if best_move.is_none() {
@@ -479,5 +358,133 @@ impl Ai {
             None => None,
             Some((_eval, m)) => m,
         }
+    }
+}
+
+
+
+#[cfg(test)]
+mod bench {
+    use super::*;
+    use crate::{chess_notation::fen_reader::{make_board, make_initial_board}, game_state};
+    use Ai;
+    use std::time::{Duration, Instant};
+    use test::Bencher;
+
+    #[bench]
+    fn alpha_beta_0(b:&mut Bencher) {
+        let mut game_state = GameState::starting_game();
+        let mut ai = Ai::new_with_search(Color::White, AiSearch::AlphaBeta);
+        b.iter(|| {
+            ai.make_move(&mut game_state, Some(0));
+        })
+    }
+    #[bench]
+    fn alpha_beta_1(b:&mut Bencher) {
+        let mut game_state = GameState::starting_game();
+        let mut ai = Ai::new_with_search(Color::White, AiSearch::AlphaBeta);
+        b.iter(|| {
+            ai.make_move(&mut game_state, Some(1));
+        })
+    }
+    #[bench]
+    fn alpha_beta_2(b:&mut Bencher) {
+        let mut game_state = GameState::starting_game();
+        let mut ai = Ai::new_with_search(Color::White, AiSearch::AlphaBeta);
+        b.iter(|| {
+            ai.make_move(&mut game_state, Some(2));
+        })
+    }
+    #[bench]
+    fn alpha_beta_3(b:&mut Bencher) {
+        let mut game_state = GameState::starting_game();
+        let mut ai = Ai::new_with_search(Color::White, AiSearch::AlphaBeta);
+        b.iter(|| {
+            ai.make_move(&mut game_state, Some(3));
+        })
+    }
+    // takes way to long
+    // #[bench]
+    // fn alpha_beta_4(b:&mut Bencher) {
+    //     let board = make_initial_board();
+    //     let mut ai = ai::new_with_search(Color::White, AiSearch::AlphaBeta);
+    //     b.iter(|| {
+    //         ai.make_move(&board, Some(4));
+    //     })
+    // }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{chess_notation::fen_reader::{self, make_board, make_initial_board}, game_state, move_generator};
+    use Ai;
+    use std::time::{Duration, Instant};
+
+    // #[test]
+    // fn bug_alpha_beta() {
+    //     let fen = "rnb1kbnr/pppp1p1p/4pp2/8/8/3BP3/PPPP1PPP/RNB1K1NR b KQkq - 3 4";
+    //     let board = make_board(fen);
+    //     let mut ai = Ai::new(Color::Black);
+    //     ai.make_move(&board, Some(4));
+    // }
+
+    #[test]
+    fn search() {
+        //@todo :  don't search past a checkmate
+    }
+
+    #[test]
+    fn test_alpha_beta() {
+        //@todo : test more boards.... use pgn ????
+        fn test_initial_board_at_depth(depth: u8) {
+            let mut ai = Ai::new(Color::White);
+            let mut game_state = GameState::starting_game();
+            let (eval, best_move) =
+                ai.alpha_beta(&mut game_state, Color::White, depth, None, None);
+            let (expected_eval, expected_best_move) = ai.minimax(&mut game_state, Color::White, depth);
+
+            assert!(best_move.is_some(), "there is a best move");
+            assert_eq!(
+                best_move.unwrap(),
+                expected_best_move.unwrap(),
+                "alpha beta and minimax find the same move"
+            );
+            assert_eq!(
+                eval.score, expected_eval.score,
+                "alpha beta and minimax evaluate the same"
+            );
+        }
+        test_initial_board_at_depth(1);
+        test_initial_board_at_depth(2);
+        test_initial_board_at_depth(3);
+        // this takes forever...
+        // test_initial_board_at_depth(4);
+    }
+
+    #[test]
+    fn bug_unwrap() {
+        // black to move
+        let fen = "r3k1r1/1b1p1p2/p3pp2/B1b4p/Pp2P3/1BN2P2/1PP4P/R2K1R2 b q - 10 20";
+        let mut game_state = fen_reader::make_game_state(fen);
+
+        let fen = "r3k1r1/1b1p1p2/p3pp2/B1b4p/Pp2P3/1BN2P2/1PP4P/R2K1R2 b q - 10 20";
+        let mut game_state = fen_reader::make_game_state(fen);
+        let mut b_moves = move_generator::gen_legal_moves(&game_state, Color::Black);
+        for b_m in b_moves.iter_mut() {
+            println!("{}", b_m);
+            game_state.make_move_mut(b_m);
+            let mut ai = Ai::new(Color::White);
+            ai.make_move(&mut game_state, Some(3));
+        }
+
+
+        let mut ai = Ai::new(Color::Black);
+        ai.make_move(&mut game_state, Some(4));
+
+
+
+
     }
 }

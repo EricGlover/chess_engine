@@ -11,6 +11,7 @@ use crate::move_generator::{
 };
 use std::fmt;
 use std::fmt::Formatter;
+use std::fs;
 
 const TEST_PGN: &str = r#"[Event "F/S Return Match"]
 [Site "Belgrade, Serbia JUG"]
@@ -70,6 +71,29 @@ impl fmt::Display for Mode {
     }
 }
 
+pub fn read_pgn_file() {
+    //  let res = fs::metadata("./Games");
+    //     let is_dir: bool = match res {
+    //         Ok(f) => f.is_dir(),
+    //         Err(err) => false,
+    //     };
+    //     if is_dir {
+    //         let mut path_str = format!("./Games/");
+    //         path_str.push_str("1.pgn");
+    //         let path = Path::new(path_str.as_str());
+    //         let display = path.display();
+    //         let mut contents: String = match std::fs::read_to_string(&path) {
+    //             Err(err) => panic!("couldn't read {}: {}", display, err),
+    //             Ok(file) => file,
+    //         };
+    //         contents = contents
+    //             .trim_start_matches('\u{feff}')
+    //             .replace("\r\n", "\n");
+    //         let moves = pgn::moves_from_pgn(contents.as_str());
+    //         game.run_sim_game(moves);
+    //         return;
+}
+
 pub fn moves_from_pgn(pgn: &str) -> Vec<Move> {
     // reading from a pgn time
     let mut moves: Vec<Move> = Vec::new();
@@ -86,43 +110,16 @@ pub fn moves_from_pgn(pgn: &str) -> Vec<Move> {
     // let mut info_section = true;
     // let mut move_section = false;
     for _s in pgn.split("\n").into_iter() {
-        // println!("=======");
-        // println!("{}", _s);
-        // println!("=======");
         if info_line_matcher.is_match(_s) {
-            // println!("===INFO TEXT====");
-            // println!("{}", _s);
-            // println!("===INFO TEXT====");
             continue;
         } else if _s.is_empty() || empty_space_matcher.is_match(_s) {
-            // println!("===EMPTY====");
-            // println!("===EMPTY====");
             continue;
         } else {
-            // println!("===MOVE TEXT====");
-            // println!("{}", _s);
-            // println!("===MOVE TEXT====");
             move_lines.push(_s);
         }
     }
 
     let move_text = move_lines.join("");
-    // let mut move_text = String::new();
-    // for _s in move_lines.into_iter() {
-    //     println!("{}", _s);
-    //     move_text.push_str(_s.clone().as_str());
-    // }
-    // put all move text in a string
-    // let mut move_text: String = move_lines.into_iter().collect();
-    // let mut move_text: String = String::new();
-    // println!("RUNNING MOVE LINES");
-    // for _s in move_lines {
-    //     println!("{}", _s);
-    //     move_text.push_str(_s);
-    // }
-    println!("MOVE TEXT =====");
-    println!("{}", move_text);
-    println!("MOVE TEXT =====");
 
     // remove the comments
     let comment_matcher = Regex::new(r"(\{[^*\}]*\})").unwrap();
@@ -131,17 +128,14 @@ pub fn moves_from_pgn(pgn: &str) -> Vec<Move> {
     // put it in a string again
     let mut move_text_2 = String::new();
     for _s in stuff {
-        println!("{}", _s);
         move_text_2.push_str(_s);
     }
-    // println!("move text2 = {} ", move_text_2);
 
     // take out all move turn stuff (eg. 1. 2. 3. )
     let turn_matcher = Regex::new(r"(\d+\.)").unwrap();
     let mut t = String::new();
     let stuff: Vec<&str> = turn_matcher.split(move_text_2.as_str()).collect();
     for _s in stuff {
-        // println!("{}", _s);
         t.push_str(_s);
     }
 
@@ -149,9 +143,7 @@ pub fn moves_from_pgn(pgn: &str) -> Vec<Move> {
     let move_candidates: Vec<&str> = t.split(' ').collect();
     let mut color_to_move = Color::White;
 
-    // println!(" found {} move candidates ", move_candidates.len());
     for _m in move_candidates {
-        // println!("considering candidate {}", _m);
         // skip empty
         if _m.is_empty() {
             continue;
@@ -176,7 +168,6 @@ pub fn moves_from_pgn(pgn: &str) -> Vec<Move> {
                     || ParsedMoveType::ShortCastles == parsed_move)
             {
                 // @todo :: handle castles
-                // println!("Castles move found ");
                 let mut new_move = match parsed_move {
                     ParsedMoveType::LongCastles => Move::castle_queen_side(color_to_move),
                     ParsedMoveType::ShortCastles => Move::castle_king_side(color_to_move),
@@ -202,12 +193,10 @@ pub fn moves_from_pgn(pgn: &str) -> Vec<Move> {
             let mut found_pieces =
                 scrap_game_state.find_pieces_can_move_to_square(color_to_move, piece_type, to);
             if found_pieces.is_empty() {
-                // println!("MOVE NOT FOUND X");
                 break;
             }
             let found_piece = found_pieces.pop().unwrap();
             if found_piece.at().is_none() {
-                // println!("PIECE MISSING");
                 break;
             }
             let from = found_piece.at().unwrap();
@@ -256,7 +245,6 @@ impl Game {
         let info_section = true;
         let mut move_section = false;
         for _s in pgn.split('\n').into_iter() {
-            // println!("{} \n is match {} \n is empty {} ", _s, info_line_matcher.is_match(_s), _s.is_empty());
             if move_section {
                 move_lines.push(_s);
             }
@@ -268,7 +256,7 @@ impl Game {
         // put all move text in a string
         let mut move_text: String = String::new();
         for _s in move_lines.into_iter() {
-            println!("{}", _s);
+            
             move_text.push_str(_s);
         }
 
@@ -279,7 +267,6 @@ impl Game {
         // put it in a string again
         let mut move_text_2 = String::new();
         for _s in stuff {
-            println!("{}", _s);
             move_text_2.push_str(_s);
         }
 
@@ -288,7 +275,6 @@ impl Game {
         let mut t = String::new();
         let stuff: Vec<&str> = turn_matcher.split(move_text_2.as_str()).collect();
         for _s in stuff {
-            println!("{}", _s);
             t.push_str(_s);
         }
 
@@ -301,18 +287,18 @@ impl Game {
             }
             // if is valid move
             // do stuff
-            println!("{}", _m);
+            
             let res = read_move(_m);
             if res.is_none() {
                 println!("MOVE NOT FOUND");
             } else {
                 let (piece_type, coordinate, parsed_move, promotion_type) = res.unwrap();
-                println!(
-                    "{} {} {} ",
-                    piece_type,
-                    coordinate.unwrap_or(Coordinate::new(0, 0)),
-                    promotion_type.unwrap_or(PieceType::Pawn)
-                );
+                // println!(
+                //     "{} {} {} ",
+                //     piece_type,
+                //     coordinate.unwrap_or(Coordinate::new(0, 0)),
+                //     promotion_type.unwrap_or(PieceType::Pawn)
+                // );
             }
         }
         return chess_game::new();

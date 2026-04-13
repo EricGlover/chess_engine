@@ -72,6 +72,7 @@ pub fn print_move(m: &Move, board: &GameState) -> String {
 // doesn't return illegal moves, return None if not possible
 pub fn parse_move(str: &str, board: &GameState, color: Color) -> Option<Move> {
     // find what piece they're talking about by looking through the possible moves
+    println!("{}", str);
     let their_move = String::from(str);
     gen_legal_moves(board, color)
         .into_iter()
