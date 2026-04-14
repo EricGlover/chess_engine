@@ -410,7 +410,7 @@ pub fn gen_legal_moves(game_state: &GameState, color: Color) -> Vec<Move> {
                     let at = piece.at().unwrap();
                     let bit_board = game_state.get_board_ref();
                     let right_one = at.add(1, 0);
-                    let right_two = at.add(1, 0);
+                    let right_two = at.add(2, 0);
                     let attacks_1 = plmg::gen_attacks_for_square(
                         bit_board,
                         BitBoard::coordinate_to_idx(right_one),
@@ -430,8 +430,8 @@ pub fn gen_legal_moves(game_state: &GameState, color: Color) -> Vec<Move> {
                     // two squares left
                     let at = piece.at().unwrap();
                     let bit_board = game_state.get_board_ref();
-                    let left_one = at.add(1, 0);
-                    let left_two = at.add(1, 0);
+                    let left_one = at.add(-1, 0);
+                    let left_two = at.add(-2, 0);
                     let attacks_1 = plmg::gen_attacks_for_square(
                         bit_board,
                         BitBoard::coordinate_to_idx(left_one),
@@ -450,7 +450,11 @@ pub fn gen_legal_moves(game_state: &GameState, color: Color) -> Vec<Move> {
                 // handle normal king move rules
                 let is_capture = m.captured.is_some();
                 let to_idx = BitBoard::coordinate_to_idx(m.to);
-                let attacks = plmg::gen_attacks_for_square(game_state.get_board_ref(), to_idx, color.opposite());
+                let attacks = plmg::gen_attacks_for_square(
+                    game_state.get_board_ref(),
+                    to_idx,
+                    color.opposite(),
+                );
                 return attacks.len() == 0;
             }
 
@@ -889,6 +893,75 @@ mod tests {
             .iter()
             .find(|&m| m.move_type() == &MoveType::Move && m.from == e1 && m.to == d2);
         assert_eq!(king_into_danger_opt.is_none(), true);
+
+        // test all castling things
+        // black can castle both sides
+        let fen = "r3k2r/pppbbp2/2np1q1p/1N2p1p1/2BPP2n/2P2N2/PP2QPPP/R1B1K2R w KQkq - 0 1";
+        let game_state = fen_reader::make_game_state(fen);
+        let moves = gen_legal_moves(&game_state, Color::Black);
+        let king_side = moves.iter().find(|&m| m.is_king_side_castle());
+        let queen_side = moves.iter().find(|&m| m.is_queen_side_castle());
+        assert_eq!(king_side.is_some(), true);
+        assert_eq!(queen_side.is_some(), true);
+        // white can castle one side
+        let moves = gen_legal_moves(&game_state, Color::White);
+        let king_side = moves.iter().find(|&m| m.is_king_side_castle());
+        assert_eq!(king_side.is_some(), true);
+        // white can not castle through check
+        let fen = "4k2r/pppbbp2/2np1q1p/1N1rp1p1/B6n/2P2N2/PP2QPPP/R3K2R w KQk - 0 1";
+        let game_state = fen_reader::make_game_state(fen);
+        let moves = gen_legal_moves(&game_state, Color::White);
+        let queen_side = moves.iter().find(|&m| m.is_queen_side_castle());
+        assert_eq!(king_side.is_some(), true);
+        assert_eq!(queen_side.is_some(), false);
+
+        // castling through checks pos 2, no castling allowed either side
+        let fen = "r3k2r/Nppbbp2/2n2q1B/3rp1p1/6Nn/2P4P/PP2Q1PP/R3K2R w KQkq - 0 1";
+        let game_state = fen_reader::make_game_state(fen);
+        let moves = gen_legal_moves(&game_state, Color::White);
+        let king_side = moves.iter().find(|&m| m.is_king_side_castle());
+        let queen_side = moves.iter().find(|&m| m.is_queen_side_castle());
+        assert_eq!(king_side.is_some(), false);
+        assert_eq!(queen_side.is_some(), false);
+        let moves = gen_legal_moves(&game_state, Color::Black);
+        let king_side = moves.iter().find(|&m| m.is_king_side_castle());
+        let queen_side = moves.iter().find(|&m| m.is_queen_side_castle());
+        assert_eq!(king_side.is_some(), false);
+        assert_eq!(queen_side.is_some(), false);
+
+        // castling through checks pos 3, black no castle, white only queenside
+        let fen = "r3k2r/1ppbbp2/2n1N2B/4pqp1/2r3Nn/2P4P/PP2Q1PP/R3K2R w KQkq - 0 1";
+        let game_state = fen_reader::make_game_state(fen);
+        let moves = gen_legal_moves(&game_state, Color::White);
+        let king_side = moves.iter().find(|&m| m.is_king_side_castle());
+        let queen_side = moves.iter().find(|&m| m.is_queen_side_castle());
+        assert_eq!(king_side.is_some(), false);
+        assert_eq!(queen_side.is_some(), true);
+        let moves = gen_legal_moves(&game_state, Color::Black);
+        let king_side = moves.iter().find(|&m| m.is_king_side_castle());
+        let queen_side = moves.iter().find(|&m| m.is_queen_side_castle());
+        assert_eq!(king_side.is_some(), false);
+        assert_eq!(queen_side.is_some(), false);
+        // same but pawn prevents castling
+        let fen = "r3k2r/1ppbb3/2n1N2B/4pqp1/2r3Nn/2P4P/PPp1Q1PP/R3K2R w KQkq - 0 1";
+        let game_state = fen_reader::make_game_state(fen);
+        let moves = gen_legal_moves(&game_state, Color::White);
+        let king_side = moves.iter().find(|&m| m.is_king_side_castle());
+        let queen_side = moves.iter().find(|&m| m.is_queen_side_castle());
+        assert_eq!(king_side.is_some(), false);
+        assert_eq!(queen_side.is_some(), false);
+        let fen = "r3k2r/2pbb3/2n1N2B/4p1p1/2r3Nn/2P4P/PPp1Q1Pp/R3K2R w KQkq - 0 1";
+        let game_state = fen_reader::make_game_state(fen);
+        let moves = gen_legal_moves(&game_state, Color::White);
+        let king_side = moves.iter().find(|&m| m.is_king_side_castle());
+        let queen_side = moves.iter().find(|&m| m.is_queen_side_castle());
+        assert_eq!(king_side.is_some(), false);
+        assert_eq!(queen_side.is_some(), false);
+        // let moves = gen_legal_moves(&game_state, Color::Black);
+        // let king_side = moves.iter().find(|&m| m.is_king_side_castle());
+        // let queen_side = moves.iter().find(|&m| m.is_queen_side_castle());
+        // assert_eq!(king_side.is_some(), false);
+        // assert_eq!(queen_side.is_some(), false);
     }
 
     #[test]

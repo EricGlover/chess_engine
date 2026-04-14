@@ -1929,10 +1929,6 @@ pub fn gen_pawn_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
         let enemy_location = to.add(0, -direction);
         let bit = BitBoard::coordinate_to_bit(to);
         let target = bit & attack_board;
-        println!("{}", piece);
-        BitBoard::print_bitboard(target);
-        BitBoard::print_bitboard(bit);
-        BitBoard::print_bitboard(attack_board);
         if target > 0 {
             moves.push(make_captures_move(
                 &at,
