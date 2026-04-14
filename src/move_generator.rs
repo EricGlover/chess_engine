@@ -382,6 +382,8 @@ pub fn gen_legal_moves(game_state: &GameState, color: Color) -> Vec<Move> {
             find_moves_to_resolve_check(game_state, &checks, &moves, Some(&pinned_pieces), color);
         return resolve_checks_moves;
     }
+    let king = game_state.get_king(color).unwrap();
+    let king_at = king.at().unwrap();
 
     // deal with castling through check....
 
@@ -397,55 +399,68 @@ pub fn gen_legal_moves(game_state: &GameState, color: Color) -> Vec<Move> {
             }
             // is this piece pinned ?
             let piece = opt.unwrap();
+
+            // is this a king move
+            // if no checks , we still need to check the king moves
+            if &m.from == king_at {
+                // handle castling rules
+                //@todo : test, no idea if this works
+                if m.is_king_side_castle() {
+                    // two squares right
+                    let at = piece.at().unwrap();
+                    let bit_board = game_state.get_board_ref();
+                    let right_one = at.add(1, 0);
+                    let right_two = at.add(1, 0);
+                    let attacks_1 = plmg::gen_attacks_for_square(
+                        bit_board,
+                        BitBoard::coordinate_to_idx(right_one),
+                        piece.color.opposite(),
+                    );
+                    if attacks_1.len() > 0 {
+                        return false;
+                    }
+                    let attacks_2 = plmg::gen_attacks_for_square(
+                        bit_board,
+                        BitBoard::coordinate_to_idx(right_two),
+                        piece.color.opposite(),
+                    );
+                    return attacks_2.len() == 0;
+                    // @todo:: find out if squares are attacked on the kings path
+                } else if m.is_queen_side_castle() {
+                    // two squares left
+                    let at = piece.at().unwrap();
+                    let bit_board = game_state.get_board_ref();
+                    let left_one = at.add(1, 0);
+                    let left_two = at.add(1, 0);
+                    let attacks_1 = plmg::gen_attacks_for_square(
+                        bit_board,
+                        BitBoard::coordinate_to_idx(left_one),
+                        piece.color.opposite(),
+                    );
+                    if attacks_1.len() > 0 {
+                        return false;
+                    }
+                    let attacks_2 = plmg::gen_attacks_for_square(
+                        bit_board,
+                        BitBoard::coordinate_to_idx(left_two),
+                        piece.color.opposite(),
+                    );
+                    return attacks_2.len() == 0;
+                }
+                // handle normal king move rules
+                let is_capture = m.captured.is_some();
+                let to_idx = BitBoard::coordinate_to_idx(m.to);
+                let attacks = plmg::gen_attacks_for_square(game_state.get_board_ref(), to_idx, color.opposite());
+                return attacks.len() == 0;
+            }
+
             if is_pinned(&piece, &pinned_pieces) {
                 let pin = get_pin(&piece, &pinned_pieces).unwrap();
                 // check if the pinned piece can move here
                 let to_bit = BitBoard::coordinate_to_bit(m.to);
                 return BitBoard::bit_on_bit_board(to_bit, pin.can_move_to_board);
             }
-            //@todo : test, no idea if this works
-            if m.is_king_side_castle() {
-                // two squares right
-                let at = piece.at().unwrap();
-                let bit_board = game_state.get_board_ref();
-                let right_one = at.add(1, 0);
-                let right_two = at.add(1, 0);
-                let attacks_1 = plmg::gen_attacks_for_square(
-                    bit_board,
-                    BitBoard::coordinate_to_idx(right_one),
-                    piece.color.opposite(),
-                );
-                if attacks_1.len() > 0 {
-                    return false;
-                }
-                let attacks_2 = plmg::gen_attacks_for_square(
-                    bit_board,
-                    BitBoard::coordinate_to_idx(right_two),
-                    piece.color.opposite(),
-                );
-                return attacks_2.len() == 0;
-                // @todo:: find out if squares are attacked on the kings path
-            } else if m.is_queen_side_castle() {
-                // two squares left
-                let at = piece.at().unwrap();
-                let bit_board = game_state.get_board_ref();
-                let left_one = at.add(1, 0);
-                let left_two = at.add(1, 0);
-                let attacks_1 = plmg::gen_attacks_for_square(
-                    bit_board,
-                    BitBoard::coordinate_to_idx(left_one),
-                    piece.color.opposite(),
-                );
-                if attacks_1.len() > 0 {
-                    return false;
-                }
-                let attacks_2 = plmg::gen_attacks_for_square(
-                    bit_board,
-                    BitBoard::coordinate_to_idx(left_two),
-                    piece.color.opposite(),
-                );
-                return attacks_2.len() == 0;
-            }
+
             true
         })
         .collect();
@@ -839,6 +854,42 @@ mod tests {
 
     #[test]
     fn test_gen_pseudo_legal_moves() {}
+
+    #[test]
+    fn test_gen_pawn_promotion() {
+        let fen = "rnbqkbnr/1ppppppp/8/8/2N5/2N5/PpPPPPPP/R1BQKB1R b KQkq - 1 6";
+        let game_state = fen_reader::make_game_state(fen);
+
+        // pawn promotion with capture moves
+        let m = Move::new(
+            Coordinate::new(2, 2),
+            Coordinate::new(1, 1),
+            PieceType::Pawn,
+            MoveType::Promotion(PieceType::Knight),
+            Some(PieceType::Rook),
+            None,
+            None,
+        );
+        let moves = gen_legal_moves(&game_state, Color::Black);
+    }
+
+    #[test]
+    fn test_gen_legal_moves1() {
+        let fen = "r3k2r/pppbbp2/2np3p/4p1p1/2BPPq1n/N1P2N2/PP1KQPPP/R1B4R w kq - 0 1";
+        let game_state = fen_reader::make_game_state(fen);
+        let moves = gen_legal_moves(&game_state, Color::White);
+        assert_eq!(moves.len(), 5);
+        // test king running into a check
+        let fen = "r3k2r/pppbbp2/2np3p/4p1p1/2BPPq1n/N1P2N2/PP2QPPP/R1B1K2R w KQkq - 0 1";
+        let game_state = fen_reader::make_game_state(fen);
+        let moves = gen_legal_moves(&game_state, Color::White);
+        let e1 = Coordinate::new(5, 1);
+        let d2 = Coordinate::new(4, 2);
+        let king_into_danger_opt = moves
+            .iter()
+            .find(|&m| m.move_type() == &MoveType::Move && m.from == e1 && m.to == d2);
+        assert_eq!(king_into_danger_opt.is_none(), true);
+    }
 
     #[test]
     fn perft_initial_position() {

@@ -6,6 +6,7 @@ use crate::bit_board::{
 };
 use crate::board::{BoardTrait, Color, Coordinate, Piece, PieceType};
 use crate::board::{HIGH_X, HIGH_Y, LOW_X, LOW_Y};
+use crate::board_console_printer::print_bit_board;
 use crate::chess_notation::fen_reader;
 use crate::game_state::GameState;
 use crate::move_generator::{Move, MoveType};
@@ -1012,11 +1013,7 @@ pub fn gen_bishop_vector(game_state: &GameState, piece: &Piece) -> Vec<Move> {
 
 // this ignores pins, which works for checks
 // note the moves this generates aren't really valid, they just indicate from -> to
-pub fn gen_attacks_for_square(
-    bit_board: &BitBoard,
-    idx: u8,
-    attacking_color: Color,
-) -> Vec<Move> {
+pub fn gen_attacks_for_square(bit_board: &BitBoard, idx: u8, attacking_color: Color) -> Vec<Move> {
     let to = BitBoard::idx_to_coordinate(idx);
     let mut moves = vec![];
     let enemy_color = attacking_color.opposite();
@@ -1802,6 +1799,11 @@ pub fn gen_knight_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
     return moves;
 }
 
+pub fn get_en_passant_piece(attacking_pawn: &Piece, en_passant_target: &Coordinate) -> Coordinate {
+    let at = attacking_pawn.at().unwrap();
+    return Coordinate::new(en_passant_target.x(), at.y());
+}
+
 /*
  *
 one square move, two square move, capturing diagonally forward, pawn promotion, en passant
@@ -1811,6 +1813,7 @@ pub fn gen_pawn_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
     let pieces_board = board.get_white_pieces_board() | board.get_black_pieces_board();
     let at = piece.at().unwrap();
     let idx = BitBoard::coordinate_to_idx(*at);
+    let start_bit = BitBoard::idx_to_bit(idx);
     let mut moves: Vec<Move> = vec![];
     let color = piece.color;
 
@@ -1843,13 +1846,18 @@ pub fn gen_pawn_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
     ];
 
     // quiet pawn moves
-    let up_one = at.add(0, 1 * direction);
-    let up_two = at.add(0, 2 * direction);
-    let up_one_bit = BitBoard::coordinate_to_bit(up_one);
-    let up_two_bit = BitBoard::coordinate_to_bit(up_two);
+    let up_one_bit = match color {
+        Color::White => start_bit << 8,
+        Color::Black => start_bit >> 8,
+    };
+    let up_two_bit = match color {
+        Color::White => start_bit << 16,
+        Color::Black => start_bit >> 16,
+    };
 
     // move up 1
-    if (up_one_bit & !pieces_board) > 0 {
+    if up_one_bit > 0 && ((up_one_bit & !pieces_board) > 0) {
+        let up_one = BitBoard::bit_to_coordinate(up_one_bit);
         if up_one.y() == promotion_y {
             // make promotion moves
             for promotion_type in promotion_pieces.iter() {
@@ -1864,7 +1872,8 @@ pub fn gen_pawn_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
             moves.push(make_quiet_move(at, &up_one, piece, MoveType::Move));
 
             // move up 2
-            if ((up_two_bit & !pieces_board) > 0) && at.y() == start_y {
+            if up_two_bit > 0 && ((up_two_bit & !pieces_board) > 0) && at.y() == start_y {
+                let up_two = BitBoard::bit_to_coordinate(up_two_bit);
                 let mut m = make_quiet_move(at, &up_two, piece, MoveType::Move);
                 m.en_passant_target = Some(up_one);
                 moves.push(m);
@@ -1920,6 +1929,10 @@ pub fn gen_pawn_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
         let enemy_location = to.add(0, -direction);
         let bit = BitBoard::coordinate_to_bit(to);
         let target = bit & attack_board;
+        println!("{}", piece);
+        BitBoard::print_bitboard(target);
+        BitBoard::print_bitboard(bit);
+        BitBoard::print_bitboard(attack_board);
         if target > 0 {
             moves.push(make_captures_move(
                 &at,
@@ -2112,9 +2125,60 @@ pub fn test() {
 mod tests {
     use super::*;
     use crate::{
-        board::BoardTrait, chess_notation::fen_reader, game, game_state, move_generator::plmg,
+        board::BoardTrait, board_console_printer::print_bit_board, chess_notation::fen_reader, game, game_state, move_generator::plmg
     };
     use std::collections::HashSet;
+
+    #[test]
+    fn test_gen_pawn_promotion() {
+        let fen = "rnbqkbnr/1ppppppp/8/8/2N5/2N5/PpPPPPPP/R1BQKB1R b KQkq - 1 6";
+        let game_state = fen_reader::make_game_state(fen);
+
+        // pawn promotion with capture moves
+        let m = Move::new(
+            Coordinate::new(2, 2),
+            Coordinate::new(1, 1),
+            PieceType::Pawn,
+            MoveType::Promotion(PieceType::Knight),
+            Some(PieceType::Rook),
+            None,
+            None,
+        );
+        let b2 = Coordinate::new(2, 2);
+        let black_pawn = game_state.get_piece_at(&b2);
+        let moves = gen_moves_for(&game_state, &black_pawn.unwrap());
+        assert_eq!(moves.len(), 12);
+
+        let fen = "r1bqkbnr/1Ppppppp/2n5/8/2N5/2N5/Pp1PPPPP/R1BQKB1R w KQkq - 1 6";
+        let game_state = fen_reader::make_game_state(fen);
+
+        // pawn promotion with capture moves, for white
+        let m = Move::new(
+            Coordinate::new(2, 2),
+            Coordinate::new(1, 1),
+            PieceType::Pawn,
+            MoveType::Promotion(PieceType::Knight),
+            Some(PieceType::Rook),
+            None,
+            None,
+        );
+        let b7 = Coordinate::new(2, 7);
+        let white_pawn = game_state.get_piece_at(&b7);
+        let moves = gen_moves_for(&game_state, &white_pawn.unwrap());
+        assert_eq!(moves.len(), 12);
+
+        // blocked pawn, no captures 
+        let fen = "r1bqkbnr/P1pppppp/2n5/8/2N5/2N5/p2PPPPP/R1BQKB1R w KQkq - 1 6";
+        let game_state = fen_reader::make_game_state(fen);
+        let a2 = Coordinate::new(1, 2);
+        let a7  = Coordinate::new(1, 7);
+        let black_pawn = game_state.get_piece_at(&a2);
+        let white_pawn = game_state.get_piece_at(&a7);
+        let moves = gen_moves_for(&game_state, &black_pawn.unwrap());
+        assert_eq!(moves.len(), 0);
+        let moves = gen_moves_for(&game_state, &white_pawn.unwrap());
+        assert_eq!(moves.len(), 0);
+    }
 
     #[test]
     fn test_gen_attacks_for_square() {

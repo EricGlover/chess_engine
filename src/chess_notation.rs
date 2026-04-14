@@ -79,6 +79,9 @@ pub fn parse_move(str: &str, board: &GameState, color: Color) -> Option<Move> {
         .find(|m| their_move == print_move(m, board))
 }
 
+// for a given move and board state, return the piece identifier 
+// needed to disambiguate the move from other valid moves
+// ex: if two knights can move to the same square 
 fn get_piece_specifier(m: &Move, board: &GameState) -> String {
     if board.get_piece_at(&m.from).is_none() {
         let fen = make_fen(board);
@@ -92,14 +95,16 @@ fn get_piece_specifier(m: &Move, board: &GameState) -> String {
     let piece_at = piece.at().unwrap();
     let mover_color = piece.color;
     let mut moves = gen_legal_moves(board, mover_color);
+    // find other moves by the same piece type going to the same square
     let similar_moves: Vec<Move> = moves
         .drain(..)
-        .filter(|m2| m2.from != *piece_at && m2.piece == piece.piece_type && m2.to == m.to)
+        .filter(|m2| (m2.from != *piece_at) && (m2.piece == piece.piece_type) && (m2.to == m.to))
         .into_iter()
         .collect::<Vec<Move>>();
-
     let mut piece_specifier = String::new();
-    if similar_moves.len() > 1 {
+
+    // if there are similar moves we need a specifier 
+    if similar_moves.len() >= 1 {
         let mut has_same_file = false;
         let mut has_same_rank = false;
 
@@ -110,7 +115,7 @@ fn get_piece_specifier(m: &Move, board: &GameState) -> String {
                 same_file_moves.push(&m2);
             }
         }
-        if same_file_moves.len() > 1 {
+        if same_file_moves.len() >= 1 {
             has_same_file = true;
         }
 
@@ -122,7 +127,7 @@ fn get_piece_specifier(m: &Move, board: &GameState) -> String {
             }
         }
 
-        if same_rank_moves.len() > 1 {
+        if same_rank_moves.len() >= 1 {
             has_same_rank = true;
         }
         if !has_same_file {
@@ -372,6 +377,8 @@ mod print_move_test {
     fn pawn_promotion() {
         let fen = "rnbqkbnr/1ppppppp/8/8/2N5/2N5/PpPPPPPP/R1BQKB1R b KQkq - 1 6";
         let game_state = fen_reader::make_game_state(fen);
+
+        // pawn promotion with capture moves
         let m = Move::new(
             Coordinate::new(2, 2),
             Coordinate::new(1, 1),
@@ -382,6 +389,7 @@ mod print_move_test {
             None,
         );
         let log = print_move(&m, &game_state);
+        println!("{}", log);
         assert_eq!(
             log,
             String::from("bxa1=N"),
@@ -398,6 +406,7 @@ mod print_move_test {
             None,
         );
         let log = print_move(&m, &game_state);
+        println!("{}", log);
         assert_eq!(
             log,
             String::from("bxa1=B"),
@@ -414,6 +423,7 @@ mod print_move_test {
             None,
         );
         let log = print_move(&m, &game_state);
+        println!("{}", log);
         assert_eq!(
             log,
             String::from("bxa1=R"),
@@ -429,6 +439,7 @@ mod print_move_test {
             None,
         );
         let log = print_move(&m, &game_state);
+        println!("{}", log);
         assert_eq!(
             log,
             String::from("bxa1=Q"),
@@ -528,9 +539,7 @@ mod tests {
         let rook = Piece::new(Color::White, PieceType::Rook, Some(a1.clone()));
         let pawn = Piece::new(Color::White, PieceType::Pawn, Some(a2.clone()));
         assert!(m.is_none());
-        assert_eq!(
-            m2,
-            Move::new(
+        let mut made_move = Move::new(
                 a2.clone(),
                 a4.clone(),
                 pawn.piece_type,
@@ -538,7 +547,11 @@ mod tests {
                 None,
                 None,
                 None,
-            )
+            );
+        made_move.en_passant_target = Some(a4.add(0, -1));
+        assert_eq!(
+            m2,
+            made_move
         );
     }
 }

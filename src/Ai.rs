@@ -1,6 +1,7 @@
 pub mod evaluator;
 use crate::ai::evaluator::Evaluation;
-use crate::board::*;
+use crate::{board::*, game_state};
+use crate::board_console_printer::print_bit_board;
 use crate::game_state::GameState;
 use crate::hash::Zobrist;
 use crate::move_generator::*;
@@ -43,7 +44,7 @@ impl Ai {
         Ai {
             rng: rand::thread_rng(),
             color,
-            default_search_depth: 6,
+            default_search_depth: 4,
             started_at: Instant::now(),
             time_elapsed_during_search: None,
             total_time_elapsed_during_search: None,
@@ -60,7 +61,7 @@ impl Ai {
         Ai {
             rng: rand::thread_rng(),
             color,
-            default_search_depth: 6,
+            default_search_depth: 4,
             started_at: Instant::now(),
             time_elapsed_during_search: None,
             total_time_elapsed_during_search: None,
@@ -105,7 +106,7 @@ impl Ai {
         mut lower_bound: Option<f32>,
         mut upper_bound: Option<f32>,
     ) -> (evaluator::Evaluation, Option<Move>) {
-        println!("alpha beta {}", depth_to_go);
+        // println!("alpha beta {}", depth_to_go);
         // transposition table
         // let hash = self.hasher.hash_board(board);
         // if self.transposition_table.contains_key(&hash) {
@@ -150,7 +151,7 @@ impl Ai {
             // player takes move , examine this board
             // assuming this player and the opponent make optimal moves
             // what's the evaluation of the best board state starting from here ?
-            println!("trying move {}", a_move);
+            // println!("trying move {}", a_move);
             // println!("black castle rights\n{:?}", board.get_castling_rights(Color::Black));
             board.make_move_mut(a_move);
             // println!("after make \nblack castle rights\n{:?}", board.get_castling_rights(Color::Black));
@@ -248,6 +249,7 @@ impl Ai {
         color: Color,
         depth: u8,
     ) -> (evaluator::Evaluation, Option<Move>) {
+        // println!("{} :depth,  {} to move", depth, color);
         // end of recursion
         if depth == 0 {
             self.minimax_calls = self.minimax_calls + 1;
@@ -270,14 +272,19 @@ impl Ai {
             let piece_captured = board.get_piece_at(&move_to_try.to);
             if piece_captured.is_some() && piece_captured.unwrap().piece_type == PieceType::King {
                 // hmmm....
+                // println!("{} :depth,  {} to move", depth, color);
+                // println!("{}", move_to_try);
+                // print_bit_board(&board.get_board());
                 panic!("king captured in search, we never should've gotten here.");
             }
 
             // player takes move , examine this board
             // assuming this player and the opponent make optimal moves
             // what's the evaluation of the best board state starting from here ?
+            // println!("trying : {}\n{} : depth", move_to_try, depth);
             board.make_move_mut(&mut move_to_try);
             let (eval, _) = self.minimax(board, color.opposite(), depth - 1);
+            // println!("unmaking : {}\n{} : depth\n found eval = {}", move_to_try, depth, eval.score);
             board.unmake_move_mut(&mut move_to_try);
 
             if acc.is_none() {

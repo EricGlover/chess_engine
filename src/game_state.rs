@@ -6,7 +6,7 @@ use crate::bit_board::BitBoard;
 use crate::board::{BoardTrait, CastlingRights, Color, Coordinate, Piece, PieceType, Square};
 use crate::chess_notation::pgn::Game;
 use crate::game_state;
-use crate::move_generator::{gen_legal_moves, Move, MoveType};
+use crate::move_generator::{gen_legal_moves, plmg, Move, MoveType};
 
 // might be worthwhile to add pointers to things
 // or add a list of moves
@@ -141,11 +141,10 @@ impl BoardTrait for GameState {
                 self.full_move_number = self.full_move_number + 1;
             }
 
-            // get piece to move
-            // en passant
-            m.old_en_passant_target = self.en_passant_target;
-            self.en_passant_target = m.en_passant_target;
+            // update draw clock
             m.old_half_move_clock = Some(self.half_move_clock);
+
+            // do any special logic,
             match m.move_type() {
                 MoveType::Castling { rook_from, rook_to } => {
                     // self.move_piece(rook_from, rook_to);
@@ -155,24 +154,28 @@ impl BoardTrait for GameState {
                 // if it gets promoted, then switch it's type
                 MoveType::Promotion(promoted_to) => {
                     piece_to_move.piece_type = promoted_to.clone();
-                    // is this a capture
-                    if m.captured.is_some() {
-                        let removed_piece = self.remove_piece_at(&m.to);
-                    }
                 }
-                MoveType::EnPassant => {
-                    // is this a capture
-                    if m.captured.is_some() {
-                        let removed_piece = self.remove_piece_at(&self.en_passant_target.unwrap());
-                    }
-                }
-                MoveType::Move => {
-                    // is this a capture
-                    if m.captured.is_some() {
-                        let removed_piece = self.remove_piece_at(&m.to);
-                    }
-                }
+                MoveType::EnPassant => {}
+                MoveType::Move => {}
             }
+            // remove the captured piece
+            if m.captured.is_some() {
+                let mut captured_at = m.to;
+                if m.move_type() == &MoveType::EnPassant {
+                    // println!("trying to en passant {}", m);
+                    captured_at = plmg::get_en_passant_piece(
+                        &piece_to_move,
+                        &self.en_passant_target.unwrap(),
+                    );
+                    // println!("{}", captured_at);
+                }
+                let removed_piece = self.remove_piece_at(&captured_at);
+            }
+
+            // en passant
+            m.old_en_passant_target = self.en_passant_target;
+            self.en_passant_target = m.en_passant_target;
+
             // move the piece ( update the piece, piece map , square, and board )
 
             self.pieces.insert(from_idx, piece_to_move);
@@ -209,8 +212,6 @@ impl BoardTrait for GameState {
                             *self.white_castling_rights.queen_side_mut() = true;
                         }
                         Color::Black => {
-                            println!("SETTING QUEENSIDE TO TRUE");
-                            println!("{}", m);
                             *self.black_castling_rights.queen_side_mut() = true;
                         }
                     }
@@ -245,20 +246,21 @@ impl BoardTrait for GameState {
             self.pieces.insert(to_idx, piece_to_move);
             let piece_to_move = self.remove_piece(&piece_to_move);
 
-
             // handle putting back captured pieces
             if m.captured.is_some() {
                 if m.move_type() == &MoveType::EnPassant {
                     let en_passant_at = Coordinate::new(m.to.x(), m.from.y());
+                    // place down the captured piece
                     self.place_piece(
                         Piece::new(
                             piece_to_move.color.opposite(),
-                            m.captured.unwrap(),
+                            PieceType::Pawn,
                             Some(en_passant_at),
                         ),
                         &en_passant_at,
                     );
                 } else {
+                    // place down the captured piece
                     let mut p = Piece::new(
                         piece_to_move.color.opposite(),
                         m.captured.unwrap(),
@@ -267,7 +269,6 @@ impl BoardTrait for GameState {
                     self.place_piece(p, &m.to);
                 }
             }
-
 
             // move the piece ( update the piece, piece map , square, and board )
             self.place_piece(piece_to_move, &m.from);
@@ -1059,7 +1060,10 @@ impl GameState {
 mod tests {
     use super::*;
     use crate::{
-        board_console_printer::print_bit_board, chess_notation::fen_reader, move_generator,
+        ai::{self, Ai},
+        board_console_printer::print_bit_board,
+        chess_notation::fen_reader,
+        game, move_generator,
     };
 
     fn assert_valid_state(game_state: &GameState) {
@@ -1098,6 +1102,66 @@ mod tests {
     fn test_get_rank() {}
     #[test]
     fn test_get_files() {}
+
+    #[test]
+    fn test_make_unmake_castles() {
+        let fen = "r3k2r/pppbbp2/2np1q1p/1N2p1p1/2BPP2n/2P2N2/PP2QPPP/R1B1K2R w KQkq - 0 1";
+        let mut game_state = fen_reader::make_game_state(fen);
+        let mut moves = gen_legal_moves(&game_state, Color::White);
+        // try to manually castle
+        let castle_move_opt = moves
+            .iter_mut()
+            .find(|m| m.is_king_side_castle() || m.is_queen_side_castle());
+        if let Some(castle_move) = castle_move_opt {
+            game_state.make_move_mut(castle_move);
+            game_state.unmake_move_mut(castle_move);
+            assert_valid_state(&game_state);
+        } else {
+            assert!(false, "castling not found");
+        }
+
+        let mut moves = gen_legal_moves(&game_state, Color::White);
+        for m in moves.iter_mut() {
+            game_state.make_move_mut(m);
+            game_state.unmake_move_mut(m);
+            assert_valid_state(&game_state);
+        }
+
+        let mut ai = Ai::new_with_search(Color::White, ai::AiSearch::Minimax);
+        ai.make_move(&mut game_state, Some(4));
+        assert!(true);
+    }
+    #[test]
+    fn test_make_unmake_en_passant() {
+        // black can en passant
+        let fen = "rnbqkbnr/1pp1pp1p/8/P2P2P1/pP1p2p1/8/2P1PP1P/RNBQKBNR b KQkq b3 0 1";
+        let mut game_state = fen_reader::make_game_state(fen);
+        println!("{}", game_state.en_passant_target.unwrap());
+        assert_eq!(game_state.en_passant_target.is_some(), true);
+        // let mut moves = gen_legal_moves(&game_state, Color::White);
+        let mut moves = gen_legal_moves(&game_state, Color::Black);
+        println!("moves generated");
+        for m in moves.iter_mut() {
+            println!("making {}", m);
+            game_state.make_move_mut(m);
+            println!("unmaking {}", m);
+            game_state.unmake_move_mut(m);
+            assert_valid_state(&game_state);
+        }
+
+        let fen = "rnbqkbnr/1pp1pp1p/8/P2P2P1/p2p2p1/8/1PP1PP1P/RNBQKBNR w KQkq - 0 1";
+        let mut game_state = fen_reader::make_game_state(fen);
+        assert_eq!(game_state.en_passant_target.is_some(), false);
+        let mut moves = gen_legal_moves(&game_state, Color::White);
+        println!("moves generated");
+        for m in moves.iter_mut() {
+            game_state.make_move_mut(m);
+            game_state.unmake_move_mut(m);
+        }
+        let mut ai = Ai::new(Color::White);
+        ai.make_move(&mut game_state, Some(2));
+        assert!(true);
+    }
 
     #[test]
     fn test_unmake_move_mut_captures() {
