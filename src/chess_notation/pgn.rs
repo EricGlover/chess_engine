@@ -1,6 +1,6 @@
 use regex::Regex;
 
-use crate::board::{Board, BoardTrait, Color, Coordinate, PieceType};
+use crate::board::{Board, BoardTrait, Color, Coordinate, PieceType, CastlingRights};
 use crate::chess_notation::fen_reader::make_board;
 use crate::chess_notation::read_move;
 use crate::chess_notation::{fen_reader, ParsedMoveType};
@@ -169,8 +169,8 @@ pub fn moves_from_pgn(pgn: &str) -> Vec<Move> {
             {
                 // @todo :: handle castles
                 let mut new_move = match parsed_move {
-                    ParsedMoveType::LongCastles => Move::castle_queen_side(color_to_move),
-                    ParsedMoveType::ShortCastles => Move::castle_king_side(color_to_move),
+                    ParsedMoveType::LongCastles => Move::castle_queen_side(&CastlingRights::new(false, false), color_to_move ),
+                    ParsedMoveType::ShortCastles => Move::castle_king_side(&CastlingRights::new(false, false), color_to_move ),
                     ParsedMoveType::Promotion => break,
                     ParsedMoveType::Move => break,
                 };

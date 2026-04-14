@@ -1709,6 +1709,7 @@ pub fn gen_king_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
     let idx = BitBoard::coordinate_to_idx(*at);
     let attack_board: u64 = KING_ATTACKS[(idx - 1) as usize];
     let color = piece.color;
+    let previous_castle_rights = game_state.get_castling_rights(color);
     let enemy_board = match color {
         Color::White => board.get_black_pieces_board(),
         Color::Black => board.get_white_pieces_board(),
@@ -1752,10 +1753,10 @@ pub fn gen_king_moves(piece: &Piece, game_state: &GameState) -> Vec<Move> {
         Color::Black => BLACK_QUEENSIDE_CASTLE_BLOCKERS,
     };
     if rights.king_side() & !board.has_piece_at(king_side_blockers) {
-        moves.push(Move::castle_king_side(color));
+        moves.push(Move::castle_king_side(previous_castle_rights, color));
     }
     if rights.queen_side() & !board.has_piece_at(queens_side_blockers) {
-        moves.push(Move::castle_queen_side(color));
+        moves.push(Move::castle_queen_side(previous_castle_rights, color));
     }
 
     return moves;

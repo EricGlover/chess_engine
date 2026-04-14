@@ -1,9 +1,16 @@
 use crate::board::*;
+
+
+
 #[cfg(test)]
 use crate::chess_notation::fen_reader::make_initial_board;
 use crate::move_generator::chess_move::MoveType;
 use crate::move_generator::path::{get_path_from, Direction};
 use crate::move_generator::Move;
+use crate::board::CastlingRights;
+
+
+
 #[cfg(test)]
 mod tests {
     use super::move_generation::*;
@@ -241,7 +248,7 @@ mod move_generation {
                 if pass_through_spots.is_some() {
                     let pass_through_spots = pass_through_spots.unwrap();
                     if pass_through_spots.iter().all(|c| !board.has_piece(&c)) {
-                        moves.push(Move::castle_queen_side(king.color));
+                        moves.push(Move::castle_queen_side(&CastlingRights::new(false, false), king.color));
                     }
                 }
             }
@@ -255,7 +262,7 @@ mod move_generation {
                 if pass_through_spots.is_some() {
                     let pass_through_spots = pass_through_spots.unwrap();
                     if pass_through_spots.iter().all(|c| !board.has_piece(&c)) {
-                        moves.push(Move::castle_king_side(king.color));
+                        moves.push(Move::castle_king_side(&CastlingRights::new(false, false), king.color));
                     }
                 }
             }

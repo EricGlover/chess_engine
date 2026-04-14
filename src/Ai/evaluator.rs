@@ -11,6 +11,231 @@ with Bit Boards and eval improvements
 test ai::evaluator::tests::bench_evaluate_board                        ... bench:         409 ns/iter (+/- 11)
 */
 
+#[derive(Debug)]
+pub struct PawnCountByFile {
+    pub files: [u8; 8],
+}
+
+#[derive(Debug)]
+struct PieceCount {
+    pub white_king: u8,
+    pub white_queen: u8,
+    pub white_bishop: u8,
+    pub white_knight: u8,
+    pub white_rook: u8,
+    pub white_pawn: u8,
+    pub black_king: u8,
+    pub black_queen: u8,
+    pub black_bishop: u8,
+    pub black_knight: u8,
+    pub black_rook: u8,
+    pub black_pawn: u8,
+}
+
+impl PieceCount {
+    pub fn new(game_state: &GameState) -> PieceCount {
+        let board = game_state.get_board();
+        return PieceCount {
+            white_king: board.get_piece_type_count(PieceType::King, Color::White),
+            white_queen: board.get_piece_type_count(PieceType::Queen, Color::White),
+            white_bishop: board.get_piece_type_count(PieceType::Bishop, Color::White),
+            white_knight: board.get_piece_type_count(PieceType::Knight, Color::White),
+            white_rook: board.get_piece_type_count(PieceType::Rook, Color::White),
+            white_pawn: board.get_piece_type_count(PieceType::Pawn, Color::White),
+            black_king: board.get_piece_type_count(PieceType::King, Color::Black),
+            black_queen: board.get_piece_type_count(PieceType::Queen, Color::Black),
+            black_bishop: board.get_piece_type_count(PieceType::Bishop, Color::Black),
+            black_knight: board.get_piece_type_count(PieceType::Knight, Color::Black),
+            black_rook: board.get_piece_type_count(PieceType::Rook, Color::Black),
+            black_pawn: board.get_piece_type_count(PieceType::Pawn, Color::Black),
+        };
+    }
+}
+
+fn count_doubled_pawns(white: &PawnCountByFile, black: &PawnCountByFile) -> (u8, u8) {
+    let mut white_doubled: u8 = 0;
+    let mut black_doubled: u8 = 0;
+    for &file in white.files.iter() {
+        if file >= 2 {
+            white_doubled += file - 1;
+        }
+    }
+    for &file in black.files.iter() {
+        if file >= 2 {
+            black_doubled += file - 1;
+        }
+    }
+    (white_doubled, black_doubled)
+}
+
+fn count_blocked_pawns(board: &GameState) -> (u8, u8) {
+    let files = board.get_files();
+    let mut white_blocked: u8 = 0;
+    let mut black_blocked: u8 = 0;
+    files.iter().for_each(|file| {
+        file.iter().for_each(|&square| {
+            let piece = square.piece();
+            if piece.is_none() {
+                return;
+            }
+            let piece = piece.unwrap();
+            if piece.piece_type != PieceType::Pawn {
+                return;
+            }
+            let direction = match piece.color {
+                Color::White => 1,
+                Color::Black => -1,
+            };
+            let next_square = square.coordinate().add(0, direction);
+            if board.has_piece(&next_square) {
+                match piece.color {
+                    Color::White => white_blocked = white_blocked + 1,
+                    Color::Black => black_blocked = black_blocked + 1,
+                }
+            }
+        })
+    });
+    (white_blocked, black_blocked)
+}
+
+// test ai::evaluator::tests::bench_make_pawn_count_by_file               ... bench:      25,077 ns/iter (+/- 767)
+// after rewriting the get_pawn_count_by_file function
+// test ai::evaluator::tests::bench_make_pawn_count_by_file               ... bench:       7,547 ns/iter (+/- 233)
+// after the second rewrite
+// test ai::evaluator::tests::bench_make_pawn_count_by_file               ... bench:         242 ns/iter (+/- 8)
+fn make_pawn_count_by_file(game_state: &GameState) -> (PawnCountByFile, PawnCountByFile) {
+    return game_state.get_board_ref().get_pawn_count_by_file();
+}
+
+//test ai::evaluator::tests::bench_make_pawn_count_by_file               ... bench:         242 ns/iter (+/- 24)
+// fn make_pawn_count_by_file(game_state: &GameState) -> (PawnCountByFile, PawnCountByFile) {
+//     let board = game_state.get_board_ref();
+//     let mut white_p = PawnCountByFile { files: [0; 8] };
+//     let mut black_p = PawnCountByFile { files: [0; 8] };
+//     for idx in 0..=7u8 {
+//         white_p.files[idx as usize] =
+//             board.get_piece_count_by_file(PieceType::Pawn, Color::White, idx);
+//         black_p.files[idx as usize] =
+//             board.get_piece_count_by_file(PieceType::Pawn, Color::Black, idx);
+//     }
+//     (white_p, black_p)
+// }
+
+/*
+before rewrite
+test ai::evaluator::tests::bench_make_pawn_count_isolated_pawns        ... bench:       4,711 ns/iter (+/- 280)
+after
+test ai::evaluator::tests::bench_make_pawn_count_isolated_pawns        ... bench:         251 ns/iter (+/- 12)
+ */
+fn count_isolated_pawns(white: &PawnCountByFile, black: &PawnCountByFile) -> (u8, u8) {
+    let mut white_p: u8 = 0;
+    let mut black_p: u8 = 0;
+    for i in 0..=7usize {
+        let mut left_empty_w = true;
+        let mut left_empty_b = true;
+        if i > 0 {
+            left_empty_w = white.files[i - 1] == 0;
+            left_empty_b = black.files[i - 1] == 0;
+        }
+        let mut right_empty_w = true;
+        let mut right_empty_b = true;
+        if i < 7 {
+            right_empty_w = white.files[i + 1] == 0;
+            right_empty_b = black.files[i + 1] == 0;
+        }
+        if left_empty_w && right_empty_w {
+            white_p += white.files[i];
+        }
+        if left_empty_b && right_empty_b {
+            black_p += black.files[i];
+        }
+    }
+    (white_p, black_p)
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct Evaluation {
+    pub score: f32,
+    pub mated_player: Option<Color>,
+}
+
+impl Evaluation {
+    pub fn is_checkmate(&self) -> bool {
+        self.mated_player.is_some()
+    }
+}
+
+// Basic evaluation algorithm
+//     f(p) = 200(K-K')
+//        + 9(Q-Q')
+//        + 5(R-R')
+//        + 3(B-B' + N-N')
+//        + 1(P-P')
+//        - 0.5(D-D' + S-S' + I-I')
+//        + 0.1(M-M') + ...
+//
+// KQRBNP = number of kings, queens, rooks, bishops, knights and pawns
+// D,S,I = doubled, blocked and isolated pawns
+// M = Mobility (the number of legal moves)
+
+pub fn evaluate(
+    game_state: &GameState,
+    white_moves_ref: Option<&Vec<Move>>,
+    black_moves_ref: Option<&Vec<Move>>,
+) -> Evaluation {
+    let board = game_state.get_board_ref();
+    let c = PieceCount::new(game_state);
+    // let k: i32 = 200 * (c.white_king as i32 - c.black_king as i32);
+    let queen_val: i32 = 900 * (c.white_queen as i32 - c.black_queen as i32);
+    let rook_val: i32 = 500 * (c.white_rook as i32 - c.black_rook as i32);
+    let bishop_val: i32 = 300 * (c.white_bishop as i32 - c.black_bishop as i32);
+    let knight_val: i32 = 285 * (c.white_knight as i32 - c.black_knight as i32);
+    let pawn_val: i32 = 100 * (c.white_pawn as i32 - c.black_pawn as i32);
+    let material_value =  (queen_val + rook_val + bishop_val + pawn_val) as f32;
+
+    // pawn structure evaluation
+    let (white_pawn_file, black_pawn_file) = make_pawn_count_by_file(game_state);
+    let (white_doubled_pawns, black_doubled_pawns) =
+        count_doubled_pawns(&white_pawn_file, &black_pawn_file);
+    let doubled: i32 = white_doubled_pawns as i32 - black_doubled_pawns as i32;
+    let (white_isolated_pawns, black_isolated_pawns) =
+        count_isolated_pawns(&white_pawn_file, &black_pawn_file);
+    let isolated: i32 = white_isolated_pawns as i32 - black_isolated_pawns as i32;
+    let pawn_structure:f32 = -1.0 * (doubled + isolated) as f32;
+
+    // mobility
+    let white_move_count: i32 = plmg::get_attack_mobility_count(board, Color::White) as i32;
+    let black_move_count: i32 = plmg::get_attack_mobility_count(board, Color::Black) as i32;
+
+    // let white_move_count: i32 = white_moves_ref.map_or_else(
+    //     || plmg::get_attack_mobility_count(board, Color::White) as i32,
+    //     // || 0,
+    //     |moves| moves.len() as i32,
+    // );
+    // let black_move_count: i32 = black_moves_ref.map_or_else(
+    //     || plmg::get_attack_mobility_count(board, Color::Black) as i32,
+    //     // || 0,
+    //     |moves| moves.len() as i32,
+    // );
+
+    // checkmate
+    let mated_player = if game_state.player_to_move() == Color::White && white_move_count == 0 {
+        Some(Color::White)
+    } else if game_state.player_to_move() == Color::Black && black_move_count == 0 {
+        Some(Color::Black)
+    } else {
+        None
+    };
+
+    let mobility:f32 = 1.0 * (white_move_count - black_move_count) as f32;
+    // let mobility: f32 = 0.0;
+
+    Evaluation {
+        score: material_value + mobility + pawn_structure,
+        mated_player: mated_player,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -242,278 +467,5 @@ mod tests {
                 })
             }
         });
-    }
-}
-
-#[derive(Debug)]
-pub struct PawnCountByFile {
-    pub files: [u8; 8],
-}
-
-#[derive(Debug)]
-struct PieceCount {
-    pub white_king: u8,
-    pub white_queen: u8,
-    pub white_bishop: u8,
-    pub white_knight: u8,
-    pub white_rook: u8,
-    pub white_pawn: u8,
-    pub black_king: u8,
-    pub black_queen: u8,
-    pub black_bishop: u8,
-    pub black_knight: u8,
-    pub black_rook: u8,
-    pub black_pawn: u8,
-}
-
-impl PieceCount {
-    pub fn new(game_state: &GameState) -> PieceCount {
-        let board = game_state.get_board();
-        return PieceCount {
-            white_king: board.get_piece_type_count(PieceType::King, Color::White),
-            white_queen: board.get_piece_type_count(PieceType::Queen, Color::White),
-            white_bishop: board.get_piece_type_count(PieceType::Bishop, Color::White),
-            white_knight: board.get_piece_type_count(PieceType::Knight, Color::White),
-            white_rook: board.get_piece_type_count(PieceType::Rook, Color::White),
-            white_pawn: board.get_piece_type_count(PieceType::Pawn, Color::White),
-            black_king: board.get_piece_type_count(PieceType::King, Color::Black),
-            black_queen: board.get_piece_type_count(PieceType::Queen, Color::Black),
-            black_bishop: board.get_piece_type_count(PieceType::Bishop, Color::Black),
-            black_knight: board.get_piece_type_count(PieceType::Knight, Color::Black),
-            black_rook: board.get_piece_type_count(PieceType::Rook, Color::Black),
-            black_pawn: board.get_piece_type_count(PieceType::Pawn, Color::Black),
-        };
-    }
-}
-
-//     f(p) = 200(K-K')
-//        + 9(Q-Q')
-//        + 5(R-R')
-//        + 3(B-B' + N-N')
-//        + 1(P-P')
-//        - 0.5(D-D' + S-S' + I-I')
-//        + 0.1(M-M') + ...
-//
-// KQRBNP = number of kings, queens, rooks, bishops, knights and pawns
-// D,S,I = doubled, blocked and isolated pawns
-// M = Mobility (the number of legal moves)
-
-fn count_doubled_pawns(white: &PawnCountByFile, black: &PawnCountByFile) -> (u8, u8) {
-    let mut white_doubled: u8 = 0;
-    let mut black_doubled: u8 = 0;
-    for &file in white.files.iter() {
-        if file >= 2 {
-            white_doubled += file - 1;
-        }
-    }
-    for &file in black.files.iter() {
-        if file >= 2 {
-            black_doubled += file - 1;
-        }
-    }
-    (white_doubled, black_doubled)
-}
-
-fn count_blocked_pawns(board: &GameState) -> (u8, u8) {
-    let files = board.get_files();
-    let mut white_blocked: u8 = 0;
-    let mut black_blocked: u8 = 0;
-    files.iter().for_each(|file| {
-        file.iter().for_each(|&square| {
-            let piece = square.piece();
-            if piece.is_none() {
-                return;
-            }
-            let piece = piece.unwrap();
-            if piece.piece_type != PieceType::Pawn {
-                return;
-            }
-            let direction = match piece.color {
-                Color::White => 1,
-                Color::Black => -1,
-            };
-            let next_square = square.coordinate().add(0, direction);
-            if board.has_piece(&next_square) {
-                match piece.color {
-                    Color::White => white_blocked = white_blocked + 1,
-                    Color::Black => black_blocked = black_blocked + 1,
-                }
-            }
-        })
-    });
-    (white_blocked, black_blocked)
-}
-
-// test ai::evaluator::tests::bench_make_pawn_count_by_file               ... bench:      25,077 ns/iter (+/- 767)
-// after rewriting the get_pawn_count_by_file function
-// test ai::evaluator::tests::bench_make_pawn_count_by_file               ... bench:       7,547 ns/iter (+/- 233)
-// after the second rewrite
-// test ai::evaluator::tests::bench_make_pawn_count_by_file               ... bench:         242 ns/iter (+/- 8)
-fn make_pawn_count_by_file(game_state: &GameState) -> (PawnCountByFile, PawnCountByFile) {
-    return game_state.get_board_ref().get_pawn_count_by_file();
-}
-
-//test ai::evaluator::tests::bench_make_pawn_count_by_file               ... bench:         242 ns/iter (+/- 24)
-// fn make_pawn_count_by_file(game_state: &GameState) -> (PawnCountByFile, PawnCountByFile) {
-//     let board = game_state.get_board_ref();
-//     let mut white_p = PawnCountByFile { files: [0; 8] };
-//     let mut black_p = PawnCountByFile { files: [0; 8] };
-//     for idx in 0..=7u8 {
-//         white_p.files[idx as usize] =
-//             board.get_piece_count_by_file(PieceType::Pawn, Color::White, idx);
-//         black_p.files[idx as usize] =
-//             board.get_piece_count_by_file(PieceType::Pawn, Color::Black, idx);
-//     }
-//     (white_p, black_p)
-// }
-
-/*
-before rewrite
-test ai::evaluator::tests::bench_make_pawn_count_isolated_pawns        ... bench:       4,711 ns/iter (+/- 280)
-after
-test ai::evaluator::tests::bench_make_pawn_count_isolated_pawns        ... bench:         251 ns/iter (+/- 12)
- */
-fn count_isolated_pawns(white: &PawnCountByFile, black: &PawnCountByFile) -> (u8, u8) {
-    let mut white_p: u8 = 0;
-    let mut black_p: u8 = 0;
-    for i in 0..=7usize {
-        let mut left_empty_w = true;
-        let mut left_empty_b = true;
-        if i > 0 {
-            left_empty_w = white.files[i - 1] == 0;
-            left_empty_b = black.files[i - 1] == 0;
-        }
-        let mut right_empty_w = true;
-        let mut right_empty_b = true;
-        if i < 7 {
-            right_empty_w = white.files[i + 1] == 0;
-            right_empty_b = black.files[i + 1] == 0;
-        }
-        if left_empty_w && right_empty_w {
-            white_p += white.files[i];
-        }
-        if left_empty_b && right_empty_b {
-            black_p += black.files[i];
-        }
-    }
-    (white_p, black_p)
-}
-
-#[derive(Debug, Copy, Clone)]
-pub struct Evaluation {
-    pub score: f32,
-    pub mated_player: Option<Color>,
-}
-
-impl Evaluation {
-    pub fn is_checkmate(&self) -> bool {
-        self.mated_player.is_some()
-    }
-}
-//
-// pub trait Evaluator {
-//     fn evaluate(board: &Board)-> Evaluation;
-// }
-//
-// pub struct BasicEvaluator {
-//
-// }
-//
-// impl Evaluator for BasicEvaluator {
-//     pub fn evaluate(board: &Board) -> Evaluation {
-//         let c = PieceCount::new(board);
-//         let k: i32 = 200 * (c.white_king as i32 - c.black_king as i32);
-//         let q: i32 = 9 * (c.white_queen as i32 - c.black_queen as i32);
-//         let r: i32 = 5 * (c.white_rook as i32 - c.black_rook as i32);
-//         let b: i32 = 3
-//             * (c.white_bishop as i32 - c.black_bishop as i32 + c.white_knight as i32
-//             - c.black_knight as i32);
-//         let p: i32 = 1 * (c.white_pawn as i32 - c.black_pawn as i32);
-//
-//         // pawn structure evaluation
-//         let (white_pawn_file, black_pawn_file) = make_pawn_count_by_file(board);
-//         let (white_doubled_pawns, black_doubled_pawns) =
-//             count_doubled_pawns(&white_pawn_file, &black_pawn_file);
-//         let doubled: i32 = white_doubled_pawns as i32 - black_doubled_pawns as i32;
-//         let (white_isolated_pawns, black_isolated_pawns) =
-//             count_isolated_pawns(&white_pawn_file, &black_pawn_file);
-//         let isolated: i32 = white_isolated_pawns as i32 - black_isolated_pawns as i32;
-//         let (white_blocked_pawns, black_blocked_pawns) = count_blocked_pawns(board);
-//         let blocked: i32 = (white_blocked_pawns as i32) - (black_blocked_pawns as i32);
-//         let pawn_structure = 0.5 * (doubled + isolated + blocked) as f32;
-//
-//         // mobility
-//         let white_moves = move_generator::gen_legal_moves(board, Color::White);
-//         let black_moves = move_generator::gen_legal_moves(board, Color::Black);
-//
-//         // checkmate
-//         let mated_player = if board.player_to_move == Color::White && white_moves.len() == 0 {
-//             Some(Color::White)
-//         } else if board.player_to_move == Color::Black && black_moves.len() == 0 {
-//             Some(Color::Black)
-//         } else {
-//             None
-//         };
-//
-//         let mobility = 0.1 * (white_moves.iter().len() as i32 - black_moves.iter().len() as i32) as f32;
-//
-//         Evaluation {
-//             score: (k + q + r + b + p) as f32 + mobility + pawn_structure,
-//             mated_player,
-//         }
-//     }
-// }
-
-pub fn evaluate(
-    game_state: &GameState,
-    white_moves_ref: Option<&Vec<Move>>,
-    black_moves_ref: Option<&Vec<Move>>,
-) -> Evaluation {
-    let board = game_state.get_board_ref();
-    let c = PieceCount::new(game_state);
-    let k: i32 = 200 * (c.white_king as i32 - c.black_king as i32);
-    let q: i32 = 9 * (c.white_queen as i32 - c.black_queen as i32);
-    let r: i32 = 5 * (c.white_rook as i32 - c.black_rook as i32);
-    let b: i32 = 3
-        * (c.white_bishop as i32 - c.black_bishop as i32 + c.white_knight as i32
-            - c.black_knight as i32);
-    let p: i32 = 1 * (c.white_pawn as i32 - c.black_pawn as i32);
-
-    // pawn structure evaluation
-    let (white_pawn_file, black_pawn_file) = make_pawn_count_by_file(game_state);
-    let (white_doubled_pawns, black_doubled_pawns) =
-        count_doubled_pawns(&white_pawn_file, &black_pawn_file);
-    let doubled: i32 = white_doubled_pawns as i32 - black_doubled_pawns as i32;
-    let (white_isolated_pawns, black_isolated_pawns) =
-        count_isolated_pawns(&white_pawn_file, &black_pawn_file);
-    let isolated: i32 = white_isolated_pawns as i32 - black_isolated_pawns as i32;
-    let pawn_structure = 0.5 * (doubled + isolated) as f32;
-
-    // mobility
-    let white_move_count: i32 = white_moves_ref.map_or_else(
-        || plmg::get_attack_mobility_count(board, Color::White) as i32,
-        // || 0,
-        |moves| moves.len() as i32,
-    );
-    let black_move_count: i32 = black_moves_ref.map_or_else(
-        || plmg::get_attack_mobility_count(board, Color::Black) as i32,
-        // || 0,
-        |moves| moves.len() as i32,
-    );
-
-    // checkmate
-    let mated_player = if game_state.player_to_move() == Color::White && white_move_count == 0 {
-        Some(Color::White)
-    } else if game_state.player_to_move() == Color::Black && black_move_count == 0 {
-        Some(Color::Black)
-    } else {
-        None
-    };
-
-    let mobility = 0.1 * (white_move_count - black_move_count) as f32;
-
-    Evaluation {
-        score: (k + q + r + b + p) as f32 + mobility + pawn_structure,
-        mated_player,
     }
 }

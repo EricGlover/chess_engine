@@ -92,7 +92,9 @@ impl Move {
         rook_to: Coordinate,
         from: Coordinate,
         to: Coordinate,
+        previous_castle_rights: &CastlingRights,
     ) -> Move {
+        let castle_rights_removed = CastlingRights::new(previous_castle_rights.king_side(), previous_castle_rights.queen_side());
         Move {
             piece: PieceType::King,
             from,
@@ -101,7 +103,7 @@ impl Move {
             old_en_passant_target: None,
             old_half_move_clock: None,
             move_type: MoveType::Castling { rook_from, rook_to },
-            castling_rights_removed: CastlingRights::new(true, true),
+            castling_rights_removed: castle_rights_removed,
             castling_rights_removed_opponent: CastlingRights::new(false, false),
             captured: None,
             is_check: false,
@@ -109,15 +111,15 @@ impl Move {
         }
     }
 
-    pub fn castle_king_side(color: Color) -> Move {
+    pub fn castle_king_side(previous_castle_rights: &CastlingRights, color: Color) -> Move {
         let (from, to) = Move::king_side_castle_coordinates(color, PieceType::King);
         let (rook_from, rook_to) = Move::king_side_castle_coordinates(color, PieceType::Rook);
-        Move::make_castling_move(rook_from, rook_to, from, to)
+        Move::make_castling_move(rook_from, rook_to, from, to, previous_castle_rights)
     }
-    pub fn castle_queen_side(color: Color) -> Move {
+    pub fn castle_queen_side(previous_castle_rights: &CastlingRights, color: Color) -> Move {
         let (from, to) = Move::queen_side_castle_coordinates(color, PieceType::King);
         let (rook_from, rook_to) = Move::queen_side_castle_coordinates(color, PieceType::Rook);
-        Move::make_castling_move(rook_from, rook_to, from, to)
+        Move::make_castling_move(rook_from, rook_to, from, to, previous_castle_rights)
     }
     pub fn is_king_side_castle(&self) -> bool {
         match self.move_type {

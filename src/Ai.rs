@@ -43,7 +43,7 @@ impl Ai {
         Ai {
             rng: rand::thread_rng(),
             color,
-            default_search_depth: 4,
+            default_search_depth: 6,
             started_at: Instant::now(),
             time_elapsed_during_search: None,
             total_time_elapsed_during_search: None,
@@ -102,30 +102,27 @@ impl Ai {
         board: &mut GameState,
         player_moving: Color,
         depth_to_go: u8,
-        mut lower_bound: Option<evaluator::Evaluation>,
-        mut upper_bound: Option<evaluator::Evaluation>,
+        mut lower_bound: Option<f32>,
+        mut upper_bound: Option<f32>,
     ) -> (evaluator::Evaluation, Option<Move>) {
         println!("alpha beta {}", depth_to_go);
         // transposition table
-        let hash = self.hasher.hash_board(board);
-        if self.transposition_table.contains_key(&hash) {
-            let (depth, eval, best_move) = self.transposition_table.get(&hash).unwrap();
-            if *depth >= depth_to_go {
-                self.transposition_table_hits = self.transposition_table_hits + 1;
-                return (eval.clone(), best_move.clone());
-            }
-        }
+        // let hash = self.hasher.hash_board(board);
+        // if self.transposition_table.contains_key(&hash) {
+        //     let (depth, eval, best_move) = self.transposition_table.get(&hash).unwrap();
+        //     if *depth >= depth_to_go {
+        //         self.transposition_table_hits = self.transposition_table_hits + 1;
+        //         return (eval.clone(), best_move.clone());
+        //     }
+        // }
 
         // end of recursion, depth_to_go = 0 so eval the board
+        // also end recursion if someone lost a king
         if depth_to_go == 0 {
             self.minimax_calls = self.minimax_calls + 1;
             return (evaluator::evaluate(board, None, None), None);
         }
-        // also end recursion if someone lost a king
-        let kings = board.get_kings();
-        if kings.len() < 2 {
-            return (evaluator::evaluate(board, None, None), None);
-        }
+
         // search moves
         let mut moves_to_try = gen_legal_moves(board, player_moving);
         // this should cover checkmates so we don't try to search further,
@@ -140,8 +137,9 @@ impl Ai {
             Color::Black => Some(&moves_to_try),
         };
 
+        // if no moves return an eval
         if moves_to_try.len() == 0 {
-            return (evaluator::evaluate(board, white_moves, black_moves), None);
+            return (evaluator::evaluate(board, None, None), None);
         }
 
         // dfs with bounds
@@ -191,14 +189,14 @@ impl Ai {
             // if score is lower than lower bound then white will object
             if Color::Black == player_moving
                 && lower_bound.is_some()
-                && eval.score < lower_bound.as_ref().unwrap().score
+                && eval.score < lower_bound.unwrap()
             {
                 return (best_eval.unwrap(), best_move);
             }
             // if score is higher than higher bound then black will object
             if Color::White == player_moving
                 && upper_bound.is_some()
-                && eval.score > upper_bound.as_ref().unwrap().score
+                && eval.score > upper_bound.unwrap()
             {
                 return (best_eval.unwrap(), best_move);
             }
@@ -206,31 +204,34 @@ impl Ai {
             // set bounds
             // if no bounds set, then set them
             if Color::White == player_moving && lower_bound.is_none() {
-                lower_bound = Some(eval.clone());
+                lower_bound = Some(eval.score);
                 best_move = Some(*a_move);
             }
             if Color::Black == player_moving && upper_bound.is_none() {
-                upper_bound = Some(eval.clone());
+                upper_bound = Some(eval.score);
                 best_move = Some(*a_move);
             }
         }
         let result = (best_eval.unwrap(), best_move);
-        if self.transposition_table.contains_key(&hash) {
-            let (depth, eval, best_move) = self.transposition_table.get(&hash).unwrap();
-            if *depth < depth_to_go {
-                self.transposition_table.insert(hash, (depth_to_go.clone(), result.0.clone(), result.1.clone()));
-            }
-        } else {
-            self.transposition_table.insert(hash, (depth_to_go.clone(), result.0.clone(), result.1.clone()));
-        }
+        // if self.transposition_table.contains_key(&hash) {
+        //     let (depth, eval, best_move) = self.transposition_table.get(&hash).unwrap();
+        //     if *depth < depth_to_go {
+        //         self.transposition_table.insert(
+        //             hash,
+        //             (depth_to_go.clone(), result.0.clone(), result.1.clone()),
+        //         );
+        //     }
+        // } else {
+        //     self.transposition_table.insert(
+        //         hash,
+        //         (depth_to_go.clone(), result.0.clone(), result.1.clone()),
+        //     );
+        // }
 
         return result;
     }
 
-    fn choose_random_move(
-        &mut self,
-        board: &GameState,
-    ) -> (evaluator::Evaluation, Option<Move>) {
+    fn choose_random_move(&mut self, board: &GameState) -> (evaluator::Evaluation, Option<Move>) {
         let mut moves = gen_legal_moves(board, self.color);
         if moves.len() == 0 {
             return (evaluator::evaluate(board, None, None), None);
@@ -313,7 +314,9 @@ impl Ai {
         self.transposition_table_hits = 0;
         self.transposition_table = HashMap::new();
         let (eval, best_move): (Evaluation, Option<Move>) = match self.ai_search_function {
-            AiSearch::AlphaBeta => self.alpha_beta(&mut board.clone_to_game_state(), color, depth, None, None),
+            AiSearch::AlphaBeta => {
+                self.alpha_beta(&mut board.clone_to_game_state(), color, depth, None, None)
+            }
             AiSearch::Minimax => self.minimax(&mut board.clone_to_game_state(), color, depth),
             AiSearch::Random => self.choose_random_move(board),
         };
@@ -361,18 +364,19 @@ impl Ai {
     }
 }
 
-
-
 #[cfg(test)]
 mod bench {
     use super::*;
-    use crate::{chess_notation::fen_reader::{make_board, make_initial_board}, game_state};
-    use Ai;
+    use crate::{
+        chess_notation::fen_reader::{make_board, make_initial_board},
+        game_state,
+    };
     use std::time::{Duration, Instant};
     use test::Bencher;
+    use Ai;
 
     #[bench]
-    fn alpha_beta_0(b:&mut Bencher) {
+    fn alpha_beta_0(b: &mut Bencher) {
         let mut game_state = GameState::starting_game();
         let mut ai = Ai::new_with_search(Color::White, AiSearch::AlphaBeta);
         b.iter(|| {
@@ -380,7 +384,7 @@ mod bench {
         })
     }
     #[bench]
-    fn alpha_beta_1(b:&mut Bencher) {
+    fn alpha_beta_1(b: &mut Bencher) {
         let mut game_state = GameState::starting_game();
         let mut ai = Ai::new_with_search(Color::White, AiSearch::AlphaBeta);
         b.iter(|| {
@@ -388,7 +392,7 @@ mod bench {
         })
     }
     #[bench]
-    fn alpha_beta_2(b:&mut Bencher) {
+    fn alpha_beta_2(b: &mut Bencher) {
         let mut game_state = GameState::starting_game();
         let mut ai = Ai::new_with_search(Color::White, AiSearch::AlphaBeta);
         b.iter(|| {
@@ -396,9 +400,65 @@ mod bench {
         })
     }
     #[bench]
-    fn alpha_beta_3(b:&mut Bencher) {
+    fn alpha_beta_3(b: &mut Bencher) {
         let mut game_state = GameState::starting_game();
         let mut ai = Ai::new_with_search(Color::White, AiSearch::AlphaBeta);
+        b.iter(|| {
+            ai.make_move(&mut game_state, Some(3));
+        })
+    }
+    #[bench]
+    fn alpha_beta_4(b: &mut Bencher) {
+        let mut game_state = GameState::starting_game();
+        let mut ai = Ai::new_with_search(Color::White, AiSearch::AlphaBeta);
+        b.iter(|| {
+            ai.make_move(&mut game_state, Some(4));
+        })
+    }
+    // #[bench]
+    // fn alpha_beta_5(b:&mut Bencher) {
+    //     let mut game_state = GameState::starting_game();
+    //     let mut ai = Ai::new_with_search(Color::White, AiSearch::AlphaBeta);
+    //     b.iter(|| {
+    //         ai.make_move(&mut game_state, Some(5));
+    //     })
+    // }
+    // #[bench]
+    // fn alpha_beta_6(b:&mut Bencher) {
+    //     let mut game_state = GameState::starting_game();
+    //     let mut ai = Ai::new_with_search(Color::White, AiSearch::AlphaBeta);
+    //     b.iter(|| {
+    //         ai.make_move(&mut game_state, Some(6));
+    //     })
+    // }
+    #[bench]
+    fn minimax_0(b: &mut Bencher) {
+        let mut game_state = GameState::starting_game();
+        let mut ai = Ai::new_with_search(Color::White, AiSearch::Minimax);
+        b.iter(|| {
+            ai.make_move(&mut game_state, Some(0));
+        })
+    }
+    #[bench]
+    fn minimax_1(b: &mut Bencher) {
+        let mut game_state = GameState::starting_game();
+        let mut ai = Ai::new_with_search(Color::White, AiSearch::Minimax);
+        b.iter(|| {
+            ai.make_move(&mut game_state, Some(1));
+        })
+    }
+    #[bench]
+    fn minimax_2(b: &mut Bencher) {
+        let mut game_state = GameState::starting_game();
+        let mut ai = Ai::new_with_search(Color::White, AiSearch::Minimax);
+        b.iter(|| {
+            ai.make_move(&mut game_state, Some(2));
+        })
+    }
+    #[bench]
+    fn minimax_3(b: &mut Bencher) {
+        let mut game_state = GameState::starting_game();
+        let mut ai = Ai::new_with_search(Color::White, AiSearch::Minimax);
         b.iter(|| {
             ai.make_move(&mut game_state, Some(3));
         })
@@ -414,13 +474,15 @@ mod bench {
     // }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{chess_notation::fen_reader::{self, make_board, make_initial_board}, game_state, move_generator};
-    use Ai;
+    use crate::{
+        chess_notation::fen_reader::{self, make_board, make_initial_board},
+        game_state, move_generator,
+    };
     use std::time::{Duration, Instant};
+    use Ai;
 
     // #[test]
     // fn bug_alpha_beta() {
@@ -441,9 +503,9 @@ mod tests {
         fn test_initial_board_at_depth(depth: u8) {
             let mut ai = Ai::new(Color::White);
             let mut game_state = GameState::starting_game();
-            let (eval, best_move) =
-                ai.alpha_beta(&mut game_state, Color::White, depth, None, None);
-            let (expected_eval, expected_best_move) = ai.minimax(&mut game_state, Color::White, depth);
+            let (eval, best_move) = ai.alpha_beta(&mut game_state, Color::White, depth, None, None);
+            let (expected_eval, expected_best_move) =
+                ai.minimax(&mut game_state, Color::White, depth);
 
             assert!(best_move.is_some(), "there is a best move");
             assert_eq!(
@@ -479,12 +541,7 @@ mod tests {
             ai.make_move(&mut game_state, Some(3));
         }
 
-
         let mut ai = Ai::new(Color::Black);
         ai.make_move(&mut game_state, Some(4));
-
-
-
-
     }
 }

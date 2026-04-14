@@ -155,15 +155,26 @@ impl BoardTrait for GameState {
                 // if it gets promoted, then switch it's type
                 MoveType::Promotion(promoted_to) => {
                     piece_to_move.piece_type = promoted_to.clone();
+                    // is this a capture
+                    if m.captured.is_some() {
+                        let removed_piece = self.remove_piece_at(&m.to);
+                    }
                 }
-                MoveType::EnPassant => {}
-                MoveType::Move => {}
+                MoveType::EnPassant => {
+                    // is this a capture
+                    if m.captured.is_some() {
+                        let removed_piece = self.remove_piece_at(&self.en_passant_target.unwrap());
+                    }
+                }
+                MoveType::Move => {
+                    // is this a capture
+                    if m.captured.is_some() {
+                        let removed_piece = self.remove_piece_at(&m.to);
+                    }
+                }
             }
             // move the piece ( update the piece, piece map , square, and board )
-            // is this a capture
-            if m.captured.is_some() {
-                let removed_piece = self.remove_piece_at(&m.to);
-            }
+
             self.pieces.insert(from_idx, piece_to_move);
             self.remove_piece(&piece_to_move);
             self.place_piece(piece_to_move, &m.to);
@@ -178,14 +189,6 @@ impl BoardTrait for GameState {
         if let Some(mut piece_to_move) = self.pieces.remove(&to_idx) {
             // roll back white to move flag
             self.player_to_move = piece_to_move.color;
-
-            // @todo:::
-            // update 50 move rule draw counter
-            // if m.captured.is_none() || piece_to_move.piece_type != PieceType::Pawn {
-            //     self.half_move_clock = self.half_move_clock - 1;
-            // } else {
-            //     self.half_move_clock = 0;
-            // }
 
             // roll back castling rights changes
             if m.castling_rights_removed().some() {
@@ -219,11 +222,12 @@ impl BoardTrait for GameState {
                 self.full_move_number = self.full_move_number - 1;
             }
 
-            // en passant
+            // roll back en passant
             self.en_passant_target = m.old_en_passant_target;
+            // roll back half move clock
             self.half_move_clock = m.old_half_move_clock.unwrap();
 
-            // get piece to move
+            // special logic needed for different move types
             match m.move_type() {
                 MoveType::Castling { rook_from, rook_to } => {
                     // move the rook back
@@ -237,20 +241,35 @@ impl BoardTrait for GameState {
                 MoveType::EnPassant => {}
                 MoveType::Move => {}
             }
+            // add it to our hash map before we remove it from everything else
             self.pieces.insert(to_idx, piece_to_move);
             let piece_to_move = self.remove_piece(&piece_to_move);
-            // move the piece ( update the piece, piece map , square, and board )
-            // is this a capture
+
+
+            // handle putting back captured pieces
             if m.captured.is_some() {
-                self.place_piece(
-                    Piece::new(
+                if m.move_type() == &MoveType::EnPassant {
+                    let en_passant_at = Coordinate::new(m.to.x(), m.from.y());
+                    self.place_piece(
+                        Piece::new(
+                            piece_to_move.color.opposite(),
+                            m.captured.unwrap(),
+                            Some(en_passant_at),
+                        ),
+                        &en_passant_at,
+                    );
+                } else {
+                    let mut p = Piece::new(
                         piece_to_move.color.opposite(),
                         m.captured.unwrap(),
                         Some(m.to),
-                    ),
-                    &m.to,
-                );
+                    );
+                    self.place_piece(p, &m.to);
+                }
             }
+
+
+            // move the piece ( update the piece, piece map , square, and board )
             self.place_piece(piece_to_move, &m.from);
         } else {
             println!("{:?}", m);
@@ -832,20 +851,11 @@ impl GameState {
             None
         } else if piece.piece_type == PieceType::King {
             if current.both() {
-                Some(CastlingRights::new(
-                    true,
-                    true,
-                ))
+                Some(CastlingRights::new(true, true))
             } else if current.king_side() {
-                Some(CastlingRights::new(
-                    true,
-                    false,
-                ))
+                Some(CastlingRights::new(true, false))
             } else if current.queen_side() {
-                Some(CastlingRights::new(
-                    false,
-                    true,
-                ))
+                Some(CastlingRights::new(false, true))
             } else {
                 None
             }
@@ -853,12 +863,12 @@ impl GameState {
             // which rook bro ?
             let piece_at = piece.at().unwrap();
             let rook_at_kingside = match piece.color {
-                Color::White => &Coordinate::new(8,1) == piece_at,
-                Color::Black => &Coordinate::new(8,8) == piece_at,
+                Color::White => &Coordinate::new(8, 1) == piece_at,
+                Color::Black => &Coordinate::new(8, 8) == piece_at,
             };
             let rook_at_queenside = match piece.color {
-                Color::White => &Coordinate::new(1,1) == piece_at,
-                Color::Black => &Coordinate::new(1,8) == piece_at,
+                Color::White => &Coordinate::new(1, 1) == piece_at,
+                Color::Black => &Coordinate::new(1, 8) == piece_at,
             };
             if current.king_side() && rook_at_kingside {
                 Some(CastlingRights::new(true, false))
@@ -1048,7 +1058,9 @@ impl GameState {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{chess_notation::fen_reader, move_generator};
+    use crate::{
+        board_console_printer::print_bit_board, chess_notation::fen_reader, move_generator,
+    };
 
     fn assert_valid_state(game_state: &GameState) {
         let squares = game_state.squares_list();
