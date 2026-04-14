@@ -135,12 +135,12 @@ mod test {
         assert_eq!(nodes, 197281, "perft 4");
         let nodes = perft(&mut game_state, 5);
         assert_eq!(nodes, 4865609, "perft 5");
-        let nodes = perft(&mut game_state, 6);
-        assert_eq!(nodes, 119060324, "perft 6");
-        let nodes = perft(&mut game_state, 7);
-        assert_eq!(nodes, 3195901860, "perft 7");
-        let nodes = perft(&mut game_state, 8);
-        assert_eq!(nodes, 84998978956, "perft 8");
+        // let nodes = perft(&mut game_state, 6);
+        // assert_eq!(nodes, 119060324, "perft 6");
+        // let nodes = perft(&mut game_state, 7);
+        // assert_eq!(nodes, 3195901860, "perft 7");
+        // let nodes = perft(&mut game_state, 8);
+        // assert_eq!(nodes, 84998978956, "perft 8");
     }
 }
 

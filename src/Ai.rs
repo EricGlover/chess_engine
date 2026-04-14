@@ -544,8 +544,10 @@ mod tests {
         for b_m in b_moves.iter_mut() {
             println!("{}", b_m);
             game_state.make_move_mut(b_m);
+            println!("make move done");
             let mut ai = Ai::new(Color::White);
             ai.make_move(&mut game_state, Some(3));
+            game_state.unmake_move_mut(b_m);
         }
 
         let mut ai = Ai::new(Color::Black);

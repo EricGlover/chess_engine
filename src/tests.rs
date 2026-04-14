@@ -25,49 +25,7 @@ mod test {
     use crate::chess_notation::fen_reader;
     use crate::move_generator::*;
     use crate::game_state::GameState;
-
-    /*
-    black player choose move
-Qe6
-Game time elasped : 225.456525662s
-white to move
-
-(15. Bxd7+ is white's move)
-
-    thread 'main' panicked at 'tried to remove piece
-piece not found at idx 57', src/game_state.rs:524:13
-stack backtrace:
-   0: rust_begin_unwind
-             at /rustc/4d6d601c8a83284d6b23c253a3e2a060fd197316/library/std/src/panicking.rs:584:5
-   1: core::panicking::panic_fmt
-             at /rustc/4d6d601c8a83284d6b23c253a3e2a060fd197316/library/core/src/panicking.rs:142:14
-   2: chess_engine::game_state::GameState::remove_piece_at
-             at ./src/game_state.rs:524:13
-   3: <chess_engine::game_state::GameState as chess_engine::board::board_trait::BoardTrait>::make_move_mut
-             at ./src/game_state.rs:152:44
-   4: chess_engine::ai::Ai::alpha_beta
-             at ./src/ai.rs:280:13
-   5: chess_engine::ai::Ai::alpha_beta
-             at ./src/ai.rs:281:30
-   6: chess_engine::ai::Ai::alpha_beta
-             at ./src/ai.rs:281:30
-   7: chess_engine::ai::Ai::alpha_beta
-             at ./src/ai.rs:281:30
-   8: chess_engine::ai::Ai::search
-             at ./src/ai.rs:437:36
-   9: chess_engine::ai::Ai::make_move
-             at ./src/ai.rs:477:17
-  10: chess_engine::game::Game::run_sim_game
-             at ./src/game.rs:212:25
-  11: chess_engine::main
-             at ./src/main.rs:94:13
-  12: core::ops::function::FnOnce::call_once
-             at /rustc/4d6d601c8a83284d6b23c253a3e2a060fd197316/library/core/src/ops/function.rs:248:5
-note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
-     */
-
-
-
+    
     #[test]
     fn test_opera_game() {
         let fail_fen = "4kb1r/p2r1ppp/4qn2/1B2p1B1/4P3/1Q6/PPP2PPP/2KR4 w k - 10 20";
