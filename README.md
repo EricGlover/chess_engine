@@ -2,14 +2,19 @@
 Chess engine in Rust
 
 ## Run
-Watch the AI play itself.
-```bash
-cargo run --release -- --ai
-```
 Play against the AI
 ```bash
-cargo run --release
+cargo run -r
 ```
+Watch the AI play itself.
+```bash
+cargo run -r -- --ai
+```
+Watch the Opera Game, while the AI suggests moves
+```bash
+cargo run -r -- --sim
+```
+
 Just enter your moves in algebraic notation. https://en.wikipedia.org/wiki/Algebraic_notation_(chess)
 
 Running the project require the rust nightly build because I'm using Bencher at the moment.
@@ -23,43 +28,56 @@ You could probably write your own using the board package and then writing the s
 The chess programming wiki https://www.chessprogramming.org/Main_Page goes pretty in depth about Searching.
 
 ### Project Current State
-The project is currently setup to play a chess game on the command line, you'll play against my AI which is quite bad.
-The AI uses a bounded depth first search (alpha-beta searching) over all possible legal moves to evaluate all board states 4 moves ahead (4 ply).
-I do have a FEN reader that works that you can probably use btw, that thing is actually pretty handy.
+The project is currently setup to play a chess game on the command line, you'll play against my AI which is fairly bad.
+The AI uses a bounded depth first search (alpha-beta searching) over the possible legal moves to evaluate all board states 6 moves ahead (6 ply).
+I do have a FEN & PGN reader that works that you can probably use btw, that thing is actually pretty handy.
 
 
 ### Chess Engine Technical Overview
+#### Features
+* Bit boards
+* Alpha-Beta Searching
+* Partially Precomputed Attack Arrays
+* Legal Move & Pseudo-legal move generation
+* PGN reader/printer
+* FEN reader/printer
+
+#### Metrics
+* Legal Move Generation seems to be around 1 Million nodes per second.
+
 #### Board Representation 
-```Rust 
+I switched from a mail-box board representation (board.rs) to a bit board one (bit_board.rs). GameState carries all the needed info that's not known from the piece locations themselves. It also has a lookup table of piece locations.
+```Rust
 #[derive(Debug, Eq, PartialEq)]
-pub struct Board {
+pub struct GameState {
     player_to_move: Color,
     white_castling_rights: CastlingRights,
     black_castling_rights: CastlingRights,
     en_passant_target: Option<Coordinate>,
-    half_move_clock: u32,
-    full_move_number: u32,
-    squares: Vec<Vec<Square>>,
+    half_move_clock: u16,
+    full_move_number: u16,
+    board: BitBoard,
+    dirty_squares: bool,
+    dirty_pieces: bool,
+    squares: Vec<Square>,
+    pieces: HashMap<u8, Piece>,
+    is_drawn: bool,
 }
 ```
-
-The board is a very simple mailbox representation https://www.chessprogramming.org/Mailbox, where
-the pieces reside in a 2d vector.
-
-
-#### Board Evaluation algorithm
+```Rust 
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+pub struct BitBoard {
+    pieces: u64,
+    white_pieces: u64,
+    black_pieces: u64,
+    pawns: u64,
+    knights: u64,
+    bishops: u64,
+    rooks: u64,
+    queens: u64,
+    kings: u64,
+}
 ```
-f(p) = 200(K-K')
-   + 9(Q-Q')
-   + 5(R-R')
-   + 3(B-B' + N-N')
-   + 1(P-P')
-   - 0.5(D-D' + S-S' + I-I')
-   + 0.1(M-M')
-```
-KQRBNP = number of kings, queens, rooks, bishops, knights and pawns
-D,S,I = doubled, blocked and isolated pawns
-M = Mobility (the number of legal moves)
 
 #### Searching 
 Alpha Beta Search . The algorithm is really simple and something people normally do when playing chess. 
@@ -71,28 +89,43 @@ the next move you find that black has a killer response scored at -1.5; here you
 like in minimax, but instead since you know the previous move had a better score (.4) you skip evaluating anything else with this move
 and move on to the next one.
 
+#### Partially Precomputed Attack Maps
+I opted not to try magic numbers yet. So the sliding pieces moves are all generated with just bit manipulation. 
+
+#### Legal Move & Pseudo-legal move generation
+If you're looking to try and write a chess engine, I would definitely take a look here. There's a lot of optimization
+that could be done here but it's worth noting this : take the time to find pinned pieces and checks when you first start writing your legal move generator.
+```Rust
+pub fn gen_legal_moves(game_state: &GameState, color: Color) -> Vec<Move> {
+    // look for pins
+    let pinned_pieces = find_pinned_pieces(game_state, color);
+    // look for checks
+    let checks = generate_checks(game_state, color);
+    let mut moves = gen_pseudo_legal_moves(game_state, color);
+
+    if checks.len() > 0 {
+        let resolve_checks_moves =
+            find_moves_to_resolve_check(game_state, &checks, &moves, Some(&pinned_pieces), color);
+        return resolve_checks_moves;
+    }
+    let king = game_state.get_king(color).unwrap();
+    let king_at = king.at().unwrap();
+    return moves
+        .into_iter()
+        .filter(|m| {
+            /* stuff */
+```
 
 ### Running 
 Running the project require the rust nightly build because I'm using Bencher at the moment.
 https://rust-lang.github.io/rustup/concepts/channels.html
 
 ### Plans
-- Try bit boards ?
-- Threads for searching
-- Fully Implement algebraic notation parsing
-- Bit boards
-- DONE: Implement Alpha - Beta Searching
-- DONE: Transposition Tables
+
 
 ### Short Term Goals
-- Finish Chess Notation
-  - Parsing && Outputting moves with Algebraic notation
-  - Game From PGN
-
-- benchmark board cloning
-- Implement draws
-  - I think this is why perft is failing at depth 3
-- Switch to use Result<> more often
-- Try optimizing the move generation
-- Test / benchmark
-  https://crates.io/crates/chess
+* Search Improvements :
+    * Pre-ordering moves for searching
+* Move generation improvements
+    * Legal move generation refactor
+    * Precompute slider attacks with magic numbers
